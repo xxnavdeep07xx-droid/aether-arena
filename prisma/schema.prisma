@@ -1,0 +1,367 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Session
+// ============================================
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ============================================
+// Account (NextAuth)
+// ============================================
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// ============================================
+// Profile
+// ============================================
+model Profile {
+  id                     String              @id @default(cuid())
+  username               String              @unique
+  displayName            String?
+  avatarUrl              String?
+  bio                    String              @default("")
+  discordId              String?
+  discordUsername        String?
+  isAdmin                Boolean             @default(false)
+  isBanned               Boolean             @default(false)
+  league                 String              @default("bronze")
+  leaguePoints           Int                 @default(0)
+  totalTournamentsPlayed Int                 @default(0)
+  totalWins              Int                 @default(0)
+  totalKills             Int                 @default(0)
+  totalDeaths            Int                 @default(0)
+  totalPrizeWon          Int                 @default(0)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  accounts                  Account[]
+  credentials               AccountCredential?
+  sessions                  Session[]
+  createdTournaments        Tournament[]       @relation("TournamentCreator")
+  registrations             TournamentRegistration[]
+  matchParticipants          MatchParticipant[]
+  leaderboardEntries        Leaderboard[]
+  notifications             Notification[]
+  announcements             Announcement[]
+  createdStreamSchedules    StreamSchedule[]
+  updatedPlatformSettings   PlatformSetting[]
+
+  @@index([league])
+  @@index([leaguePoints])
+}
+
+// ============================================
+// Game
+// ============================================
+model Game {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  iconUrl     String   @default("")
+  bannerUrl   String   @default("")
+  maxTeamSize Int      @default(1)
+  description String   @default("")
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  tournaments   Tournament[]
+  leaderboardEntries Leaderboard[]
+
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+// ============================================
+// Tournament
+// ============================================
+model Tournament {
+  id                   String    @id @default(cuid())
+  title                String
+  description          String    @default("")
+  gameId               String
+  coverImageUrl        String    @default("")
+  format               String    @default("solo")
+  entryFee             Int       @default(0)
+  prizePool            Int       @default(0)
+  maxPlayers           Int
+  registeredPlayers    Int       @default(0)
+  status               String    @default("upcoming")
+  matchMode            String    @default("")
+  map                  String    @default("")
+  roomId               String?
+  roomPassword         String?
+  customRules          String    @default("")
+  streamScheduled      Boolean   @default(false)
+  streamPlatform       String    @default("")
+  streamUrl            String    @default("")
+  streamStartTime      DateTime?
+  streamViewers        Int       @default(0)
+  registrationStart    DateTime  @default(now())
+  registrationEnd      DateTime?
+  startTime            DateTime?
+  endTime              DateTime?
+  createdById          String?
+  isFeatured           Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  game           Game                   @relation(fields: [gameId], references: [id])
+  createdBy      Profile?               @relation("TournamentCreator", fields: [createdById], references: [id])
+  registrations  TournamentRegistration[]
+  matches        Match[]
+  streamSchedules StreamSchedule[]
+
+  @@index([gameId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([startTime])
+  @@index([createdAt])
+}
+
+// ============================================
+// TournamentRegistration
+// ============================================
+model TournamentRegistration {
+  id                  String    @id @default(cuid())
+  tournamentId        String
+  playerId            String
+  paymentStatus       String    @default("pending")
+  paymentMethod       String?
+  paymentReference    String?
+  paymentScreenshotUrl String?
+  paidAmount          Int       @default(0)
+  createdAt           DateTime  @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player     Profile    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, playerId])
+  @@index([playerId])
+  @@index([paymentStatus])
+}
+
+// ============================================
+// Match
+// ============================================
+model Match {
+  id            String    @id @default(cuid())
+  tournamentId  String
+  round         String    @default("1")
+  matchNumber   Int       @default(1)
+  status        String    @default("scheduled")
+  scheduledStart DateTime?
+  actualStart   DateTime?
+  endTime       DateTime?
+  roomId        String?
+  roomPassword  String?
+  createdAt     DateTime  @default(now())
+
+  tournament    Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  participants  MatchParticipant[]
+
+  @@index([tournamentId])
+  @@index([status])
+}
+
+// ============================================
+// MatchParticipant
+// ============================================
+model MatchParticipant {
+  matchId     String
+  playerId    String
+  kills       Int    @default(0)
+  deaths      Int    @default(0)
+  assists     Int    @default(0)
+  score       Int    @default(0)
+  placement   Int?
+  prizeWon    Int    @default(0)
+  createdAt   DateTime @default(now())
+
+  match  Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player Profile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([matchId, playerId])
+}
+
+// ============================================
+// Leaderboard
+// ============================================
+model Leaderboard {
+  id           String   @id @default(cuid())
+  playerId     String
+  gameId       String
+  totalPoints  Int      @default(0)
+  totalWins    Int      @default(0)
+  totalMatches Int      @default(0)
+  totalKills   Int      @default(0)
+  totalDeaths  Int      @default(0)
+  kdRatio      Float    @default(0)
+  avgPlacement Float    @default(0)
+  winRate      Float    @default(0)
+  period       String   @default("all_time")
+  rank         Int?
+  updatedAt    DateTime @updatedAt
+
+  player Profile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  game   Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, gameId, period])
+  @@index([gameId, period])
+  @@index([period, totalPoints])
+  @@index([playerId])
+}
+
+// ============================================
+// Notification
+// ============================================
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info")
+  link      String   @default("")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+// ============================================
+// Announcement
+// ============================================
+model Announcement {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  type        String    @default("info")
+  isActive    Boolean   @default(true)
+  createdById String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+
+  createdBy Profile @relation(fields: [createdById], references: [id])
+
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+// ============================================
+// StreamSchedule
+// ============================================
+model StreamSchedule {
+  id             String    @id @default(cuid())
+  title          String
+  description    String    @default("")
+  tournamentId   String?
+  scheduledStart DateTime
+  scheduledEnd   DateTime?
+  platform       String    @default("")
+  streamUrl      String    @default("")
+  thumbnailUrl   String    @default("")
+  status         String    @default("scheduled")
+  peakViewers    Int       @default(0)
+  avgViewers     Int       @default(0)
+  isFeatured     Boolean   @default(false)
+  createdById    String
+  createdAt      DateTime  @default(now())
+
+  tournament Tournament? @relation(fields: [tournamentId], references: [id])
+  createdBy  Profile     @relation(fields: [createdById], references: [id])
+
+  @@index([status])
+  @@index([scheduledStart])
+  @@index([isFeatured])
+}
+
+// ============================================
+// AffiliateLink
+// ============================================
+model AffiliateLink {
+  id           String   @id @default(cuid())
+  name         String
+  platform     String   @default("")
+  url          String
+  slug         String   @unique
+  description  String   @default("")
+  category     String   @default("")
+  imageUrl     String   @default("")
+  price        Int      @default(0)
+  originalPrice Int     @default(0)
+  clicks       Int      @default(0)
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([isActive])
+  @@index([category])
+  @@index([sortOrder])
+}
+
+// ============================================
+// PlatformSetting
+// ============================================
+model PlatformSetting {
+  key        String   @id
+  value      String
+  updatedAt  DateTime @updatedAt
+  updatedById String?
+
+  updatedBy Profile? @relation(fields: [updatedById], references: [id])
+}
+
+// ============================================
+// AccountCredential (simple email/password)
+// ============================================
+model AccountCredential {
+  id         String  @id @default(cuid())
+  userId     String  @unique
+  email      String  @unique
+  password   String
+  createdAt  DateTime @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+}

@@ -1,0 +1,54 @@
+import { NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth'
+
+export async function GET() {
+  try {
+    const session = await getSession()
+
+    if (!session) {
+      return NextResponse.json({ user: null })
+    }
+
+    // Get fresh profile data with email
+    const profile = await db.profile.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        bio: true,
+        isAdmin: true,
+        isBanned: true,
+        league: true,
+        leaguePoints: true,
+        totalTournamentsPlayed: true,
+        totalWins: true,
+        totalKills: true,
+        totalDeaths: true,
+        totalPrizeWon: true,
+        credentials: {
+          select: { email: true },
+        },
+      },
+    })
+
+    if (!profile) {
+      return NextResponse.json({ user: null })
+    }
+
+    return NextResponse.json({
+      user: {
+        ...profile,
+        email: profile.credentials?.email || null,
+        credentials: undefined,
+      },
+    })
+  } catch (error) {
+    console.error('Get current user error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
