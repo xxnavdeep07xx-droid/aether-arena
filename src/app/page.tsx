@@ -179,14 +179,14 @@ function LandingSkeleton() {
     <div className="min-h-screen bg-arena-dark">
       {/* Skeleton Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-arena-dark/80 backdrop-blur-xl border-b border-arena-border">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="w-8 h-8 rounded-lg" />
-            <Skeleton className="h-5 w-36" />
+        <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="w-6 h-6 rounded-md" />
+            <Skeleton className="h-3 w-24" />
           </div>
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-10 w-20 rounded-xl" />
-            <Skeleton className="h-10 w-24 rounded-xl" />
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="h-6 w-14 rounded-lg" />
+            <Skeleton className="h-6 w-16 rounded-lg" />
           </div>
         </div>
       </header>
@@ -415,14 +415,14 @@ function LandingView() {
     <div className="min-h-screen bg-arena-dark">
       {/* Landing Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-arena-dark/80 backdrop-blur-xl border-b border-arena-border">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="AA" className="w-8 h-8 rounded-lg" />
-            <span className="font-bold text-lg tracking-wider">AETHER ARENA</span>
+        <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <img src="/logo.png" alt="AA" className="w-6 h-6 rounded-md" />
+            <span className="font-bold text-xs tracking-widest whitespace-nowrap">AETHER ARENA</span>
           </div>
-          <div className="flex items-center gap-2.5">
-            <button onClick={() => setShowLogin(true)} className="px-4 py-2 text-sm font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/50 rounded-xl transition-all">Log In</button>
-            <button onClick={() => setShowSignup(true)} className="px-4 py-2 text-sm font-medium bg-arena-accent hover:bg-arena-accent-light text-white rounded-xl transition-all hover:shadow-lg hover:shadow-arena-accent/20">Sign Up</button>
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => setShowLogin(true)} className="px-3 py-1 text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/50 rounded-lg transition-all">Log In</button>
+            <button onClick={() => setShowSignup(true)} className="px-3 py-1 text-xs font-medium bg-arena-accent hover:bg-arena-accent-light text-white rounded-lg transition-all">Sign Up</button>
           </div>
         </div>
       </header>
