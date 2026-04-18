@@ -44,7 +44,7 @@ function SplashScreen({ onFinish }: { onFinish: () => void }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const { setUser, setLoading, logout } = useAuthStore;
+  const { setUser, setLoading, logout } = useAuthStore();
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
