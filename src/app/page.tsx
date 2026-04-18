@@ -16,7 +16,163 @@ import {
 import { cn, paiseToRupee, formatDateTime, formatDate, timeAgo, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
 
-// ==================== VIEW RENDERER ====================
+// ==================== SKELETON HELPERS ====================
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse bg-arena-card rounded-xl', className)} />;
+}
+
+function HomeSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Stream banner */}
+      <Skeleton className="h-64 md:h-72 w-full rounded-2xl" />
+      {/* Top players */}
+      <div>
+        <Skeleton className="h-6 w-36 mb-4" />
+        <div className="flex gap-3 overflow-hidden">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="w-44 h-20 rounded-xl flex-shrink-0" />)}
+        </div>
+      </div>
+      {/* Affiliate */}
+      <div>
+        <Skeleton className="h-6 w-40 mb-4" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[1,2,3].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+      </div>
+      {/* Tournaments */}
+      <div>
+        <Skeleton className="h-6 w-32 mb-4" />
+        <div className="flex gap-2 mb-4">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-8 w-20 rounded-lg" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="rounded-xl overflow-hidden border border-arena-border/30">
+              <Skeleton className="h-28 w-full rounded-none" />
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-3 w-16 rounded-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/3" />
+                <Skeleton className="h-1.5 w-full rounded-full mt-3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TournamentsSkeleton() {
+  return (
+    <div>
+      <Skeleton className="h-8 w-40 mb-6" />
+      <div className="flex flex-wrap gap-2 mb-6">
+        {[1,2,3,4,5,6,7].map(i => <Skeleton key={i} className="h-8 w-24 rounded-lg" />)}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1,2,3,4,5,6].map(i => (
+          <div key={i} className="rounded-xl overflow-hidden border border-arena-border/30">
+            <Skeleton className="h-28 w-full rounded-none" />
+            <div className="p-4 space-y-2">
+              <Skeleton className="h-3 w-20 rounded-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <div className="flex justify-between">
+                <Skeleton className="h-3 w-12" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <Skeleton className="h-1.5 w-full rounded-full mt-2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LeaderboardSkeleton() {
+  return (
+    <div>
+      <Skeleton className="h-8 w-40 mb-6" />
+      <div className="flex flex-wrap gap-4 mb-6">
+        <Skeleton className="h-10 w-64 rounded-xl" />
+        <Skeleton className="h-10 w-48 rounded-xl" />
+      </div>
+      <div className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden">
+        {[1,2,3,4,5,6,7,8].map(i => (
+          <div key={i} className="flex items-center px-4 py-3 border-b border-arena-border/30">
+            <Skeleton className="h-5 w-8 mr-4" />
+            <Skeleton className="h-8 w-8 rounded-lg mr-3" />
+            <div className="flex-1">
+              <Skeleton className="h-4 w-28 mb-1" />
+              <Skeleton className="h-3 w-16 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-8" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StreamsSkeleton() {
+  return (
+    <div>
+      <Skeleton className="h-8 w-40 mb-6" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[1,2,3,4].map(i => (
+          <Skeleton key={i} className="h-40 rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div>
+      <div className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden mb-6">
+        <Skeleton className="h-28 w-full rounded-none" />
+        <div className="px-6 pb-6 -mt-10">
+          <div className="flex items-end gap-4 mb-4">
+            <Skeleton className="w-20 h-20 rounded-2xl flex-shrink-0" />
+            <div className="flex-1 pt-10">
+              <Skeleton className="h-6 w-36 mb-2" />
+              <Skeleton className="h-4 w-24 rounded-full" />
+            </div>
+          </div>
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      </div>
+      <Skeleton className="h-10 w-full rounded-xl mb-4" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {[1,2,3,4].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}
+      </div>
+    </div>
+  );
+}
+
+function NotificationsSkeleton() {
+  return (
+    <div>
+      <Skeleton className="h-8 w-48 mb-6" />
+      <div className="space-y-2">
+        {[1,2,3,4,5].map(i => (
+          <div key={i} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-start gap-3">
+            <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ViewRenderer() {
   const { currentView, viewParams, navigate } = useAppStore();
@@ -369,6 +525,23 @@ function LandingView() {
 // ==================== HOME VIEW ====================
 
 function HomeView() {
+  const { data: streams } = useQuery({
+    queryKey: ['home-streams'],
+    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => d.streams || d || []),
+  });
+  const { data: entries } = useQuery({
+    queryKey: ['home-top-players'],
+    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=10').then(r => r.json()).then(d => d.entries || d || []),
+  });
+  const { data: tournaments } = useQuery({
+    queryKey: ['home-tournaments-skel'],
+    queryFn: () => fetch('/api/tournaments?limit=4').then(r => r.json()).then(d => d.tournaments || d || []),
+  });
+
+  const isLoading = !streams && !entries && !tournaments;
+
+  if (isLoading) return <HomeSkeleton />;
+
   return (
     <div className="space-y-6">
       <StreamBannerSection />
@@ -709,18 +882,7 @@ function TournamentsView() {
 
       {/* Tournament Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="bg-arena-card border border-arena-border rounded-xl overflow-hidden animate-pulse">
-              <div className="h-28 bg-arena-surface" />
-              <div className="p-4 space-y-2">
-                <div className="h-3 bg-arena-surface rounded w-1/2" />
-                <div className="h-4 bg-arena-surface rounded w-3/4" />
-                <div className="h-3 bg-arena-surface rounded w-1/3" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <TournamentsSkeleton />
       ) : tournaments && tournaments.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {tournaments.map((t: any) => (
@@ -1019,9 +1181,7 @@ function LeaderboardView() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="space-y-2">
-          {[1,2,3,4,5].map(i => <div key={i} className="bg-arena-card border border-arena-border rounded-xl h-14 animate-pulse" />)}
-        </div>
+        <LeaderboardSkeleton />
       ) : entries && entries.length > 0 ? (
         <div className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -1089,7 +1249,7 @@ function LeaderboardView() {
 // ==================== STREAMS VIEW ====================
 
 function StreamsView() {
-  const { data: streams } = useQuery({
+  const { data: streams, isLoading } = useQuery({
     queryKey: ['all-streams'],
     queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => d.streams || d || []),
   });
@@ -1099,7 +1259,9 @@ function StreamsView() {
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
         <Tv className="w-6 h-6 text-arena-accent" /> Live Streams
       </h1>
-      {streams && streams.length > 0 ? (
+      {isLoading ? (
+        <StreamsSkeleton />
+      ) : streams && streams.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {streams.map((s: any) => (
             <div key={s.id} onClick={() => s.streamUrl && window.open(s.streamUrl, '_blank')} className="bg-arena-card border border-arena-border rounded-xl p-5 hover:border-arena-accent/30 transition-all cursor-pointer hover:-translate-y-0.5">
@@ -1139,7 +1301,7 @@ function ProfileView() {
   const [form, setForm] = useState({ displayName: '', bio: '' });
   const [saving, setSaving] = useState(false);
 
-  const { data: profile, refetch } = useQuery({
+  const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['my-profile'],
     queryFn: () => fetch('/api/profiles/me').then(r => r.json()),
     enabled: isAuthenticated,
@@ -1187,6 +1349,7 @@ function ProfileView() {
   };
 
   if (!isAuthenticated) return null;
+  if (isLoading) return <ProfileSkeleton />;
 
   const p = profile || user;
   const league = LEAGUE_CONFIG[p?.league || 'bronze'] || LEAGUE_CONFIG.bronze;
@@ -1293,7 +1456,7 @@ function ProfileView() {
 // ==================== NOTIFICATIONS VIEW ====================
 
 function NotificationsView() {
-  const { data: notifications, refetch } = useQuery({
+  const { data: notifications, isLoading, refetch } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => fetch('/api/notifications').then(r => r.json()).then(d => d.notifications || d || []),
   });
@@ -1303,6 +1466,8 @@ function NotificationsView() {
     refetch();
     toast.success('All notifications marked as read');
   };
+
+  if (isLoading) return <NotificationsSkeleton />;
 
   return (
     <div>

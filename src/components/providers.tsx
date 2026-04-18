@@ -39,6 +39,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       } catch {
         logout();
       }
+      setLoading(false);
     };
     void checkAuth();
   }, [setUser, logout, setLoading]);
