@@ -11,8 +11,8 @@ export async function GET(request: Request) {
     const status = searchParams.get('status')
     const gameId = searchParams.get('gameId')
     const search = searchParams.get('search')
-    const page = parseInt(searchParams.get('page') || '1', 10)
-    const limit = parseInt(searchParams.get('limit') || '20', 10)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 100)
     const skip = (page - 1) * limit
 
     const where: Prisma.TournamentWhereInput = {}
@@ -103,8 +103,8 @@ export async function POST(request: Request) {
         gameId,
         coverImageUrl: coverImageUrl || '',
         format: format || 'solo',
-        entryFee: entryFee ? Math.round(entryFee * 100) : 0,
-        prizePool: prizePool ? Math.round(prizePool * 100) : 0,
+        entryFee: entryFee ? Math.round(Number(entryFee)) : 0,
+        prizePool: prizePool ? Math.round(Number(prizePool)) : 0,
         maxPlayers,
         status: status || 'upcoming',
         matchMode: matchMode || '',

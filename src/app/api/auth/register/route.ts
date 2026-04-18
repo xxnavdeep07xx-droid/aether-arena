@@ -71,31 +71,32 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if this is the first user (make them admin)
-    const userCount = await db.profile.count()
-    const isAdmin = userCount === 0
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Create profile and credentials in a transaction
-    const profile = await db.profile.create({
-      data: {
-        username,
-        displayName: displayName || username,
-        isAdmin,
-        credentials: {
-          create: {
-            email: email.toLowerCase(),
-            password: hashedPassword,
+    // Check if first user and create profile atomically to prevent race condition
+    const profile = await db.$transaction(async (tx) => {
+      const userCount = await tx.profile.count()
+      const isAdmin = userCount === 0
+
+      return tx.profile.create({
+        data: {
+          username,
+          displayName: displayName || username,
+          isAdmin,
+          credentials: {
+            create: {
+              email: email.toLowerCase(),
+              password: hashedPassword,
+            },
           },
         },
-      },
-      include: {
-        credentials: {
-          select: { email: true },
+        include: {
+          credentials: {
+            select: { email: true },
+          },
         },
-      },
+      })
     })
 
     // Create session

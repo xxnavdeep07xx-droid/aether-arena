@@ -82,7 +82,7 @@ export async function GET(request: Request) {
         where: { id: existingAccount.userId },
         data: {
           discordId: discordUser.id,
-          discordUsername: `${discordUser.username}#${discordUser.discriminator || '0'}`,
+          discordUsername: discordUser.username,
           avatarUrl: existingAccount.user.avatarUrl || `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
         },
       })
@@ -119,36 +119,37 @@ export async function GET(request: Request) {
       username = `${baseUsername}${suffix}`
     }
 
-    // Check if first user (make admin)
-    const userCount = await db.profile.count()
-    const isAdmin = userCount === 0
+    // Create profile with Discord account atomically to prevent race condition
+    const profile = await db.$transaction(async (tx) => {
+      const userCount = await tx.profile.count()
+      const isAdmin = userCount === 0
 
-    // Create profile with Discord account
-    const profile = await db.profile.create({
-      data: {
-        username,
-        displayName: discordUser.global_name || discordUser.username,
-        discordId: discordUser.id,
-        discordUsername: `${discordUser.username}#${discordUser.discriminator || '0'}`,
-        avatarUrl: discordUser.avatar
-          ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
-          : null,
-        isAdmin,
-        accounts: {
-          create: {
-            type: 'oauth',
-            provider: 'discord',
-            providerAccountId: discordUser.id,
-            access_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token || null,
-            expires_at: tokenData.expires_in
-              ? Math.floor(Date.now() / 1000) + tokenData.expires_in
-              : null,
-            scope: tokenData.scope || 'identify email',
-            token_type: tokenData.token_type || 'Bearer',
+      return tx.profile.create({
+        data: {
+          username,
+          displayName: discordUser.global_name || discordUser.username,
+          discordId: discordUser.id,
+          discordUsername: discordUser.username,
+          avatarUrl: discordUser.avatar
+            ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
+            : null,
+          isAdmin,
+          accounts: {
+            create: {
+              type: 'oauth',
+              provider: 'discord',
+              providerAccountId: discordUser.id,
+              access_token: tokenData.access_token,
+              refresh_token: tokenData.refresh_token || null,
+              expires_at: tokenData.expires_in
+                ? Math.floor(Date.now() / 1000) + tokenData.expires_in
+                : null,
+              scope: tokenData.scope || 'identify email',
+              token_type: tokenData.token_type || 'Bearer',
+            },
           },
         },
-      },
+      })
     })
 
     // Create session

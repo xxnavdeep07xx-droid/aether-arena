@@ -66,7 +66,8 @@ export async function getSession(request?: Request): Promise<AuthUser | null> {
       userId: session.user.id,
       profile: session.user,
     }
-  } catch {
+  } catch (error) {
+    console.error('getSession error:', error)
     return null
   }
 }

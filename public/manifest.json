@@ -1,0 +1,13 @@
+{
+  "name": "Aether Arena",
+  "short_name": "AA",
+  "description": "India's #1 Mobile Esports Tournament Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#ef4444",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

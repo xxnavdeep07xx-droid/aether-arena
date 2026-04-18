@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore, useAuthStore, useSearchStore, ViewName } from '@/lib/store';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Trophy, Gamepad2, Users, Zap, Shield, ChevronRight,
@@ -24,7 +24,7 @@ function Skeleton({ className }: { className?: string }) {
 
 function HomeSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 py-2">
       {/* Stream banner */}
       <Skeleton className="h-64 md:h-72 w-full rounded-2xl" />
       {/* Top players */}
@@ -67,7 +67,7 @@ function HomeSkeleton() {
 
 function TournamentsSkeleton() {
   return (
-    <div>
+    <div className="py-2">
       <Skeleton className="h-8 w-40 mb-6" />
       <div className="flex flex-wrap gap-2 mb-6">
         {[1,2,3,4,5,6,7].map(i => <Skeleton key={i} className="h-8 w-24 rounded-lg" />)}
@@ -94,7 +94,7 @@ function TournamentsSkeleton() {
 
 function LeaderboardSkeleton() {
   return (
-    <div>
+    <div className="py-2">
       <Skeleton className="h-8 w-40 mb-6" />
       <div className="flex flex-wrap gap-4 mb-6">
         <Skeleton className="h-10 w-64 rounded-xl" />
@@ -119,7 +119,7 @@ function LeaderboardSkeleton() {
 
 function StreamsSkeleton() {
   return (
-    <div>
+    <div className="py-2">
       <Skeleton className="h-8 w-40 mb-6" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[1,2,3,4].map(i => (
@@ -132,7 +132,7 @@ function StreamsSkeleton() {
 
 function ProfileSkeleton() {
   return (
-    <div>
+    <div className="py-2">
       <div className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden mb-6">
         <Skeleton className="h-28 w-full rounded-none" />
         <div className="px-6 pb-6 -mt-10">
@@ -157,7 +157,7 @@ function ProfileSkeleton() {
 
 function NotificationsSkeleton() {
   return (
-    <div>
+    <div className="py-2">
       <Skeleton className="h-8 w-48 mb-6" />
       <div className="space-y-2">
         {[1,2,3,4,5].map(i => (
@@ -309,11 +309,6 @@ function ViewRenderer() {
     return skeletonMap[currentView] || <HomeSkeleton />;
   }
 
-  // If not authenticated and not on landing, go to landing
-  if (!isAuthenticated && currentView !== 'landing') {
-    // Still show the view but they'll see login prompts
-  }
-
   const viewMap: Record<ViewName, React.ReactNode> = {
     'landing': <LandingView />,
     'home': <HomeView />,
@@ -343,7 +338,7 @@ function ViewRenderer() {
 // ==================== LANDING VIEW ====================
 
 function LandingView() {
-  const { navigate, setUser } = useAuthStore();
+  const { setUser } = useAuthStore();
   const { navigate: nav } = useAppStore();
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
@@ -421,8 +416,8 @@ function LandingView() {
             <span className="font-bold text-xs tracking-widest whitespace-nowrap">AETHER ARENA</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <button onClick={() => setShowLogin(true)} className="px-3 py-1 text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/50 rounded-lg transition-all">Log In</button>
-            <button onClick={() => setShowSignup(true)} className="px-3 py-1 text-xs font-medium bg-arena-accent hover:bg-arena-accent-light text-white rounded-lg transition-all">Sign Up</button>
+            <button onClick={() => setShowLogin(true)} className="px-3 py-1.5 text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/50 rounded-lg transition-all duration-200">Log In</button>
+            <button onClick={() => setShowSignup(true)} className="px-3 py-1.5 text-xs font-medium bg-arena-accent hover:bg-arena-accent-light text-white rounded-lg transition-all duration-200">Sign Up</button>
           </div>
         </div>
       </header>
@@ -444,10 +439,10 @@ function LandingView() {
               Join India&apos;s fastest-growing mobile esports tournament platform. Free Fire, BGMI, COD Mobile &amp; more. Register, compete, and win real prizes.
             </p>
             <div className="flex gap-4 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-              <button onClick={() => setShowSignup(true)} className="px-8 py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-arena-accent/25 hover:-translate-y-0.5">
+              <button onClick={() => setShowSignup(true)} className="px-8 py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-arena-accent/25 hover:-translate-y-0.5">
                 Get Started Free
               </button>
-              <button onClick={() => setShowLogin(true)} className="px-8 py-3 border border-arena-border hover:border-arena-accent/50 text-white font-semibold rounded-xl transition-all">
+              <button onClick={() => setShowLogin(true)} className="px-8 py-3 border border-arena-border hover:border-arena-accent/50 text-white font-semibold rounded-xl transition-all duration-200">
                 Log In
               </button>
             </div>
@@ -467,7 +462,7 @@ function LandingView() {
             <div key={stat.label} className="text-center">
               <stat.icon className="w-6 h-6 text-arena-accent mx-auto mb-2" />
               <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="text-sm text-arena-text-muted">{stat.label}</div>
+              <div className="text-sm text-arena-text-secondary">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -482,11 +477,11 @@ function LandingView() {
             { step: '02', title: 'Register & Pay', desc: 'Sign up instantly. Free tournaments need no payment. Paid ones use simple UPI transfer.', icon: User },
             { step: '03', title: 'Compete & Win', desc: 'Join the match room, compete against players, and win real prize money!', icon: Trophy },
           ].map((item) => (
-            <div key={item.step} className="bg-arena-card border border-arena-border rounded-2xl p-6 hover:border-arena-accent/30 transition-all hover:-translate-y-1">
+            <div key={item.step} className="bg-arena-card border border-arena-border rounded-2xl p-6 hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5">
               <div className="text-4xl font-black text-arena-accent/20 mb-4">{item.step}</div>
               <item.icon className="w-8 h-8 text-arena-accent mb-4" />
-              <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-              <p className="text-arena-text-secondary text-sm">{item.desc}</p>
+              <h3 className="text-lg font-semibold mb-2 leading-tight">{item.title}</h3>
+              <p className="text-arena-text-secondary text-sm leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -503,7 +498,7 @@ function LandingView() {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {featuredTournaments.slice(0, 3).map((t: any) => (
-              <div key={t.id} className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden hover:border-arena-accent/30 transition-all hover:-translate-y-1 cursor-pointer"
+              <div key={t.id} className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
                 onClick={() => { if (useAuthStore.getState().isAuthenticated) { nav('tournament-detail', { id: t.id }); } else { setShowLogin(true); }}}>
                 <div className="h-32 bg-gradient-to-br from-arena-accent/20 to-arena-purple/20 flex items-center justify-center">
                   <Gamepad2 className="w-12 h-12 text-arena-text-muted" />
@@ -532,7 +527,7 @@ function LandingView() {
           <h2 className="text-3xl font-bold text-center mb-12">Supported Games</h2>
           <div className="flex flex-wrap justify-center gap-4">
             {games.map((g: any) => (
-              <div key={g.id} className="bg-arena-card border border-arena-border rounded-2xl p-4 flex items-center gap-3 hover:border-arena-accent/30 transition-all">
+              <div key={g.id} className="bg-arena-card border border-arena-border rounded-2xl p-4 flex items-center gap-3 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer">
                 <div className="w-10 h-10 bg-arena-accent/10 rounded-xl flex items-center justify-center">
                   <Gamepad2 className="w-5 h-5 text-arena-accent" />
                 </div>
@@ -545,12 +540,52 @@ function LandingView() {
 
       {/* Footer */}
       <footer className="border-t border-arena-border bg-arena-surface/50">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="AA" className="w-6 h-6 rounded-md" />
-            <span className="text-sm font-medium">Aether Arena</span>
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2 mb-3">
+                <img src="/logo.png" alt="Aether Arena" className="w-6 h-6 rounded-md" />
+                <span className="text-sm font-semibold">Aether Arena</span>
+              </div>
+              <p className="text-xs text-arena-text-secondary leading-relaxed max-w-xs">India&apos;s fastest-growing mobile esports tournament platform. Compete, win, and rise through the ranks.</p>
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Platform</h4>
+              <ul className="space-y-2">
+                <li><button onClick={() => setShowLogin(true)} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Tournaments</button></li>
+                <li><button onClick={() => setShowLogin(true)} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Leaderboard</button></li>
+                <li><button onClick={() => setShowLogin(true)} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Streams</button></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Support</h4>
+              <ul className="space-y-2">
+                <li><span className="text-sm text-arena-text-secondary">Discord</span></li>
+                <li><span className="text-sm text-arena-text-secondary">FAQ</span></li>
+                <li><span className="text-sm text-arena-text-secondary">Contact</span></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Legal</h4>
+              <ul className="space-y-2">
+                <li><span className="text-sm text-arena-text-secondary">Terms</span></li>
+                <li><span className="text-sm text-arena-text-secondary">Privacy</span></li>
+                <li><span className="text-sm text-arena-text-secondary">Refund Policy</span></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-xs text-arena-text-muted">© 2025 Aether Arena. All rights reserved.</p>
+          <div className="border-t border-arena-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="Aether Arena" className="w-5 h-5 rounded-md" />
+              <span className="text-xs text-arena-text-muted">© 2025 Aether Arena. All rights reserved.</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150 cursor-pointer">Twitter</span>
+              <span className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150 cursor-pointer">Discord</span>
+              <span className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150 cursor-pointer">YouTube</span>
+              <span className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150 cursor-pointer">Instagram</span>
+            </div>
+          </div>
         </div>
       </footer>
 
@@ -560,18 +595,18 @@ function LandingView() {
           <div className="bg-arena-card border border-arena-border rounded-2xl p-8 w-full max-w-md animate-fade-in-up">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">Welcome Back</h2>
-              <button onClick={() => setShowLogin(false)} className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowLogin(false)} aria-label="Close" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="text-sm text-arena-text-secondary mb-1 block">Email</label>
-                <input type="email" required value={loginForm.email} onChange={e => setLoginForm({ ...loginForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="your@email.com" />
+                <input type="email" required value={loginForm.email} onChange={e => setLoginForm({ ...loginForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="your@email.com" />
               </div>
               <div>
                 <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
-                <input type="password" required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="••••••••" />
+                <input type="password" required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="••••••••" />
               </div>
-              <button type="submit" disabled={loading} className="w-full py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all disabled:opacity-50">
+              <button type="submit" disabled={loading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
                 {loading ? 'Logging in...' : 'Log In'}
               </button>
               {/* Discord OAuth */}
@@ -581,13 +616,13 @@ function LandingView() {
                 <div className="flex-1 h-px bg-arena-border" />
               </div>
               <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
-                className="w-full py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2">
+                className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
                 Discord
               </button>
               <p className="text-center text-sm text-arena-text-muted">
                 Don&apos;t have an account?{' '}
-                <button type="button" onClick={() => { setShowLogin(false); setShowSignup(true); }} className="text-arena-accent hover:underline">Sign Up</button>
+                <button type="button" onClick={() => { setShowLogin(false); setShowSignup(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Sign Up</button>
               </p>
             </form>
           </div>
@@ -600,26 +635,26 @@ function LandingView() {
           <div className="bg-arena-card border border-arena-border rounded-2xl p-8 w-full max-w-md animate-fade-in-up">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">Create Account</h2>
-              <button onClick={() => setShowSignup(false)} className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowSignup(false)} aria-label="Close" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="text-sm text-arena-text-secondary mb-1 block">Email</label>
-                <input type="email" required value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="your@email.com" />
+                <input type="email" required value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="your@email.com" />
               </div>
               <div>
                 <label className="text-sm text-arena-text-secondary mb-1 block">Username</label>
-                <input type="text" required value={signupForm.username} onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="gamer_tag" />
+                <input type="text" required value={signupForm.username} onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="gamer_tag" />
               </div>
               <div>
                 <label className="text-sm text-arena-text-secondary mb-1 block">Display Name</label>
-                <input type="text" value={signupForm.displayName} onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="Your Name (optional)" />
+                <input type="text" value={signupForm.displayName} onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="Your Name (optional)" />
               </div>
               <div>
                 <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
-                <input type="password" required minLength={6} value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="Min 6 characters" />
+                <input type="password" required minLength={6} value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="Min 6 characters" />
               </div>
-              <button type="submit" disabled={loading} className="w-full py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all disabled:opacity-50">
+              <button type="submit" disabled={loading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
                 {loading ? 'Creating Account...' : 'Create Account'}
               </button>
               {/* Discord OAuth */}
@@ -629,13 +664,13 @@ function LandingView() {
                 <div className="flex-1 h-px bg-arena-border" />
               </div>
               <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
-                className="w-full py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2">
+                className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
                 Continue with Discord
               </button>
               <p className="text-center text-sm text-arena-text-muted">
                 Already have an account?{' '}
-                <button type="button" onClick={() => { setShowSignup(false); setShowLogin(true); }} className="text-arena-accent hover:underline">Log In</button>
+                <button type="button" onClick={() => { setShowSignup(false); setShowLogin(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Log In</button>
               </p>
             </form>
           </div>
@@ -654,7 +689,7 @@ function HomeView() {
   });
   const { data: entries } = useQuery({
     queryKey: ['home-top-players'],
-    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=10').then(r => r.json()).then(d => d.entries || d || []),
+    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=10').then(r => r.json()).then(d => d.leaderboard || d || []),
   });
   const { data: tournaments } = useQuery({
     queryKey: ['home-tournaments-skel'],
@@ -696,7 +731,7 @@ function StreamBannerSection() {
   const stream = streams[current];
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-arena-border h-64 md:h-72 bg-arena-card cursor-pointer group"
+    <div className="relative rounded-2xl overflow-hidden border border-arena-border h-64 md:h-72 bg-arena-card cursor-pointer group transition-all duration-200 hover:-translate-y-0.5"
       onClick={() => stream.streamUrl && window.open(stream.streamUrl, '_blank')}>
       <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/20 via-arena-purple/10 to-arena-dark" />
       <div className="absolute inset-0 bg-gradient-to-r from-arena-card/90 via-arena-card/50 to-transparent" />
@@ -715,15 +750,15 @@ function StreamBannerSection() {
             {stream.platform}
           </span>
         </div>
-        <h2 className="text-2xl md:text-3xl font-bold mb-2 group-hover:text-arena-accent transition-colors">{stream.title}</h2>
+        <h2 className="text-2xl md:text-3xl font-bold mb-2 group-hover:text-arena-accent transition-colors duration-150">{stream.title}</h2>
         <p className="text-arena-text-secondary text-sm mb-4 max-w-lg">{stream.description}</p>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-5 py-2 bg-arena-accent hover:bg-arena-accent-light text-white font-medium rounded-xl transition-all text-sm"
+          <button className="flex items-center gap-2 px-5 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-medium rounded-xl transition-all duration-200 text-sm"
             onClick={e => { e.stopPropagation(); if (stream.streamUrl) window.open(stream.streamUrl, '_blank'); }}>
             <Play className="w-4 h-4" /> Watch Now
           </button>
           {stream.tournamentId && (
-            <button className="flex items-center gap-2 px-5 py-2 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all text-sm"
+            <button className="flex items-center gap-2 px-5 py-2 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm"
               onClick={e => { e.stopPropagation(); navigate('tournament-detail', { id: stream.tournamentId }); }}>
               <Eye className="w-4 h-4" /> View Tournament
             </button>
@@ -748,7 +783,7 @@ function TopPlayersSection() {
 
   const { data: entries } = useQuery({
     queryKey: ['top-players'],
-    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=10').then(r => r.json()).then(d => d.entries || d || []),
+    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=10').then(r => r.json()).then(d => d.leaderboard || d || []),
   });
 
   if (!entries || entries.length === 0) return null;
@@ -768,11 +803,11 @@ function TopPlayersSection() {
           const league = LEAGUE_CONFIG[entry.player?.league] || LEAGUE_CONFIG.bronze;
           return (
             <div key={entry.id || idx} onClick={() => navigate('profile', { username: entry.player?.username })}
-              className="flex-shrink-0 w-44 bg-arena-card border border-arena-border rounded-xl p-3 flex items-center gap-3 hover:border-arena-accent/30 transition-all cursor-pointer hover:-translate-y-0.5">
+              className="flex-shrink-0 w-44 bg-arena-card border border-arena-border rounded-xl p-3 flex items-center gap-3 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
               <div className="relative">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden">
                   {entry.player?.avatarUrl ? (
-                    <img src={entry.player.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    <img src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} className="w-full h-full object-cover" />
                   ) : (
                     (entry.player?.username || '?')[0].toUpperCase()
                   )}
@@ -832,12 +867,12 @@ function AffiliateCarouselSection() {
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {affiliates.slice(current, current + 3).concat(
           affiliates.length - current < 3 ? affiliates.slice(0, 3 - (affiliates.length - current)) : []
         ).map((a: any) => (
           <div key={a.id} onClick={() => handleClick(a)}
-            className="bg-arena-card border border-arena-border rounded-xl p-4 flex gap-4 hover:border-arena-accent/30 transition-all cursor-pointer hover:-translate-y-0.5">
+            className="bg-arena-card border border-arena-border rounded-xl p-4 md:p-5 flex gap-4 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
             <div className="w-16 h-16 rounded-lg bg-arena-surface flex items-center justify-center flex-shrink-0">
               <Gamepad2 className="w-8 h-8 text-arena-text-muted" />
             </div>
@@ -882,7 +917,7 @@ function HomeTournamentsSection() {
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         {['all', 'registration_open', 'in_progress', 'upcoming'].map(s => (
           <button key={s} onClick={() => setFilter(s)}
-            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all',
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200',
               filter === s ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
             {s === 'all' ? 'All' : s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
           </button>
@@ -908,7 +943,7 @@ function HomeTournamentsSection() {
 
 function TournamentCard({ tournament: t, onClick }: { tournament: any; onClick: () => void }) {
   return (
-    <div onClick={onClick} className="bg-arena-card border border-arena-border rounded-xl overflow-hidden hover:border-arena-accent/30 transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20">
+    <div onClick={onClick} className="bg-arena-card border border-arena-border rounded-xl overflow-hidden hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20">
       <div className="h-28 bg-gradient-to-br from-arena-accent/15 via-arena-purple/10 to-arena-surface flex items-center justify-center relative">
         <Gamepad2 className="w-10 h-10 text-arena-text-muted/50" />
         <div className="absolute top-3 left-3 flex gap-2">
@@ -916,7 +951,7 @@ function TournamentCard({ tournament: t, onClick }: { tournament: any; onClick: 
           {t.status === 'in_progress' && <span className="bg-arena-accent text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"><CircleDot className="w-3 h-3 animate-pulse" /> LIVE</span>}
         </div>
       </div>
-      <div className="p-4">
+      <div className="p-4 md:p-6">
         <div className="flex items-center gap-2 mb-2">
           <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', getStatusBg(t.status))}>
             {t.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
@@ -934,7 +969,7 @@ function TournamentCard({ tournament: t, onClick }: { tournament: any; onClick: 
           <span>{t.registeredPlayers || 0}/{t.maxPlayers} Players</span>
         </div>
         <div className="w-full bg-arena-dark rounded-full h-1.5">
-          <div className="bg-arena-accent rounded-full h-1.5 transition-all" style={{ width: `${Math.min(100, ((t.registeredPlayers || 0) / t.maxPlayers) * 100)}%` }} />
+          <div className="bg-arena-accent rounded-full h-1.5 transition-all duration-300" style={{ width: `${Math.min(100, ((t.registeredPlayers || 0) / t.maxPlayers) * 100)}%` }} />
         </div>
       </div>
     </div>
@@ -981,21 +1016,21 @@ function TournamentsView() {
           </select>
           {['', 'upcoming', 'registration_open', 'in_progress', 'completed'].map(s => (
             <button key={s} onClick={() => setFilters(f => ({ ...f, status: s }))}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
                 filters.status === s ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white')}>
               {s === '' ? 'All Status' : s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
             </button>
           ))}
           {['', 'solo', 'duo', 'squad'].map(f => (
             <button key={f} onClick={() => setFilters(fs => ({ ...fs, format: f }))}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
                 filters.format === f ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white')}>
               {f === '' ? 'All Formats' : getFormatLabel(f)}
             </button>
           ))}
           {['', 'free', 'paid'].map(f => (
             <button key={f} onClick={() => setFilters(fs => ({ ...fs, fee: f }))}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
                 filters.fee === f ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white')}>
               {f === '' ? 'All' : f === 'free' ? 'Free' : 'Paid'}
             </button>
@@ -1096,7 +1131,7 @@ function TournamentDetailView() {
 
   return (
     <div>
-      <button onClick={() => navigate('tournaments')} className="flex items-center gap-2 text-arena-text-secondary hover:text-white mb-4 text-sm transition-colors">
+      <button onClick={() => navigate('tournaments')} className="flex items-center gap-2 text-arena-text-secondary hover:text-white mb-4 text-sm transition-colors duration-150">
         <ArrowLeft className="w-4 h-4" /> Back to Tournaments
       </button>
 
@@ -1118,7 +1153,7 @@ function TournamentDetailView() {
               <p className="text-arena-text-secondary text-sm">{t.game?.name} • {getFormatLabel(t.format)}</p>
             </div>
             {canRegister ? (
-              <button onClick={() => setShowRegister(true)} className="px-6 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-arena-accent/20 text-sm whitespace-nowrap">
+              <button onClick={() => setShowRegister(true)} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-arena-accent/20 text-sm whitespace-nowrap">
                 Register Now
               </button>
             ) : registered ? (
@@ -1126,7 +1161,7 @@ function TournamentDetailView() {
                 {paymentStatus === 'verified' ? '✓ Registered' : '⏳ Payment Pending'}
               </span>
             ) : !isAuthenticated ? (
-              <button onClick={() => { const { setUser } = useAuthStore.getState(); }} className="px-6 py-2.5 border border-arena-accent text-arena-accent font-semibold rounded-xl transition-all text-sm">
+              <button onClick={() => { toast.error('Please log in to register'); setShowLogin(true); }} className="px-6 py-2.5 h-11 border border-arena-accent text-arena-accent font-semibold rounded-xl transition-all duration-200 text-sm">
                 Login to Register
               </button>
             ) : null}
@@ -1154,7 +1189,7 @@ function TournamentDetailView() {
               <span className="text-arena-text-muted">{t.maxPlayers} Max</span>
             </div>
             <div className="w-full bg-arena-dark rounded-full h-2">
-              <div className="bg-arena-accent rounded-full h-2 transition-all" style={{ width: `${Math.min(100, ((t.registeredPlayers || 0) / t.maxPlayers) * 100)}%` }} />
+              <div className="bg-arena-accent rounded-full h-2 transition-all duration-300" style={{ width: `${Math.min(100, ((t.registeredPlayers || 0) / t.maxPlayers) * 100)}%` }} />
             </div>
           </div>
 
@@ -1230,8 +1265,8 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
           <p className="text-sm text-arena-text-secondary mb-1">{tournament.title}</p>
           <p className="text-lg font-bold text-arena-success mb-4">FREE Entry</p>
           <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors">Cancel</button>
-            <button onClick={() => onRegister({})} className="flex-1 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white rounded-xl text-sm font-semibold transition-all">Confirm</button>
+            <button onClick={() => onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
+            <button onClick={() => onRegister({})} className="flex-1 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white rounded-xl text-sm font-semibold transition-all duration-200">Confirm</button>
           </div>
         </div>
       </div>
@@ -1243,7 +1278,7 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
       <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-md animate-fade-in-up max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold">Complete Payment</h3>
-          <button onClick={onClose} className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} aria-label="Close" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="bg-arena-surface rounded-xl p-4 mb-4">
           <p className="text-sm text-arena-text-secondary mb-1">{tournament.title}</p>
@@ -1257,21 +1292,21 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
           </div>
         </div>
         <div className="flex gap-2 mb-4">
-          <button onClick={() => setPaymentMethod('upi_id')} className={cn('flex-1 py-2 rounded-lg text-xs font-medium transition-all', paymentMethod === 'upi_id' ? 'bg-arena-accent text-white' : 'bg-arena-surface text-arena-text-secondary')}>Enter Transaction ID</button>
-          <button onClick={() => setPaymentMethod('screenshot')} className={cn('flex-1 py-2 rounded-lg text-xs font-medium transition-all', paymentMethod === 'screenshot' ? 'bg-arena-accent text-white' : 'bg-arena-surface text-arena-text-secondary')}>Upload Screenshot</button>
+          <button onClick={() => setPaymentMethod('upi_id')} className={cn('flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200', paymentMethod === 'upi_id' ? 'bg-arena-accent text-white' : 'bg-arena-surface text-arena-text-secondary')}>Enter Transaction ID</button>
+          <button onClick={() => setPaymentMethod('screenshot')} className={cn('flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200', paymentMethod === 'screenshot' ? 'bg-arena-accent text-white' : 'bg-arena-surface text-arena-text-secondary')}>Upload Screenshot</button>
         </div>
         {paymentMethod === 'upi_id' ? (
           <input type="text" placeholder="Enter UPI Transaction ID" value={transactionId} onChange={e => setTransactionId(e.target.value)}
-            className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-arena-accent mb-4" />
+            className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150 mb-4" />
         ) : (
-          <div className="bg-arena-dark border border-arena-border border-dashed rounded-xl p-6 text-center mb-4 cursor-pointer hover:border-arena-accent/50 transition-colors">
+          <div className="bg-arena-dark border border-arena-border border-dashed rounded-xl p-6 text-center mb-4 cursor-pointer hover:border-arena-accent/50 transition-colors duration-150">
             <Upload className="w-8 h-8 text-arena-text-muted mx-auto mb-2" />
             <p className="text-xs text-arena-text-muted">Screenshot upload coming soon</p>
             <p className="text-[10px] text-arena-text-muted mt-1">Use Transaction ID for now</p>
           </div>
         )}
         <button onClick={() => { if (!transactionId && paymentMethod === 'upi_id') { toast.error('Please enter transaction ID'); return; } onRegister({ paymentMethod, paymentReference: transactionId }); }}
-          className="w-full py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all text-sm">
+          className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm">
           Submit Payment
         </button>
       </div>
@@ -1292,7 +1327,7 @@ function LeaderboardView() {
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ['leaderboard', gameFilter, period],
-    queryFn: () => fetch(`/api/leaderboard?gameId=${gameFilter}&period=${period}`).then(r => r.json()).then(d => d.entries || d || []),
+    queryFn: () => fetch(`/api/leaderboard?gameId=${gameFilter}&period=${period}`).then(r => r.json()).then(d => d.leaderboard || d || []),
   });
 
   return (
@@ -1304,14 +1339,14 @@ function LeaderboardView() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="flex gap-1 bg-arena-card rounded-xl p-1 border border-arena-border">
-          <button onClick={() => setGameFilter('all')} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all', gameFilter === 'all' ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>All Games</button>
+          <button onClick={() => setGameFilter('all')} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200', gameFilter === 'all' ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>All Games</button>
           {games?.map((g: any) => (
-            <button key={g.id} onClick={() => setGameFilter(g.id)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap', gameFilter === g.id ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>{g.name}</button>
+            <button key={g.id} onClick={() => setGameFilter(g.id)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap', gameFilter === g.id ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>{g.name}</button>
           ))}
         </div>
         <div className="flex gap-1 bg-arena-card rounded-xl p-1 border border-arena-border">
           {['all_time', 'monthly', 'weekly'].map(p => (
-            <button key={p} onClick={() => setPeriod(p)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all', period === p ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>
+            <button key={p} onClick={() => setPeriod(p)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200', period === p ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>
               {p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
             </button>
           ))}
@@ -1341,7 +1376,7 @@ function LeaderboardView() {
                   const league = LEAGUE_CONFIG[entry.player?.league] || LEAGUE_CONFIG.bronze;
                   const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
                   return (
-                    <tr key={entry.id || idx} className="border-b border-arena-border/50 hover:bg-arena-card-hover transition-colors">
+                    <tr key={entry.id || idx} className="border-b border-arena-border/50 hover:bg-arena-card-hover transition-colors duration-150">
                       <td className="px-4 py-3">
                         <span className={cn('font-bold', idx < 3 ? 'text-lg' : 'text-sm')} style={{ color: idx < 3 ? rankColors[idx] : undefined }}>
                           {idx < 3 ? ['🥇','🥈','🥉'][idx] : `#${idx + 1}`}
@@ -1350,7 +1385,7 @@ function LeaderboardView() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-arena-accent/20 to-arena-purple/20 flex items-center justify-center text-xs font-bold overflow-hidden">
-                            {entry.player?.avatarUrl ? <img src={entry.player.avatarUrl} alt="" className="w-full h-full object-cover" /> : (entry.player?.username || '?')[0].toUpperCase()}
+                            {entry.player?.avatarUrl ? <img src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} className="w-full h-full object-cover" /> : (entry.player?.username || '?')[0].toUpperCase()}
                           </div>
                           <div>
                             <div className="font-semibold text-sm">{entry.player?.username || 'Unknown'}</div>
@@ -1403,7 +1438,7 @@ function StreamsView() {
       ) : streams && streams.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {streams.map((s: any) => (
-            <div key={s.id} onClick={() => s.streamUrl && window.open(s.streamUrl, '_blank')} className="bg-arena-card border border-arena-border rounded-xl p-5 hover:border-arena-accent/30 transition-all cursor-pointer hover:-translate-y-0.5">
+            <div key={s.id} onClick={() => s.streamUrl && window.open(s.streamUrl, '_blank')} className="bg-arena-card border border-arena-border rounded-xl p-5 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-3">
                 <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', s.status === 'live' ? 'bg-arena-accent text-white flex items-center gap-1' : 'bg-arena-info/20 text-arena-info')}>
                   {s.status === 'live' && <CircleDot className="w-3 h-3 animate-pulse" />}
@@ -1434,7 +1469,7 @@ function StreamsView() {
 // ==================== PROFILE VIEW ====================
 
 function ProfileView() {
-  const { user, isAuthenticated, setUser } = useAuthStore();
+  const { user, isAuthenticated, setUser, logout } = useAuthStore();
   const { navigate } = useAppStore();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ displayName: '', bio: '' });
@@ -1474,6 +1509,9 @@ function ProfileView() {
         setEditing(false);
         toast.success('Profile updated!');
         refetch();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to update profile');
       }
     } catch {
       toast.error('Failed to update profile');
@@ -1482,8 +1520,10 @@ function ProfileView() {
   };
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    setUser(null);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch { /* continue logout regardless */ }
+    logout();
     navigate('landing');
   };
 
@@ -1501,7 +1541,7 @@ function ProfileView() {
         <div className="px-6 pb-6 -mt-10">
           <div className="flex items-end gap-4 mb-4">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 border-4 border-arena-card flex items-center justify-center text-2xl font-bold overflow-hidden">
-              {p?.avatarUrl ? <img src={p.avatarUrl} alt="" className="w-full h-full object-cover" /> : (p?.username || '?')[0].toUpperCase()}
+              {p?.avatarUrl ? <img src={p.avatarUrl} alt={`${p.username}'s avatar`} className="w-full h-full object-cover" /> : (p?.username || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -1512,7 +1552,7 @@ function ProfileView() {
               </div>
               <p className="text-sm text-arena-text-muted">@{p?.username}</p>
             </div>
-            <button onClick={() => setEditing(!editing)} className="p-2 rounded-xl border border-arena-border hover:border-arena-accent/50 transition-colors">
+            <button onClick={() => setEditing(!editing)} className="p-2 rounded-xl border border-arena-border hover:border-arena-accent/50 transition-colors duration-150">
               <Pencil className="w-4 h-4 text-arena-text-secondary" />
             </button>
           </div>
@@ -1532,7 +1572,7 @@ function ProfileView() {
               </div>
               <div className="flex gap-2">
                 <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-arena-accent text-white text-xs font-semibold rounded-lg disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
-                <button onClick={() => setEditing(false)} className="px-4 py-2 border border-arena-border text-xs font-medium rounded-lg hover:border-white transition-colors">Cancel</button>
+                <button onClick={() => setEditing(false)} className="px-4 py-2 border border-arena-border text-xs font-medium rounded-lg hover:border-white transition-colors duration-150">Cancel</button>
               </div>
             </div>
           )}
@@ -1564,7 +1604,7 @@ function ProfileView() {
           <div className="space-y-2">
             {registrations.map((r: any) => (
               <div key={r.id} onClick={() => navigate('tournament-detail', { id: r.tournamentId })}
-                className="flex items-center justify-between bg-arena-surface rounded-xl p-3 cursor-pointer hover:bg-arena-card-hover transition-colors">
+                className="flex items-center justify-between bg-arena-surface rounded-xl p-3 cursor-pointer hover:bg-arena-card-hover transition-colors duration-150">
                 <div>
                   <div className="font-medium text-sm">{r.tournament?.title || 'Unknown Tournament'}</div>
                   <div className="text-xs text-arena-text-muted">{r.tournament?.game?.name} • {formatDate(r.createdAt)}</div>
@@ -1585,7 +1625,7 @@ function ProfileView() {
       </div>
 
       {/* Logout */}
-      <button onClick={handleLogout} className="flex items-center gap-2 text-arena-text-muted hover:text-arena-accent text-sm transition-colors">
+      <button onClick={handleLogout} className="flex items-center gap-2 text-arena-text-muted hover:text-arena-accent text-sm transition-colors duration-150">
         <LogOut className="w-4 h-4" /> Log Out
       </button>
     </div>
@@ -1601,9 +1641,17 @@ function NotificationsView() {
   });
 
   const markAllRead = async () => {
-    await fetch('/api/notifications/read-all', { method: 'POST' });
-    refetch();
-    toast.success('All notifications marked as read');
+    try {
+      const res = await fetch('/api/notifications/read-all', { method: 'POST' });
+      if (!res.ok) {
+        toast.error('Failed to mark notifications as read');
+        return;
+      }
+      refetch();
+      toast.success('All notifications marked as read');
+    } catch {
+      toast.error('Failed to mark notifications as read');
+    }
   };
 
   if (isLoading) return <NotificationsSkeleton />;
@@ -1619,7 +1667,7 @@ function NotificationsView() {
       {notifications && notifications.length > 0 ? (
         <div className="space-y-2">
           {notifications.map((n: any) => (
-            <div key={n.id} className={cn('bg-arena-card border rounded-xl p-4 transition-all', !n.isRead ? 'border-arena-accent/30 bg-arena-accent/5' : 'border-arena-border')}>
+            <div key={n.id} className={cn('bg-arena-card border rounded-xl p-4 transition-all duration-200', !n.isRead ? 'border-arena-accent/30 bg-arena-accent/5' : 'border-arena-border')}>
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-medium text-sm">{n.title}</h3>
@@ -1683,7 +1731,7 @@ function AdminDashboardView() {
           { label: 'Platform Settings', icon: Settings, view: 'admin-settings' as ViewName },
         ].map(action => (
           <button key={action.label} onClick={() => navigate(action.view)}
-            className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center gap-3 hover:border-arena-accent/30 transition-all hover:-translate-y-0.5 text-left">
+            className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center gap-3 hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5 text-left">
             <action.icon className="w-5 h-5 text-arena-accent" />
             <span className="text-sm font-medium">{action.label}</span>
             <ChevronRight className="w-4 h-4 text-arena-text-muted ml-auto" />
@@ -1707,9 +1755,18 @@ function AdminTournamentsView() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this tournament?')) return;
-    await fetch(`/api/admin/tournaments/${id}`, { method: 'DELETE' });
-    refetch();
-    toast.success('Tournament deleted');
+    try {
+      const res = await fetch(`/api/admin/tournaments/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to delete tournament');
+        return;
+      }
+      refetch();
+      toast.success('Tournament deleted');
+    } catch {
+      toast.error('Failed to delete tournament');
+    }
   };
 
   return (
@@ -1719,14 +1776,14 @@ function AdminTournamentsView() {
           <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
           <h1 className="text-xl font-bold">Tournaments</h1>
         </div>
-        <button onClick={() => navigate('admin-tournament-create')} className="flex items-center gap-2 px-4 py-2 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all">
+        <button onClick={() => navigate('admin-tournament-create')} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200">
           <Plus className="w-4 h-4" /> Create
         </button>
       </div>
       <div className="flex gap-2 mb-4 overflow-x-auto">
         {['', 'registration_open', 'in_progress', 'upcoming', 'completed'].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all',
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200',
               statusFilter === s ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary')}>
             {s === '' ? 'All' : s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
           </button>
@@ -1734,7 +1791,7 @@ function AdminTournamentsView() {
       </div>
       <div className="space-y-2">
         {tournaments?.map((t: any) => (
-          <div key={t.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between hover:border-arena-accent/30 transition-all">
+          <div key={t.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between hover:border-arena-accent/30 transition-all duration-200">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-medium text-sm truncate">{t.title}</h3>
@@ -1743,8 +1800,8 @@ function AdminTournamentsView() {
               <div className="text-xs text-arena-text-muted">{t.game?.name} • {paiseToRupee(t.entryFee)} • {t.registeredPlayers}/{t.maxPlayers} players</div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-              <button onClick={() => navigate('tournament-detail', { id: t.id })} className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors"><Eye className="w-4 h-4 text-arena-text-muted" /></button>
-              <button onClick={() => handleDelete(t.id)} className="p-1.5 rounded-lg hover:bg-arena-accent/10 transition-colors"><Trash2 className="w-4 h-4 text-arena-text-muted hover:text-arena-accent" /></button>
+              <button onClick={() => navigate('tournament-detail', { id: t.id })} aria-label="View tournament" className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150"><Eye className="w-4 h-4 text-arena-text-muted" /></button>
+              <button onClick={() => handleDelete(t.id)} aria-label="Delete tournament" className="p-1.5 rounded-lg hover:bg-arena-accent/10 transition-colors duration-150"><Trash2 className="w-4 h-4 text-arena-text-muted hover:text-arena-accent" /></button>
             </div>
           </div>
         ))}
@@ -1787,7 +1844,7 @@ function AdminTournamentCreateView() {
     setSaving(false);
   };
 
-  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-arena-accent transition-colors";
+  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150";
   const labelClass = "text-xs text-arena-text-secondary mb-1 block";
 
   return (
@@ -1822,8 +1879,8 @@ function AdminTournamentCreateView() {
           <span className="text-sm">Mark as Featured</span>
         </label>
         <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={saving} className="px-6 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all text-sm disabled:opacity-50">{saving ? 'Creating...' : 'Create Tournament'}</button>
-          <button type="button" onClick={() => navigate('admin-tournaments')} className="px-6 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors">Cancel</button>
+          <button type="submit" disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Creating...' : 'Create Tournament'}</button>
+          <button type="button" onClick={() => navigate('admin-tournaments')} className="px-6 py-2.5 h-11 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
         </div>
       </form>
     </div>
@@ -1842,15 +1899,33 @@ function AdminRegistrationsView() {
   });
 
   const handleVerify = async (id: string) => {
-    await fetch(`/api/admin/registrations/${id}/verify`, { method: 'POST' });
-    refetch();
-    toast.success('Payment verified!');
+    try {
+      const res = await fetch(`/api/admin/registrations/${id}/verify`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to verify payment');
+        return;
+      }
+      refetch();
+      toast.success('Payment verified!');
+    } catch {
+      toast.error('Failed to verify payment');
+    }
   };
 
   const handleReject = async (id: string) => {
-    await fetch(`/api/admin/registrations/${id}/reject`, { method: 'POST' });
-    refetch();
-    toast.success('Payment rejected');
+    try {
+      const res = await fetch(`/api/admin/registrations/${id}/reject`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to reject payment');
+        return;
+      }
+      refetch();
+      toast.success('Payment rejected');
+    } catch {
+      toast.error('Failed to reject payment');
+    }
   };
 
   return (
@@ -1862,7 +1937,7 @@ function AdminRegistrationsView() {
       <div className="flex gap-2 mb-4">
         {['pending', 'verified', 'failed'].map(s => (
           <button key={s} onClick={() => setFilter(s)}
-            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
               filter === s ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary')}>
             {s.replace(/\b\w/g, c => c.toUpperCase())}
           </button>
@@ -1892,8 +1967,8 @@ function AdminRegistrationsView() {
               </div>
               {r.paymentStatus === 'pending' && (
                 <div className="flex gap-2">
-                  <button onClick={() => handleVerify(r.id)} className="flex items-center gap-1 px-3 py-1.5 bg-arena-success/20 text-arena-success text-xs font-medium rounded-lg hover:bg-arena-success/30 transition-colors"><CheckCircle2 className="w-3 h-3" /> Verify</button>
-                  <button onClick={() => handleReject(r.id)} className="flex items-center gap-1 px-3 py-1.5 bg-arena-accent/20 text-arena-accent text-xs font-medium rounded-lg hover:bg-arena-accent/30 transition-colors"><XCircle className="w-3 h-3" /> Reject</button>
+                  <button onClick={() => handleVerify(r.id)} className="flex items-center gap-1 px-3 py-1.5 bg-arena-success/20 text-arena-success text-xs font-medium rounded-lg hover:bg-arena-success/30 transition-colors duration-150"><CheckCircle2 className="w-3 h-3" /> Verify</button>
+                  <button onClick={() => handleReject(r.id)} className="flex items-center gap-1 px-3 py-1.5 bg-arena-accent/20 text-arena-accent text-xs font-medium rounded-lg hover:bg-arena-accent/30 transition-colors duration-150"><XCircle className="w-3 h-3" /> Reject</button>
                 </div>
               )}
             </div>
@@ -1912,7 +1987,7 @@ function AdminGamesView() {
   const { navigate } = useAppStore();
   const { data: games, refetch } = useQuery({
     queryKey: ['admin-games-list'],
-    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d || []),
+    queryFn: () => fetch('/api/admin/games').then(r => r.json()).then(d => d.games || d || []),
   });
 
   return (
@@ -1923,7 +1998,7 @@ function AdminGamesView() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {games?.map((g: any) => (
-          <div key={g.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center gap-4 hover:border-arena-accent/30 transition-all">
+          <div key={g.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center gap-4 hover:border-arena-accent/30 transition-all duration-200">
             <div className="w-12 h-12 rounded-xl bg-arena-accent/10 flex items-center justify-center">
               <Gamepad2 className="w-6 h-6 text-arena-accent" />
             </div>
@@ -1944,7 +2019,7 @@ function AdminStreamsView() {
   const { navigate } = useAppStore();
   const { data: streams, refetch } = useQuery({
     queryKey: ['admin-streams-list'],
-    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => d.streams || d || []),
+    queryFn: () => fetch('/api/admin/streams').then(r => r.json()).then(d => d.streams || d || []),
   });
 
   return (
@@ -1964,7 +2039,7 @@ function AdminStreamsView() {
               </div>
               <p className="text-xs text-arena-text-muted">{s.platform} • {formatDateTime(s.scheduledStart)} • {s.peakViewers} peak viewers</p>
             </div>
-            {s.streamUrl && <a href={s.streamUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-arena-surface transition-colors"><ExternalLink className="w-4 h-4 text-arena-text-muted" /></a>}
+            {s.streamUrl && <a href={s.streamUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-arena-surface transition-colors duration-150"><ExternalLink className="w-4 h-4 text-arena-text-muted" /></a>}
           </div>
         ))}
       </div>
@@ -1978,7 +2053,7 @@ function AdminAffiliatesView() {
   const { navigate } = useAppStore();
   const { data: affiliates } = useQuery({
     queryKey: ['admin-affiliates-list'],
-    queryFn: () => fetch('/api/affiliates').then(r => r.json()).then(d => d.affiliates || d || []),
+    queryFn: () => fetch('/api/admin/affiliates').then(r => r.json()).then(d => d.affiliates || d || []),
   });
 
   return (
@@ -2011,11 +2086,7 @@ function AdminSettingsView() {
 
   const { data: fetchedSettings, isLoading } = useQuery({
     queryKey: ['admin-platform-settings'],
-    queryFn: () => fetch('/api/admin/settings').then(r => r.json()).then(d => {
-      const map: Record<string, string> = {};
-      (d.settings || d || []).forEach((s: any) => { map[s.key] = s.value; });
-      return map;
-    }),
+    queryFn: () => fetch('/api/admin/settings').then(r => r.json()).then(d => d.settings || d || {}),
   });
 
   const [settingsInit, setSettingsInit] = React.useState(false);
@@ -2055,15 +2126,30 @@ function AdminSettingsView() {
             <div key={key}>
               <label className="text-xs text-arena-text-secondary mb-1 block">{key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
               <input type="text" value={value} onChange={e => setSettings({ ...settings, [key]: e.target.value })}
-                className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-arena-accent transition-colors" />
+                className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" />
             </div>
           ))}
-          <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all text-sm disabled:opacity-50">
+          <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
             {saving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       )}
     </div>
+  );
+}
+
+// ==================== SEARCH BAR INPUT ====================
+
+function SearchBarInput() {
+  const { currentView } = useAppStore();
+  const { query, setQuery } = useSearchStore();
+  return (
+    <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder={
+      currentView === 'home' ? 'Search anything...' :
+      currentView === 'tournaments' ? 'Search tournaments...' :
+      currentView === 'leaderboard' ? 'Search players...' :
+      'Search streams & videos...'
+    } className="w-full bg-arena-card border border-arena-border rounded-xl pl-10 pr-4 py-2.5 h-10 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" />
   );
 }
 
@@ -2109,8 +2195,8 @@ export default function Page() {
             <img onClick={() => navigate('home')} src="/logo.png" alt="AA" className="w-10 h-10 rounded-xl mb-10 hover:opacity-80 transition-opacity cursor-pointer" />
             <nav className="flex flex-col gap-2 flex-1">
               {navItems.map(item => (
-                <button key={item.view} onClick={() => navigate(item.view)} title={item.label}
-                  className={cn('w-11 h-11 rounded-xl flex items-center justify-center transition-all relative group',
+                <button key={item.view} onClick={() => navigate(item.view)} aria-label={item.label} title={item.label}
+                  className={cn('w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 relative group',
                     currentView === item.view ? 'bg-arena-accent text-white shadow-lg shadow-arena-accent/25' : 'text-arena-text-secondary hover:bg-arena-card hover:text-white')}>
                   {currentView === item.view && <div className="absolute left-[-14px] w-[3px] h-5 bg-arena-accent rounded-r" />}
                   <item.icon className="w-5 h-5" />
@@ -2118,13 +2204,13 @@ export default function Page() {
               ))}
             </nav>
             <div className="flex flex-col gap-2 items-center">
-              <button onClick={() => navigate('notifications')} className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all relative">
+              <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200 relative">
                 <Bell className="w-5 h-5" />
               </button>
-              <button onClick={() => navigate('profile')} className="w-9 h-9 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold border-2 border-arena-accent/50 overflow-hidden">
-                {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
+              <button onClick={() => navigate('profile')} aria-label="Profile" className="w-9 h-9 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold border-2 border-arena-accent/50 overflow-hidden">
+                {user?.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
               </button>
-              <button onClick={handleLogout} title="Logout" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-muted hover:bg-arena-accent/10 hover:text-arena-accent transition-all">
+              <button onClick={handleLogout} aria-label="Logout" title="Logout" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-muted hover:bg-arena-accent/10 hover:text-arena-accent transition-all duration-200">
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
@@ -2140,12 +2226,12 @@ export default function Page() {
                     <img src="/logo.png" alt="AA" className="w-6 h-6 rounded-md" />
                     <span className="text-sm font-extrabold tracking-widest text-arena-accent">AETHER ARENA</span>
                   </div>
-                  <button onClick={() => setMobileMenuOpen(false)} className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
+                  <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
                 <nav className="space-y-1">
                   {navItems.map(item => (
                     <button key={item.view} onClick={() => navigate(item.view)}
-                      className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                      className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
                         currentView === item.view ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:bg-arena-card hover:text-white')}>
                       <item.icon className="w-5 h-5" />
                       {item.label}
@@ -2153,17 +2239,17 @@ export default function Page() {
                   ))}
                 </nav>
                 <div className="mt-8 pt-4 border-t border-arena-border space-y-1">
-                  <button onClick={() => { navigate('notifications'); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all">
+                  <button onClick={() => { navigate('notifications'); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
                     <Bell className="w-5 h-5" /> Notifications
                   </button>
-                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-muted hover:bg-arena-accent/10 hover:text-arena-accent transition-all">
+                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-muted hover:bg-arena-accent/10 hover:text-arena-accent transition-all duration-200">
                     <LogOut className="w-5 h-5" /> Logout
                   </button>
                 </div>
                 {user && (
                   <div className="mt-6 flex items-center gap-3 px-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden">
-                      {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" /> : user.username[0].toUpperCase()}
+                      {user.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
                     </div>
                     <div>
                       <div className="text-sm font-medium">{user.displayName || user.username}</div>
@@ -2181,26 +2267,21 @@ export default function Page() {
             {(['home', 'tournaments', 'leaderboard', 'streams'] as ViewName[]).includes(currentView) && (
               <header className="h-14 flex items-center justify-between px-3 md:px-6 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl gap-3">
                 {/* Hamburger menu (mobile) */}
-                <button onClick={() => setMobileMenuOpen(true)} className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
+                <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
                   <Menu className="w-5 h-5" />
                 </button>
                 {/* Contextual search bar */}
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-arena-text-muted pointer-events-none" />
-                  <input type="text" placeholder={
-                    currentView === 'home' ? 'Search anything...' :
-                    currentView === 'tournaments' ? 'Search tournaments...' :
-                    currentView === 'leaderboard' ? 'Search players...' :
-                    'Search streams & videos...'
-                  } className="w-full bg-arena-card border border-arena-border rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" />
+                  <SearchBarInput />
                 </div>
                 {/* Right icons */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={() => navigate('notifications')} className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all relative">
+                  <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200 relative">
                     <Bell className="w-4 h-4" />
                   </button>
-                  <button onClick={() => navigate('profile')} className="w-9 h-9 rounded-xl overflow-hidden border-2 border-arena-accent/50">
-                    {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" /> : (
+                  <button onClick={() => navigate('profile')} className="w-9 h-9 rounded-xl overflow-hidden border-2 border-arena-accent/50 hover:border-arena-accent transition-colors duration-150 cursor-pointer">
+                    {user?.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (
                       <div className="w-full h-full bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-xs font-bold">{(user?.username || '?')[0].toUpperCase()}</div>
                     )}
                   </button>
@@ -2210,7 +2291,7 @@ export default function Page() {
             {/* Minimal header for non-search views (mobile still needs hamburger) */}
             {!['home', 'tournaments', 'leaderboard', 'streams'].includes(currentView) && (
               <div className="md:hidden h-12 flex items-center px-3 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl">
-                <button onClick={() => setMobileMenuOpen(true)} className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center">
+                <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center">
                   <Menu className="w-5 h-5" />
                 </button>
               </div>
@@ -2233,8 +2314,8 @@ export default function Page() {
           </main>
 
           {/* Right Panel Toggle */}
-          <button onClick={() => setRightPanelCollapsed(!rightPanelCollapsed)}
-            className="hidden lg:flex fixed right-[280px] top-1/2 -translate-y-1/2 z-50 w-5 h-12 bg-arena-surface border border-arena-border rounded-l-lg items-center justify-center hover:bg-arena-card transition-colors"
+          <button onClick={() => setRightPanelCollapsed(!rightPanelCollapsed)} aria-label={rightPanelCollapsed ? 'Open right panel' : 'Close right panel'}
+            className="hidden lg:flex fixed top-1/2 -translate-y-1/2 z-50 w-5 h-12 bg-arena-surface border border-arena-border rounded-l-lg items-center justify-center hover:bg-arena-card transition-colors duration-150"
             style={{ right: rightPanelCollapsed ? '0' : '280px' }}>
             <ChevronRight className={cn('w-3 h-3 text-arena-text-muted transition-transform', !rightPanelCollapsed && 'rotate-180')} />
           </button>
@@ -2253,6 +2334,7 @@ function RightPanelContent() {
   const { data: stats } = useQuery({
     queryKey: ['admin-stats-mini'],
     queryFn: () => fetch('/api/admin/stats').then(r => r.json()),
+    enabled: user?.isAdmin,
   });
 
   if (currentView === 'profile' || currentView === 'notifications') return null;
@@ -2282,7 +2364,7 @@ function RightPanelContent() {
           <h3 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Your Profile</h3>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden">
-              {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" /> : user.username[0].toUpperCase()}
+              {user.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
             </div>
             <div>
               <div className="text-sm font-medium">{user.displayName || user.username}</div>
@@ -2314,7 +2396,7 @@ function RightPanelContent() {
             { label: 'Watch Streams', view: 'streams' as ViewName, icon: Tv },
           ].map(link => (
             <button key={link.view} onClick={() => navigate(link.view)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-arena-text-secondary hover:bg-arena-surface hover:text-white transition-all">
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-arena-text-secondary hover:bg-arena-surface hover:text-white transition-all duration-200">
               <link.icon className="w-4 h-4" /> {link.label}
             </button>
           ))}

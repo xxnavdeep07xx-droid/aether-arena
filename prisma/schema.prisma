@@ -307,7 +307,7 @@ model StreamSchedule {
   createdById    String
   createdAt      DateTime  @default(now())
 
-  tournament Tournament? @relation(fields: [tournamentId], references: [id])
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   createdBy  Profile     @relation(fields: [createdById], references: [id])
 
   @@index([status])

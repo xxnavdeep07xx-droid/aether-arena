@@ -31,10 +31,13 @@ export async function POST(
     // Delete registration and decrement tournament count in transaction
     await db.$transaction(async (tx) => {
       await tx.tournamentRegistration.delete({ where: { id } })
-      await tx.tournament.update({
-        where: { id: registration.tournamentId },
-        data: { registeredPlayers: { decrement: 1 } },
-      })
+      // Guard against negative registeredPlayers
+      if (registration.tournament.registeredPlayers > 0) {
+        await tx.tournament.update({
+          where: { id: registration.tournamentId },
+          data: { registeredPlayers: { decrement: 1 } },
+        })
+      }
     })
 
     // Notify the player

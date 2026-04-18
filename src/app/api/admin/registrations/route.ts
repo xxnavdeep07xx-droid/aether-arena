@@ -10,8 +10,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'pending'
     const tournamentId = searchParams.get('tournamentId')
-    const page = parseInt(searchParams.get('page') || '1', 10)
-    const limit = parseInt(searchParams.get('limit') || '20', 10)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 100)
     const skip = (page - 1) * limit
 
     const where: Prisma.TournamentRegistrationWhereInput = {}

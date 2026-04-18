@@ -45,14 +45,6 @@ export async function POST(
       )
     }
 
-    // Check if tournament is full
-    if (tournament.registeredPlayers >= tournament.maxPlayers) {
-      return NextResponse.json(
-        { error: 'Tournament is full' },
-        { status: 400 }
-      )
-    }
-
     // Check if already registered
     const existingRegistration = await db.tournamentRegistration.findUnique({
       where: {
@@ -88,7 +80,22 @@ export async function POST(
     const paymentStatus = tournament.entryFee === 0 ? 'verified' : 'pending'
 
     // Create registration and update tournament count in transaction
+    // The capacity check is inside the transaction to prevent race conditions
     const registration = await db.$transaction(async (tx) => {
+      // Re-read tournament inside transaction for atomic capacity check
+      const freshTournament = await tx.tournament.findUnique({
+        where: { id: tournamentId },
+        select: { registeredPlayers: true, maxPlayers: true },
+      })
+
+      if (!freshTournament) {
+        throw new Error('Tournament not found')
+      }
+
+      if (freshTournament.registeredPlayers >= freshTournament.maxPlayers) {
+        throw new Error('TOURNAMENT_FULL')
+      }
+
       const reg = await tx.tournamentRegistration.create({
         data: {
           tournamentId,
@@ -150,6 +157,9 @@ export async function POST(
           : 'Registration successful! You are confirmed for this tournament.',
     })
   } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'TOURNAMENT_FULL') {
+      return NextResponse.json({ error: 'Tournament is full' }, { status: 400 })
+    }
     if (error && typeof error === 'object' && 'statusCode' in error) {
       const authError = error as { statusCode: number; message: string }
       return NextResponse.json({ error: authError.message }, { status: authError.statusCode })
