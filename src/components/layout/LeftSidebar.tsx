@@ -44,9 +44,9 @@ export function LeftSidebar() {
         {/* Logo */}
         <button
           onClick={() => navigate('home')}
-          className="w-11 h-11 rounded-xl bg-arena-accent flex items-center justify-center mb-6 hover:bg-arena-accent-light transition-colors"
+          className="w-11 h-11 rounded-xl overflow-hidden mb-6 hover:opacity-80 transition-opacity"
         >
-          <span className="text-white font-bold text-sm tracking-wider">AE</span>
+          <img src="/logo.png" alt="AA" className="w-full h-full object-cover" />
         </button>
 
         {/* Nav Icons */}

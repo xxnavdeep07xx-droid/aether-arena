@@ -4,7 +4,7 @@ import { createSession, getSessionCookieOptions } from '@/lib/auth'
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || '1493661620239601664'
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || ''
-const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || ''
+const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'https://qrmsyjoaodtydjbwjlas.supabase.co/auth/v1/callback'
 
 async function exchangeCode(code: string, redirectUri: string) {
   const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     }
 
     // Determine redirect URI
-    const redirectUri = REDIRECT_URI || `${url.origin}/api/auth/discord/callback`
+    const redirectUri = DISCORD_REDIRECT_URI
 
     // Exchange code for token
     const tokenData = await exchangeCode(code, redirectUri)

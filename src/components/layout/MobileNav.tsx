@@ -56,11 +56,9 @@ export function MobileNav() {
               navigate('home');
               setMobileMenuOpen(false);
             }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2.5"
           >
-            <div className="w-9 h-9 rounded-xl bg-arena-accent flex items-center justify-center">
-              <span className="text-white font-bold text-sm tracking-wider">AE</span>
-            </div>
+            <img src="/logo.png" alt="AA" className="w-9 h-9 rounded-xl" />
             <span className="text-lg font-bold text-arena-text-primary">Aether Arena</span>
           </button>
           <button

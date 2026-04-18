@@ -293,12 +293,12 @@ function LandingView() {
       {/* Landing Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-arena-dark/80 backdrop-blur-xl border-b border-arena-border">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-arena-accent rounded-lg flex items-center justify-center font-bold text-sm">AE</div>
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="AA" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-lg tracking-wider">AETHER ARENA</span>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setShowLogin(true)} className="px-4 py-2 text-sm font-medium text-arena-text-secondary hover:text-white transition-colors">Log In</button>
+          <div className="flex items-center gap-2.5">
+            <button onClick={() => setShowLogin(true)} className="px-4 py-2 text-sm font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/50 rounded-xl transition-all">Log In</button>
             <button onClick={() => setShowSignup(true)} className="px-4 py-2 text-sm font-medium bg-arena-accent hover:bg-arena-accent-light text-white rounded-xl transition-all hover:shadow-lg hover:shadow-arena-accent/20">Sign Up</button>
           </div>
         </div>
@@ -424,7 +424,7 @@ function LandingView() {
       <footer className="border-t border-arena-border bg-arena-surface/50">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-arena-accent rounded-md flex items-center justify-center font-bold text-xs">AE</div>
+            <img src="/logo.png" alt="AA" className="w-6 h-6 rounded-md" />
             <span className="text-sm font-medium">Aether Arena</span>
           </div>
           <p className="text-xs text-arena-text-muted">© 2025 Aether Arena. All rights reserved.</p>
@@ -1967,7 +1967,7 @@ export default function Page() {
         <div className="flex h-screen overflow-hidden">
           {/* Left Sidebar - Desktop */}
           <aside className="hidden md:flex flex-col items-center w-[72px] h-screen bg-arena-surface border-r border-arena-border flex-shrink-0 py-5 z-50">
-            <button onClick={() => navigate('home')} className="text-sm font-extrabold tracking-widest text-arena-accent mb-10 hover:opacity-80 transition-opacity">AE</button>
+            <img onClick={() => navigate('home')} src="/logo.png" alt="AA" className="w-10 h-10 rounded-xl mb-10 hover:opacity-80 transition-opacity cursor-pointer" />
             <nav className="flex flex-col gap-2 flex-1">
               {navItems.map(item => (
                 <button key={item.view} onClick={() => navigate(item.view)} title={item.label}
@@ -1997,7 +1997,10 @@ export default function Page() {
               <div className="absolute inset-0 bg-black/60" onClick={() => setMobileMenuOpen(false)} />
               <div className="absolute left-0 top-0 bottom-0 w-72 bg-arena-surface border-r border-arena-border p-5 animate-slide-in-left">
                 <div className="flex items-center justify-between mb-8">
-                  <span className="text-sm font-extrabold tracking-widest text-arena-accent">AETHER ARENA</span>
+                  <div className="flex items-center gap-2">
+                    <img src="/logo.png" alt="AA" className="w-6 h-6 rounded-md" />
+                    <span className="text-sm font-extrabold tracking-widest text-arena-accent">AETHER ARENA</span>
+                  </div>
                   <button onClick={() => setMobileMenuOpen(false)} className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
                 <nav className="space-y-1">

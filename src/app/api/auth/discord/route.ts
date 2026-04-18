@@ -1,18 +1,13 @@
 import { NextResponse } from 'next/server'
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || '1493661620239601664'
-const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || ''
+const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'https://qrmsyjoaodtydjbwjlas.supabase.co/auth/v1/callback'
 
 export async function GET(request: Request) {
   try {
-    // Build redirect URI based on the request's origin
-    const url = new URL(request.url)
-    const origin = url.origin
-    const redirectUri = REDIRECT_URI || `${origin}/api/auth/discord/callback`
-
     const params = new URLSearchParams({
       client_id: DISCORD_CLIENT_ID,
-      redirect_uri: redirectUri,
+      redirect_uri: DISCORD_REDIRECT_URI,
       response_type: 'code',
       scope: 'identify email',
     })
