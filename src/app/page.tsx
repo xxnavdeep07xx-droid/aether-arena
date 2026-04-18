@@ -174,16 +174,139 @@ function NotificationsSkeleton() {
   );
 }
 
+function LandingSkeleton() {
+  return (
+    <div className="min-h-screen bg-arena-dark">
+      {/* Skeleton Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-arena-dark/80 backdrop-blur-xl border-b border-arena-border">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="w-8 h-8 rounded-lg" />
+            <Skeleton className="h-5 w-36" />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="h-10 w-20 rounded-xl" />
+            <Skeleton className="h-10 w-24 rounded-xl" />
+          </div>
+        </div>
+      </header>
+
+      {/* Skeleton Hero */}
+      <section className="relative pt-16">
+        <div className="max-w-7xl mx-auto px-6 py-24 md:py-32">
+          <div className="max-w-3xl space-y-6">
+            <Skeleton className="h-6 w-48 rounded-full" />
+            <Skeleton className="h-14 w-full max-w-xl" />
+            <Skeleton className="h-14 w-4/5 max-w-md" />
+            <Skeleton className="h-5 w-96 max-w-lg" />
+            <Skeleton className="h-5 w-72 max-w-sm" />
+            <div className="flex gap-4 pt-2">
+              <Skeleton className="h-12 w-40 rounded-xl" />
+              <Skeleton className="h-12 w-32 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Skeleton Stats */}
+      <section className="border-y border-arena-border bg-arena-surface/50">
+        <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="text-center space-y-2">
+              <Skeleton className="w-6 h-6 rounded-full mx-auto" />
+              <Skeleton className="h-7 w-16 mx-auto" />
+              <Skeleton className="h-4 w-14 mx-auto" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Skeleton How It Works */}
+      <section className="max-w-7xl mx-auto px-6 py-20">
+        <Skeleton className="h-8 w-52 mx-auto mb-12" />
+        <div className="grid md:grid-cols-3 gap-8">
+          {[1,2,3].map(i => (
+            <div key={i} className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+              <Skeleton className="h-10 w-12" />
+              <Skeleton className="w-8 h-8 rounded-xl" />
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Skeleton Featured Tournaments */}
+      <section className="max-w-7xl mx-auto px-6 pb-20">
+        <div className="flex items-center justify-between mb-8">
+          <Skeleton className="h-8 w-56" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1,2,3].map(i => (
+            <div key={i} className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden">
+              <Skeleton className="h-32 w-full rounded-none" />
+              <div className="p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-4 w-12" />
+                </div>
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-3 w-24" />
+                <div className="flex items-center justify-between pt-2">
+                  <Skeleton className="h-5 w-12" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Skeleton Games */}
+      <section className="max-w-7xl mx-auto px-6 pb-20">
+        <Skeleton className="h-8 w-52 mx-auto mb-12" />
+        <div className="flex flex-wrap justify-center gap-4">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="bg-arena-card border border-arena-border rounded-2xl p-4 flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-xl" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Skeleton Footer */}
+      <footer className="border-t border-arena-border bg-arena-surface/50">
+        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Skeleton className="w-6 h-6 rounded-md" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <Skeleton className="h-3 w-48" />
+        </div>
+      </footer>
+    </div>
+  );
+}
+
 function ViewRenderer() {
   const { currentView, viewParams, navigate } = useAppStore();
   const { isAuthenticated, isLoading, user } = useAuthStore();
 
+  // Skeleton loading based on current view instead of spinner
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin w-8 h-8 border-2 border-arena-accent border-t-transparent rounded-full" />
-      </div>
-    );
+    const skeletonMap: Partial<Record<ViewName, React.ReactNode>> = {
+      'landing': <LandingSkeleton />,
+      'home': <HomeSkeleton />,
+      'tournaments': <TournamentsSkeleton />,
+      'leaderboard': <LeaderboardSkeleton />,
+      'streams': <StreamsSkeleton />,
+      'profile': <ProfileSkeleton />,
+      'notifications': <NotificationsSkeleton />,
+    };
+    return skeletonMap[currentView] || <HomeSkeleton />;
   }
 
   // If not authenticated and not on landing, go to landing
@@ -949,7 +1072,23 @@ function TournamentDetailView() {
     }
   };
 
-  if (isLoading) return <div className="flex items-center justify-center py-20"><div className="animate-spin w-8 h-8 border-2 border-arena-accent border-t-transparent rounded-full" /></div>;
+  if (isLoading) return (
+    <div className="space-y-4">
+      <Skeleton className="h-48 w-full rounded-2xl" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2 space-y-3">
+          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-32 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
   if (!tournament) return <div className="text-center py-20 text-arena-text-muted">Tournament not found</div>;
 
   const t = tournament;
