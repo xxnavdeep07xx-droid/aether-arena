@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const where: Prisma.TournamentWhereInput = {}
     if (status) where.status = status
     if (gameId) where.gameId = gameId
-    if (search) where.title = { contains: search, mode: 'insensitive' }
+    if (search) where.title = { contains: search }
 
     const [tournaments, total] = await Promise.all([
       db.tournament.findMany({

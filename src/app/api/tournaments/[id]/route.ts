@@ -57,7 +57,7 @@ export async function GET(
 
     // Check if current user is registered
     let isRegistered = false
-    let userRegistration = null
+    let userRegistration: any = null
     try {
       const cookieHeader = request.headers.get('cookie')
       if (cookieHeader) {

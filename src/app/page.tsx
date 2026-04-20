@@ -1161,7 +1161,7 @@ function TournamentDetailView() {
                 {paymentStatus === 'verified' ? '✓ Registered' : '⏳ Payment Pending'}
               </span>
             ) : !isAuthenticated ? (
-              <button onClick={() => { toast.error('Please log in to register'); setShowLogin(true); }} className="px-6 py-2.5 h-11 border border-arena-accent text-arena-accent font-semibold rounded-xl transition-all duration-200 text-sm">
+              <button onClick={() => { toast.error('Please log in to register'); navigate('home'); }} className="px-6 py-2.5 h-11 border border-arena-accent text-arena-accent font-semibold rounded-xl transition-all duration-200 text-sm">
                 Login to Register
               </button>
             ) : null}
@@ -1487,8 +1487,8 @@ function ProfileView() {
     enabled: isAuthenticated,
   });
 
-  const [profileFormInit, setProfileFormInit] = React.useState(false);
-  React.useEffect(() => {
+  const [profileFormInit, setProfileFormInit] = useState(false);
+  useEffect(() => {
     if (profile && !profileFormInit) {
       setProfileFormInit(true);
       setForm({ displayName: profile.displayName || '', bio: profile.bio || '' });
@@ -2089,8 +2089,8 @@ function AdminSettingsView() {
     queryFn: () => fetch('/api/admin/settings').then(r => r.json()).then(d => d.settings || d || {}),
   });
 
-  const [settingsInit, setSettingsInit] = React.useState(false);
-  React.useEffect(() => {
+  const [settingsInit, setSettingsInit] = useState(false);
+  useEffect(() => {
     if (fetchedSettings && !settingsInit) {
       setSettingsInit(true);
       setSettings(fetchedSettings);
@@ -2375,7 +2375,7 @@ function RightPanelContent() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="text-center bg-arena-surface rounded-lg py-2">
-              <div className="text-sm font-bold">{user.totalWins || 0}</div>
+              <div className="text-sm font-bold">{(user as any).totalWins || 0}</div>
               <div className="text-[10px] text-arena-text-muted">Wins</div>
             </div>
             <div className="text-center bg-arena-surface rounded-lg py-2">
