@@ -57,7 +57,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       mobileMenuOpen: false,
     });
     // Clear search when navigating away from search-related views
-    if (!['tournaments', 'home'].includes(view)) {
+    if (!['tournaments', 'home', 'leaderboard'].includes(view)) {
       useSearchStore.getState().setQuery('');
     }
   },

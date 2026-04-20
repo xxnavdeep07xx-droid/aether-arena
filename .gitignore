@@ -60,4 +60,5 @@ server.log
 
 # Database
 /db/*.db
-/db/*.db-journal
+/db/*.db-journal.env
+.env.local

@@ -199,6 +199,11 @@
   scrollbar-width: none;
 }
 
+/* Safe area for mobile bottom nav */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* ===== ENERGY LOGO ANIMATIONS ===== */
 
 /* Main energy pulse - breathing red glow */

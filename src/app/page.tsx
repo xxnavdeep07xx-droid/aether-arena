@@ -850,12 +850,15 @@ function AffiliateCarouselSection() {
     return () => clearInterval(timer);
   }, [affiliates]);
 
-  const handleClick = async (affiliate: any) => {
-    if (affiliate.url) window.open(affiliate.url, '_blank');
+  const handleClick = async (affiliate: any, e: React.MouseEvent) => {
     try { await fetch(`/api/affiliates/${affiliate.id}/click`, { method: 'POST' }); } catch {}
   };
 
   if (!affiliates || affiliates.length === 0) return null;
+
+  const visible = affiliates.slice(current, current + 3).concat(
+    affiliates.length - current < 3 ? affiliates.slice(0, 3 - (affiliates.length - current)) : []
+  );
 
   return (
     <div>
@@ -871,28 +874,23 @@ function AffiliateCarouselSection() {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {affiliates.slice(current, current + 3).concat(
-          affiliates.length - current < 3 ? affiliates.slice(0, 3 - (affiliates.length - current)) : []
-        ).map((a: any) => (
-          <div key={a.id} onClick={() => handleClick(a)}
-            className="bg-arena-card border border-arena-border rounded-xl p-4 md:p-5 flex gap-4 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
-            <div className="w-16 h-16 rounded-lg bg-arena-surface flex items-center justify-center flex-shrink-0">
-              <Gamepad2 className="w-8 h-8 text-arena-text-muted" />
+        {visible.map((a: any) => (
+          <a key={a.id} href={a.url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => handleClick(a, e)}
+            className="group bg-arena-surface border border-arena-border rounded-2xl p-4 md:p-5 flex gap-4 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5 block">
+            <div className="w-16 h-16 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
+              <Gamepad2 className="w-8 h-8 text-arena-accent/60" />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold truncate">{a.name}</h3>
+              <h3 className="text-sm font-semibold truncate group-hover:text-arena-accent transition-colors duration-150">{a.name}</h3>
               <p className="text-xs text-arena-text-muted mt-1 line-clamp-2">{a.description}</p>
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-sm font-bold text-arena-success">₹{a.priceDisplay || a.price.toLocaleString('en-IN')}</span>
-                {a.originalPrice > 0 && <span className="text-xs text-arena-text-muted line-through">₹{a.originalPriceDisplay || a.originalPrice.toLocaleString('en-IN')}</span>}
+                <span className="text-sm font-bold text-arena-success">{a.priceDisplay || 'Free'}</span>
+                {a.originalPrice > 0 && <span className="text-xs text-arena-text-muted line-through">{a.originalPriceDisplay}</span>}
               </div>
             </div>
-            <ExternalLink className="w-4 h-4 text-arena-text-muted flex-shrink-0 self-center" />
-          </div>
+            <ExternalLink className="w-4 h-4 text-arena-text-muted group-hover:text-arena-accent flex-shrink-0 self-center opacity-0 group-hover:opacity-100 transition-all duration-200" />
+          </a>
         ))}
-      </div>
-      <div className="mt-3 text-center bg-arena-accent/5 border border-arena-accent/10 rounded-xl py-2">
-        <p className="text-xs text-arena-accent font-medium">Official Aether Arena Store — Coming Soon</p>
       </div>
     </div>
   );
@@ -1101,7 +1099,13 @@ function HomeTournamentsSection() {
 
   const { data: tournaments } = useQuery({
     queryKey: ['home-tournaments', filter],
-    queryFn: () => fetch(`/api/tournaments?status=${filter === 'all' ? '' : filter}&limit=6`).then(r => r.json()).then(d => d.tournaments || d || []),
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (filter === 'featured') { params.set('featured', 'true'); }
+      else if (filter !== 'all') { params.set('status', filter); }
+      params.set('limit', '6');
+      return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => d.tournaments || d || []);
+    },
   });
 
   return (
@@ -1114,12 +1118,12 @@ function HomeTournamentsSection() {
           Browse All <ChevronRight className="w-3 h-3" />
         </button>
       </div>
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        {['all', 'registration_open', 'in_progress', 'upcoming'].map(s => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200',
-              filter === s ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
-            {s === 'all' ? 'All' : s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
+        {[{ k: 'all', l: 'All' }, { k: 'featured', l: '🔥 Featured' }, { k: 'registration_open', l: 'Open' }, { k: 'in_progress', l: '🔴 Live' }, { k: 'upcoming', l: 'Upcoming' }].map(s => (
+          <button key={s.k} onClick={() => setFilter(s.k)}
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 flex-shrink-0',
+              filter === s.k ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
+            {s.l}
           </button>
         ))}
       </div>
@@ -1614,6 +1618,7 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
 function LeaderboardView() {
   const [gameFilter, setGameFilter] = useState('all');
   const [period, setPeriod] = useState('all_time');
+  const { query: searchQuery } = useSearchStore();
 
   const { data: games } = useQuery({
     queryKey: ['lb-games'],
@@ -1621,14 +1626,23 @@ function LeaderboardView() {
   });
 
   const { data: entries, isLoading } = useQuery({
-    queryKey: ['leaderboard', gameFilter, period],
+    queryKey: ['leaderboard', gameFilter, period, searchQuery],
     queryFn: () => {
       const params = new URLSearchParams();
       if (gameFilter !== 'all') params.set('gameId', gameFilter);
       params.set('period', period);
+      if (searchQuery) params.set('search', searchQuery);
       return fetch(`/api/leaderboard?${params}`).then(r => r.json()).then(d => d.leaderboard || d || []);
     },
   });
+
+  // Dedup: if "All Games", group by player (server handles this, but safety net)
+  const dedupedEntries = gameFilter === 'all'
+    ? entries?.reduce((acc: any[], e: any) => {
+        if (!acc.find((a: any) => a.playerId === e.playerId)) acc.push(e);
+        return acc;
+      }, []) || []
+    : entries || [];
 
   return (
     <div>
@@ -1636,10 +1650,15 @@ function LeaderboardView() {
         <BarChart3 className="w-6 h-6 text-arena-accent" /> Leaderboard
       </h1>
 
+      {/* Search hint */}
+      {searchQuery && (
+        <div className="mb-4 text-xs text-arena-text-muted">Showing results for "<span className="text-arena-accent">{searchQuery}</span>"</div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex gap-1 bg-arena-card rounded-xl p-1 border border-arena-border">
-          <button onClick={() => setGameFilter('all')} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200', gameFilter === 'all' ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>All Games</button>
+        <div className="flex gap-1 bg-arena-card rounded-xl p-1 border border-arena-border overflow-x-auto">
+          <button onClick={() => setGameFilter('all')} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap', gameFilter === 'all' ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>All Games</button>
           {games?.map((g: any) => (
             <button key={g.id} onClick={() => setGameFilter(g.id)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap', gameFilter === g.id ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>{g.name}</button>
           ))}
@@ -1656,7 +1675,7 @@ function LeaderboardView() {
       {/* Table */}
       {isLoading ? (
         <LeaderboardSkeleton />
-      ) : entries && entries.length > 0 ? (
+      ) : dedupedEntries.length > 0 ? (
         <div className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1672,7 +1691,7 @@ function LeaderboardView() {
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry: any, idx: number) => {
+                {dedupedEntries.map((entry: any, idx: number) => {
                   const league = LEAGUE_CONFIG[entry.player?.league] || LEAGUE_CONFIG.bronze;
                   const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
                   return (
@@ -1712,8 +1731,8 @@ function LeaderboardView() {
       ) : (
         <div className="text-center py-16">
           <Award className="w-12 h-12 mx-auto mb-4 text-arena-text-muted/30" />
-          <p className="text-arena-text-muted">No leaderboard data yet</p>
-          <p className="text-xs text-arena-text-muted mt-1">Play tournaments to appear on the leaderboard!</p>
+          <p className="text-arena-text-muted">{searchQuery ? `No players found for "${searchQuery}"` : 'No leaderboard data yet'}</p>
+          <p className="text-xs text-arena-text-muted mt-1">{searchQuery ? 'Try a different name' : 'Play tournaments to appear on the leaderboard!'}</p>
         </div>
       )}
     </div>
@@ -3397,6 +3416,47 @@ function ContactView() {
   );
 }
 
+// ==================== SUB-VIEW HEADER (Back + Title) ====================
+
+function SubViewHeader({ currentView }: { currentView: ViewName }) {
+  const { navigate } = useAppStore();
+
+  const titles: Record<string, { title: string; back: ViewName; icon: any }> = {
+    'tournament-detail': { title: 'Tournament Details', back: 'tournaments', icon: Trophy },
+    'profile': { title: 'Profile', back: 'home', icon: User },
+    'notifications': { title: 'Notifications', back: 'home', icon: Bell },
+    'admin-dashboard': { title: 'Admin Dashboard', back: 'home', icon: Shield },
+    'admin-tournaments': { title: 'Manage Tournaments', back: 'admin-dashboard', icon: Trophy },
+    'admin-tournament-create': { title: 'Create Tournament', back: 'admin-tournaments', icon: Plus },
+    'admin-registrations': { title: 'Verify Payments', back: 'admin-dashboard', icon: CheckCircle2 },
+    'admin-games': { title: 'Manage Games', back: 'admin-dashboard', icon: Gamepad2 },
+    'admin-streams': { title: 'Manage Streams', back: 'admin-dashboard', icon: Tv },
+    'admin-affiliates': { title: 'Manage Affiliates', back: 'admin-dashboard', icon: Link2 },
+    'admin-topup': { title: 'Manage Top Up Packs', back: 'admin-dashboard', icon: Zap },
+    'admin-analytics': { title: 'Analytics', back: 'admin-dashboard', icon: BarChart3 },
+    'admin-settings': { title: 'Platform Settings', back: 'admin-dashboard', icon: Settings },
+    'privacy-policy': { title: 'Privacy Policy', back: 'home', icon: Shield },
+    'terms-conditions': { title: 'Terms & Conditions', back: 'home', icon: Shield },
+    'refund-policy': { title: 'Refund Policy', back: 'home', icon: Shield },
+    'contact': { title: 'Contact Us', back: 'home', icon: Mail },
+  };
+
+  const config = titles[currentView] || { title: 'Back', back: 'home' as ViewName, icon: ArrowLeft };
+  const Icon = config.icon;
+
+  return (
+    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+      <button onClick={() => navigate(config.back)} className="w-8 h-8 rounded-lg bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-150 flex-shrink-0">
+        <ArrowLeft className="w-4 h-4" />
+      </button>
+      <div className="flex items-center gap-2 min-w-0">
+        <Icon className="w-4 h-4 text-arena-accent flex-shrink-0" />
+        <h1 className="text-sm font-semibold truncate">{config.title}</h1>
+      </div>
+    </div>
+  );
+}
+
 // ==================== SEARCH BAR INPUT ====================
 
 function SearchBarInput() {
@@ -3571,19 +3631,22 @@ export default function Page() {
                 </div>
               </header>
             )}
-            {/* Minimal header for non-search views (mobile still needs hamburger) */}
+            {/* Minimal header for sub-views with back button + title */}
             {!['home', 'tournaments', 'leaderboard', 'streams', 'topup'].includes(currentView) && (
-              <div className="md:hidden h-12 flex items-center px-3 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl">
-                <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center">
-                  <Menu className="w-5 h-5" />
-                </button>
-              </div>
+              <>
+                <div className="h-12 flex items-center px-3 md:px-6 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl gap-3">
+                  <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
+                    <Menu className="w-5 h-5" />
+                  </button>
+                  <SubViewHeader currentView={currentView} />
+                </div>
+              </>
             )}
 
             {/* Content + Right Panel */}
             <div className="flex flex-1 overflow-hidden">
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-4 md:p-6">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
                 <ViewRenderer />
               </div>
 
@@ -3602,9 +3665,46 @@ export default function Page() {
             style={{ right: rightPanelCollapsed ? '0' : '280px' }}>
             <ChevronRight className={cn('w-3 h-3 text-arena-text-muted transition-transform', !rightPanelCollapsed && 'rotate-180')} />
           </button>
+
+          {/* Mobile Bottom Navigation */}
+          <MobileBottomNav />
         </div>
       )}
     </div>
+  );
+}
+
+// ==================== MOBILE BOTTOM NAV ====================
+
+function MobileBottomNav() {
+  const { currentView, navigate } = useAppStore();
+  const { user } = useAuthStore();
+
+  const tabs = [
+    { view: 'home' as ViewName, icon: Home, label: 'Home' },
+    { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tourneys' },
+    { view: 'topup' as ViewName, icon: Zap, label: 'Top Up' },
+    { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
+    { view: 'profile' as ViewName, icon: User, label: 'Profile' },
+  ];
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-arena-surface/95 backdrop-blur-xl border-t border-arena-border safe-area-bottom">
+      <div className="flex items-center justify-around h-16 px-1">
+        {tabs.map(tab => {
+          const isActive = currentView === tab.view;
+          return (
+            <button key={tab.view} onClick={() => navigate(tab.view)} aria-label={tab.label}
+              className={cn('flex flex-col items-center justify-center gap-0.5 w-16 h-12 rounded-xl transition-all duration-200 relative',
+                isActive ? 'text-arena-accent' : 'text-arena-text-muted')}>
+              {isActive && <div className="absolute -top-[1px] w-5 h-0.5 bg-arena-accent rounded-full" />}
+              <tab.icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 1.5} />
+              <span className="text-[9px] font-medium">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 

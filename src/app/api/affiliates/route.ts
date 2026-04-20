@@ -10,16 +10,13 @@ export async function GET() {
 
     const formatted = affiliates.map((a) => ({
       ...a,
-      priceDisplay: a.price.toLocaleString('en-IN'),
-      originalPriceDisplay: a.originalPrice ? a.originalPrice.toLocaleString('en-IN') : null,
+      priceDisplay: a.price > 0 ? `₹${a.price.toLocaleString('en-IN')}` : 'Free',
+      originalPriceDisplay: a.originalPrice > 0 ? `₹${a.originalPrice.toLocaleString('en-IN')}` : null,
     }))
 
     return NextResponse.json({ affiliates: formatted })
   } catch (error) {
     console.error('Get affiliates error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
