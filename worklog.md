@@ -129,3 +129,28 @@ Stage Summary:
 - All form inputs standardized to `h-11` with ring focus states
 - Landing page footer expanded to professional 4-column layout
 - Consistent spacing, colors, and hover effects across all 16 views
+---
+Task ID: 1
+Agent: Main Agent
+Task: Add comprehensive launch seed data to Supabase for Aether Arena
+
+Work Log:
+- Checked existing Supabase database state: 6 games, 2 profiles, 5 old affiliates, 0 tournaments/leaderboard/streams
+- Analyzed frontend code to identify all user-visible fields for each data type
+- Generated 6 AI tournament banner images (Free Fire ×2, BGMI ×2, CODM ×1, Clash Royale ×1)
+- Created seed script (seed-launch.ts) with all data
+- Pushed seed data via pg client to Supabase (session pooler port 5432)
+- Fixed multiple NOT NULL constraint issues for id/updatedAt columns
+- Fixed affiliate prices from raw rupees to correct paise format
+- Verified all data appears correctly on live Vercel site via API
+
+Stage Summary:
+- 10 player profiles (2 existing updated + 8 new with gamer tags, stats, bios)
+- 6 tournaments: 3 registration_open, 2 upcoming, 1 completed
+- 26 tournament registrations across tournaments
+- 1 completed match with 8 participants (CR Arena Championship)
+- 16 leaderboard entries across 4 games (FF, BGMI, CODM, CR)
+- 3 stream schedules (1 live, 2 upcoming on YouTube/Twitch)
+- 5 affiliate products with real Amazon India links and correct ₹ pricing
+- 2 launch announcements
+- All data verified on live site: https://aether-arena-uqx9.vercel.app
