@@ -217,3 +217,31 @@ Stage Summary:
 - Tagline text reveal with elegant letter-spacing animation
 - Loading dots indicate the app is loading
 - Zero new lint errors, compiles clean
+
+---
+Task ID: 9
+Agent: Main Agent
+Task: Fix intro splash screen - was showing old version with text and no animation
+
+Work Log:
+- Discovered the ACTUAL splash screen lives in `src/components/providers.tsx` (SplashScreen component), NOT in LandingSkeleton in page.tsx
+- The old splash used `/logo.png` (4096px heavy file), showed "AETHER ARENA" text below, and had only basic scale+fade transitions
+- Completely rewrote SplashScreen component with energy effects:
+  - Background radial glow (red gradient pulsing)
+  - 2 expanding pulse rings that radiate outward and fade
+  - 2 rotating energy rings (different speeds/directions) with splash-specific keyframes (no translate conflict)
+  - 5 floating glowing particles with different trajectories
+  - 2 energy streak effects (lightning lines)
+  - Logo enters from scale(0) with blur-lg → blur-0, with drop-shadow glow
+  - 3 bouncing loading dots below
+  - Phase-based animation: enter (800ms) → hold (1600ms) → exit (600ms fade)
+- Added splash-ring-rotate and splash-ring-rotate-reverse keyframes to globals.css (pure rotation, no translate offset)
+- Removed unused useAppStore import from providers.tsx
+- Replaced `/logo.png` with optimized `/logo-hero.webp` (600px, 77KB vs 7.5MB)
+
+Stage Summary:
+- Intro splash screen now has full energy animation: rings, particles, streaks, glow
+- Logo is bigger (w-32/w-40) with cinematic blur-in entrance and drop-shadow glow
+- Zero text - just the logo and energy effects
+- 3-second duration with smooth fade-out transition
+- Compiles clean, zero new errors
