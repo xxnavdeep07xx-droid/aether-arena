@@ -76,12 +76,12 @@ async function seed() {
   const istOffset = 5.5 * 60 * 60 * 1000;
   const toIST = (d: Date) => new Date(d.getTime() + istOffset);
 
-  const inDays = (days: number, hours = 0) => {
-    const d = new Date(Date.now() + days * 86400000 + hours * 3600000);
+  const inDays = (days: number, hours = 0, mins = 0) => {
+    const d = new Date(Date.now() + days * 86400000 + hours * 3600000 + mins * 60000);
     return d.toISOString();
   };
-  const agoDays = (days: number) => {
-    const d = new Date(Date.now() - days * 86400000);
+  const agoDays = (days: number, hours = 0, mins = 0) => {
+    const d = new Date(Date.now() - days * 86400000 + hours * 3600000 + mins * 60000);
     return d.toISOString();
   };
 
