@@ -3292,6 +3292,11 @@ export default function Page() {
     }
   }, [isAuthenticated, currentView, navigate]);
 
+  // Auto-setup: ensure DB tables exist on first load
+  useEffect(() => {
+    fetch('/api/setup').catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-arena-dark">
       {/* Landing page - full width */}

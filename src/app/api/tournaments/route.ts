@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 
+let setupAttempted = false
+
+async function ensureSetup() {
+  if (setupAttempted) return
+  setupAttempted = true
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/setup`)
+  } catch { /* ignore */ }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -105,7 +115,13 @@ export async function GET(request: Request) {
         totalPages: Math.ceil(total / limit),
       },
     })
-  } catch (error) {
+  } catch (error: any) {
+    const msg = error?.message || ''
+    if (msg.includes('does not exist') && !setupAttempted) {
+      await ensureSetup()
+      // Return empty on first attempt — client will refetch
+      return NextResponse.json({ tournaments: [], pagination: { page: 1, limit: 12, total: 0, totalPages: 0 } })
+    }
     console.error('Get tournaments error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
