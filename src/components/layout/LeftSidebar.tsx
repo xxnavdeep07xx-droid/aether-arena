@@ -46,7 +46,7 @@ export function LeftSidebar() {
           onClick={() => navigate('home')}
           className="w-11 h-11 rounded-xl overflow-hidden mb-6 hover:opacity-80 transition-opacity"
         >
-          <img src="/logo.png" alt="AA" className="w-full h-full object-cover" />
+          <img src="/logo-md.webp" alt="AA" className="w-full h-full object-cover" />
         </button>
 
         {/* Nav Icons */}

@@ -18,10 +18,17 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 
 export function RightPanel() {
   const { currentView, viewParams, rightPanelCollapsed, setRightPanelCollapsed } = useAppStore();
   const { user } = useAuthStore();
+
+  const { data: stats } = useQuery({
+    queryKey: ['panel-stats'],
+    queryFn: () => fetch('/api/stats').then(r => r.json()),
+    refetchInterval: 60000,
+  });
 
   if (currentView === 'landing') return null;
 
@@ -90,14 +97,20 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 function HomePanel() {
   const { navigate } = useAppStore();
 
+  const { data: stats } = useQuery({
+    queryKey: ['home-panel-stats'],
+    queryFn: () => fetch('/api/stats').then(r => r.json()),
+    refetchInterval: 60000,
+  });
+
   return (
     <>
       <div className="space-y-3">
         <SectionTitle>Platform Stats</SectionTitle>
-        <StatCard icon={Users} label="Total Players" value="1,234" />
-        <StatCard icon={Trophy} label="Active Tournaments" value="12" />
-        <StatCard icon={Calendar} label="Upcoming" value="8" />
-        <StatCard icon={Zap} label="Live Now" value="3" />
+        <StatCard icon={Users} label="Total Players" value={stats?.players?.toLocaleString() || '...'} />
+        <StatCard icon={Trophy} label="Active Tournaments" value={String(stats?.activeTournaments ?? '...')} />
+        <StatCard icon={Calendar} label="Games" value={String(stats?.games ?? '...')} />
+        <StatCard icon={Zap} label="Live Now" value={String(stats?.liveStreams ?? '...')} />
       </div>
 
       <div className="border-t border-arena-border pt-4">

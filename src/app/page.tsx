@@ -356,6 +356,11 @@ function LandingView() {
     queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d),
   });
 
+  const { data: stats } = useQuery({
+    queryKey: ['platform-stats'],
+    queryFn: () => fetch('/api/stats').then(r => r.json()),
+  });
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -412,7 +417,7 @@ function LandingView() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-arena-dark/80 backdrop-blur-xl border-b border-arena-border">
         <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <img src="/logo.png" alt="AA" className="w-6 h-6 rounded-md" />
+            <img src="/logo-sm.webp" alt="AA" className="w-6 h-6 rounded-md" />
             <span className="font-bold text-xs tracking-widest whitespace-nowrap">AETHER ARENA</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -454,10 +459,10 @@ function LandingView() {
       <section className="border-y border-arena-border bg-arena-surface/50">
         <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { icon: Users, label: 'Players', value: '500+' },
-            { icon: Trophy, label: 'Tournaments', value: '100+' },
-            { icon: Coins, label: 'Prizes Won', value: '₹50K+' },
-            { icon: Gamepad2, label: 'Games', value: '5' },
+            { icon: Users, label: 'Players', value: stats?.players != null ? stats.players.toLocaleString() : '...' },
+            { icon: Trophy, label: 'Tournaments', value: stats?.tournaments != null ? stats.tournaments.toLocaleString() : '...' },
+            { icon: Coins, label: 'Prizes Won', value: stats ? `₹${(stats.prizesWon / 100).toLocaleString('en-IN')}` : '...' },
+            { icon: Gamepad2, label: 'Games', value: stats?.games != null ? String(stats.games) : '...' },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <stat.icon className="w-6 h-6 text-arena-accent mx-auto mb-2" />
@@ -544,7 +549,7 @@ function LandingView() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-3">
-                <img src="/logo.png" alt="Aether Arena" className="w-6 h-6 rounded-md" />
+                <img src="/logo-sm.webp" alt="Aether Arena" className="w-6 h-6 rounded-md" />
                 <span className="text-sm font-semibold">Aether Arena</span>
               </div>
               <p className="text-xs text-arena-text-secondary leading-relaxed max-w-xs">India&apos;s fastest-growing mobile esports tournament platform. Compete, win, and rise through the ranks.</p>
@@ -576,7 +581,7 @@ function LandingView() {
           </div>
           <div className="border-t border-arena-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="Aether Arena" className="w-5 h-5 rounded-md" />
+              <img src="/logo-sm.webp" alt="Aether Arena" className="w-5 h-5 rounded-md" />
               <span className="text-xs text-arena-text-muted">© 2025 Aether Arena. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-4">
@@ -930,9 +935,10 @@ function HomeTournamentsSection() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-arena-text-muted">
-          <Trophy className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No tournaments found</p>
+        <div className="text-center py-12">
+          <Trophy className="w-10 h-10 mx-auto mb-3 text-arena-text-muted/30" />
+          <p className="text-sm text-arena-text-muted">No tournaments found</p>
+          <p className="text-xs text-arena-text-muted/60 mt-1">Check back soon for exciting battles!</p>
         </div>
       )}
     </div>
@@ -980,7 +986,8 @@ function TournamentCard({ tournament: t, onClick }: { tournament: any; onClick: 
 
 function TournamentsView() {
   const { navigate } = useAppStore();
-  const [filters, setFilters] = useState({ game: '', status: '', format: '', fee: '', search: '' });
+  const { query: searchQuery } = useSearchStore();
+  const [filters, setFilters] = useState({ game: '', status: '', format: '', fee: '' });
 
   const { data: games } = useQuery({
     queryKey: ['games-filter'],
@@ -988,14 +995,14 @@ function TournamentsView() {
   });
 
   const { data: tournaments, isLoading } = useQuery({
-    queryKey: ['tournaments', filters],
+    queryKey: ['tournaments', filters, searchQuery],
     queryFn: () => {
       const params = new URLSearchParams();
       if (filters.game) params.set('game', filters.game);
       if (filters.status) params.set('status', filters.status);
       if (filters.format) params.set('format', filters.format);
       if (filters.fee) params.set('fee', filters.fee);
-      if (filters.search) params.set('search', filters.search);
+      if (searchQuery) params.set('search', searchQuery);
       return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => d.tournaments || d || []);
     },
   });
@@ -1004,6 +1011,9 @@ function TournamentsView() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Tournaments</h1>
+        {searchQuery && (
+          <span className="text-xs text-arena-text-muted">Showing results for "<span className="text-arena-accent">{searchQuery}</span>"</span>
+        )}
       </div>
 
       {/* Filters */}
@@ -1051,6 +1061,7 @@ function TournamentsView() {
         <div className="text-center py-16">
           <Trophy className="w-12 h-12 mx-auto mb-4 text-arena-text-muted/30" />
           <p className="text-arena-text-muted">No tournaments match your filters</p>
+          <p className="text-xs text-arena-text-muted/60 mt-1">Try adjusting your filters or check back later</p>
         </div>
       )}
     </div>
@@ -2143,13 +2154,32 @@ function AdminSettingsView() {
 function SearchBarInput() {
   const { currentView } = useAppStore();
   const { query, setQuery } = useSearchStore();
+  const [localQuery, setLocalQuery] = useState(query);
+
+  useEffect(() => { setLocalQuery(query); }, [query]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalQuery(val);
+    setQuery(val);
+  };
+
+  const placeholder =
+    currentView === 'home' ? 'Search tournaments, players...':
+    currentView === 'tournaments' ? 'Search tournaments...':
+    currentView === 'leaderboard' ? 'Search players...':
+    'Search streams...';
+
   return (
-    <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder={
-      currentView === 'home' ? 'Search anything...' :
-      currentView === 'tournaments' ? 'Search tournaments...' :
-      currentView === 'leaderboard' ? 'Search players...' :
-      'Search streams & videos...'
-    } className="w-full bg-arena-card border border-arena-border rounded-xl pl-10 pr-4 py-2.5 h-10 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" />
+    <div className="relative">
+      <input type="text" value={localQuery} onChange={handleChange} placeholder={placeholder}
+        className="w-full bg-arena-card border border-arena-border rounded-xl pl-10 pr-9 py-2.5 h-10 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" />
+      {localQuery && (
+        <button onClick={() => { setLocalQuery(''); setQuery(''); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-white transition-colors">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -2192,7 +2222,7 @@ export default function Page() {
         <div className="flex h-screen overflow-hidden">
           {/* Left Sidebar - Desktop */}
           <aside className="hidden md:flex flex-col items-center w-[72px] h-screen bg-arena-surface border-r border-arena-border flex-shrink-0 py-5 z-50">
-            <img onClick={() => navigate('home')} src="/logo.png" alt="AA" className="w-10 h-10 rounded-xl mb-10 hover:opacity-80 transition-opacity cursor-pointer" />
+            <img onClick={() => navigate('home')} src="/logo-md.webp" alt="AA" className="w-10 h-10 rounded-xl mb-10 hover:opacity-80 transition-opacity cursor-pointer" />
             <nav className="flex flex-col gap-2 flex-1">
               {navItems.map(item => (
                 <button key={item.view} onClick={() => navigate(item.view)} aria-label={item.label} title={item.label}
@@ -2223,7 +2253,7 @@ export default function Page() {
               <div className="absolute left-0 top-0 bottom-0 w-72 bg-arena-surface border-r border-arena-border p-5 animate-slide-in-left">
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-2">
-                    <img src="/logo.png" alt="AA" className="w-6 h-6 rounded-md" />
+                    <img src="/logo-sm.webp" alt="AA" className="w-6 h-6 rounded-md" />
                     <span className="text-sm font-extrabold tracking-widest text-arena-accent">AETHER ARENA</span>
                   </div>
                   <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>

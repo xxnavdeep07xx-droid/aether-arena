@@ -58,7 +58,7 @@ export function MobileNav() {
             }}
             className="flex items-center gap-2.5"
           >
-            <img src="/logo.png" alt="AA" className="w-9 h-9 rounded-xl" />
+            <img src="/logo-md.webp" alt="AA" className="w-9 h-9 rounded-xl" />
             <span className="text-lg font-bold text-arena-text-primary">Aether Arena</span>
           </button>
           <button
