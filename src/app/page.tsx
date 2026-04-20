@@ -180,9 +180,8 @@ function LandingSkeleton() {
       {/* Skeleton Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-arena-dark/80 backdrop-blur-xl border-b border-arena-border">
         <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Skeleton className="w-6 h-6 rounded-md" />
-            <Skeleton className="h-3 w-24" />
+          <div className="flex items-center">
+            <Skeleton className="w-9 h-9 rounded-xl" />
           </div>
           <div className="flex items-center gap-1.5">
             <Skeleton className="h-6 w-14 rounded-lg" />
@@ -417,8 +416,7 @@ function LandingView() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-arena-dark/80 backdrop-blur-xl border-b border-arena-border">
         <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <img src="/logo-sm.webp" alt="AA" className="w-6 h-6 rounded-md" />
-            <span className="font-bold text-xs tracking-widest whitespace-nowrap">AETHER ARENA</span>
+            <img src="/logo-md.webp" alt="Aether Arena" className="w-9 h-9 rounded-xl logo-energy" />
           </div>
           <div className="flex items-center gap-1.5">
             <button onClick={() => setShowLogin(true)} className="px-3 py-1.5 text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/50 rounded-lg transition-all duration-200">Log In</button>
@@ -430,26 +428,61 @@ function LandingView() {
       {/* Hero */}
       <section className="relative pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-arena-accent/5 via-transparent to-transparent" />
-        <div className="relative max-w-7xl mx-auto px-6 py-24 md:py-32">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-arena-accent/10 border border-arena-accent/20 rounded-full px-4 py-1.5 mb-6 animate-fade-in-up">
-              <CircleDot className="w-3 h-3 text-arena-accent animate-pulse" />
-              <span className="text-sm text-arena-accent font-medium">Live Tournaments Now</span>
+        <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+            {/* Left - Text */}
+            <div className="max-w-3xl flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 bg-arena-accent/10 border border-arena-accent/20 rounded-full px-4 py-1.5 mb-6 animate-fade-in-up">
+                <CircleDot className="w-3 h-3 text-arena-accent animate-pulse" />
+                <span className="text-sm text-arena-accent font-medium">Live Tournaments Now</span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                Compete. Win.<br />
+                <span className="text-arena-accent"> Rise Through the Ranks.</span>
+              </h1>
+              <p className="text-lg md:text-xl text-arena-text-secondary mb-8 max-w-xl mx-auto lg:mx-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                Join India&apos;s fastest-growing mobile esports tournament platform. Free Fire, BGMI, COD Mobile &amp; more. Register, compete, and win real prizes.
+              </p>
+              <div className="flex gap-4 justify-center lg:justify-start animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                <button onClick={() => setShowSignup(true)} className="px-8 py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-arena-accent/25 hover:-translate-y-0.5">
+                  Get Started Free
+                </button>
+                <button onClick={() => setShowLogin(true)} className="px-8 py-3 border border-arena-border hover:border-arena-accent/50 text-white font-semibold rounded-xl transition-all duration-200">
+                  Log In
+                </button>
+              </div>
             </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              Compete. Win.<br />
-              <span className="text-arena-accent"> Rise Through the Ranks.</span>
-            </h1>
-            <p className="text-lg md:text-xl text-arena-text-secondary mb-8 max-w-xl animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              Join India&apos;s fastest-growing mobile esports tournament platform. Free Fire, BGMI, COD Mobile &amp; more. Register, compete, and win real prizes.
-            </p>
-            <div className="flex gap-4 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-              <button onClick={() => setShowSignup(true)} className="px-8 py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-arena-accent/25 hover:-translate-y-0.5">
-                Get Started Free
-              </button>
-              <button onClick={() => setShowLogin(true)} className="px-8 py-3 border border-arena-border hover:border-arena-accent/50 text-white font-semibold rounded-xl transition-all duration-200">
-                Log In
-              </button>
+
+            {/* Right - Animated Logo */}
+            <div className="flex-shrink-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <div className="hero-energy-container w-48 h-48 md:w-64 md:h-64">
+                {/* Background aura */}
+                <div className="energy-aura" />
+                {/* Energy swirls */}
+                <div className="energy-swirl" />
+                <div className="energy-swirl energy-swirl-2" />
+                {/* Rotating energy rings */}
+                <div className="energy-ring energy-ring-1" />
+                <div className="energy-ring energy-ring-2" />
+                <div className="energy-ring energy-ring-3" />
+                {/* Floating particles */}
+                <div className="energy-particle energy-particle-1" />
+                <div className="energy-particle energy-particle-2" />
+                <div className="energy-particle energy-particle-3" />
+                <div className="energy-particle energy-particle-4" />
+                <div className="energy-particle energy-particle-5" />
+                <div className="energy-particle energy-particle-6" />
+                {/* Energy streaks */}
+                <div className="energy-streak energy-streak-1" />
+                <div className="energy-streak energy-streak-2" />
+                <div className="energy-streak energy-streak-3" />
+                {/* The Logo */}
+                <img
+                  src="/logo-hero.webp"
+                  alt="Aether Arena"
+                  className="relative z-10 w-full h-full object-contain logo-hero-energy rounded-3xl"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -549,8 +582,7 @@ function LandingView() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-3">
-                <img src="/logo-sm.webp" alt="Aether Arena" className="w-6 h-6 rounded-md" />
-                <span className="text-sm font-semibold">Aether Arena</span>
+                <img src="/logo-md.webp" alt="Aether Arena" className="w-8 h-8 rounded-xl" />
               </div>
               <p className="text-xs text-arena-text-secondary leading-relaxed max-w-xs">India&apos;s fastest-growing mobile esports tournament platform. Compete, win, and rise through the ranks.</p>
             </div>
@@ -581,7 +613,7 @@ function LandingView() {
           </div>
           <div className="border-t border-arena-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <img src="/logo-sm.webp" alt="Aether Arena" className="w-5 h-5 rounded-md" />
+              <img src="/logo-md.webp" alt="Aether Arena" className="w-6 h-6 rounded-lg" />
               <span className="text-xs text-arena-text-muted">© 2025 Aether Arena. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-4">
@@ -2222,7 +2254,7 @@ export default function Page() {
         <div className="flex h-screen overflow-hidden">
           {/* Left Sidebar - Desktop */}
           <aside className="hidden md:flex flex-col items-center w-[72px] h-screen bg-arena-surface border-r border-arena-border flex-shrink-0 py-5 z-50">
-            <img onClick={() => navigate('home')} src="/logo-md.webp" alt="AA" className="w-10 h-10 rounded-xl mb-10 hover:opacity-80 transition-opacity cursor-pointer" />
+            <img onClick={() => navigate('home')} src="/logo-lg.webp" alt="Aether Arena" className="w-14 h-14 rounded-2xl mb-10 logo-energy hover:opacity-90 transition-opacity cursor-pointer" />
             <nav className="flex flex-col gap-2 flex-1">
               {navItems.map(item => (
                 <button key={item.view} onClick={() => navigate(item.view)} aria-label={item.label} title={item.label}
@@ -2253,8 +2285,7 @@ export default function Page() {
               <div className="absolute left-0 top-0 bottom-0 w-72 bg-arena-surface border-r border-arena-border p-5 animate-slide-in-left">
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-2">
-                    <img src="/logo-sm.webp" alt="AA" className="w-6 h-6 rounded-md" />
-                    <span className="text-sm font-extrabold tracking-widest text-arena-accent">AETHER ARENA</span>
+                    <img src="/logo-md.webp" alt="Aether Arena" className="w-10 h-10 rounded-xl logo-energy" />
                   </div>
                   <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
                 </div>

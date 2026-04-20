@@ -154,3 +154,35 @@ Stage Summary:
 - 5 affiliate products with real Amazon India links and correct ₹ pricing
 - 2 launch announcements
 - All data verified on live site: https://aether-arena-uqx9.vercel.app
+
+---
+Task ID: 7
+Agent: Main Agent
+Task: Remove logo text, make logos bigger, add energy animation effects
+
+Work Log:
+- Created optimized WebP logo sizes using sharp: logo-hero.webp (600px), logo-lg.webp (400px), logo-md.webp (120px), logo-sm.webp (48px)
+- Added comprehensive CSS energy animation system to globals.css:
+  - energy-pulse: Breathing red glow with multi-layer box-shadow
+  - hero-energy-pulse: More dramatic version for hero section
+  - energy-ring-rotate / energy-ring-rotate-reverse: 3 rotating orbital rings
+  - 6 particle-float animations with different trajectories and timings
+  - energy-streak: Lightning streak effects
+  - crystal-pulse: Logo brightness + scale pulse with drop-shadow
+  - aura-pulse / aura-rotate: Background radial glow
+  - swirl-energy: Conic gradient energy vortex rotating around logo
+  - All animations respect prefers-reduced-motion
+- Removed "AETHER ARENA" text from: landing header, sidebar, mobile menu, footer, skeleton header
+- Made logos bigger: header 9×9, sidebar 14×14, mobile menu 10×10, footer 8×8
+- Added logo-energy class (subtle pulse glow) to all header/nav logos
+- Rebuilt Hero section with flex layout (text left, logo right on desktop)
+- Added full energy animation container in Hero: aura, 2 swirls, 3 rings, 6 particles, 3 streaks, animated logo
+- Used logo-hero.webp (600px) for hero, logo-lg.webp (400px) for sidebar, logo-md.webp for header/footer/mobile
+
+Stage Summary:
+- All "AETHER ARENA" text removed from UI — logo-only branding
+- Logos significantly bigger across all locations
+- Hero section now has dramatic energy animation: rotating rings, floating particles, energy swirls, lightning streaks
+- Header/nav logos have subtle breathing red glow animation
+- All animations CSS-only (no JS), respecting prefers-reduced-motion
+- Dev server compiles clean with 0 new errors

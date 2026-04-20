@@ -198,3 +198,334 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ===== ENERGY LOGO ANIMATIONS ===== */
+
+/* Main energy pulse - breathing red glow */
+@keyframes energy-pulse {
+  0%, 100% { 
+    box-shadow: 
+      0 0 20px rgba(255, 75, 92, 0.3),
+      0 0 40px rgba(255, 75, 92, 0.15),
+      0 0 60px rgba(255, 75, 92, 0.05);
+  }
+  50% { 
+    box-shadow: 
+      0 0 30px rgba(255, 75, 92, 0.5),
+      0 0 60px rgba(255, 75, 92, 0.3),
+      0 0 90px rgba(255, 75, 92, 0.15),
+      0 0 120px rgba(255, 75, 92, 0.05);
+  }
+}
+
+/* Hero energy pulse - more dramatic */
+@keyframes hero-energy-pulse {
+  0%, 100% { 
+    box-shadow: 
+      0 0 30px rgba(255, 75, 92, 0.4),
+      0 0 60px rgba(255, 75, 92, 0.2),
+      0 0 100px rgba(255, 75, 92, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 0 50px rgba(255, 75, 92, 0.6),
+      0 0 100px rgba(255, 75, 92, 0.35),
+      0 0 150px rgba(255, 75, 92, 0.2),
+      0 0 200px rgba(255, 75, 92, 0.08);
+  }
+}
+
+/* Rotating energy ring */
+@keyframes energy-ring-rotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes energy-ring-rotate-reverse {
+  from { transform: translate(-50%, -50%) rotate(360deg); }
+  to { transform: translate(-50%, -50%) rotate(0deg); }
+}
+
+/* Floating particles */
+@keyframes particle-float-1 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(40px, -60px) scale(0); opacity: 0; }
+}
+
+@keyframes particle-float-2 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.6; }
+  100% { transform: translate(-50px, -40px) scale(0); opacity: 0; }
+}
+
+@keyframes particle-float-3 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  20% { opacity: 0.9; }
+  80% { opacity: 0.5; }
+  100% { transform: translate(30px, 50px) scale(0); opacity: 0; }
+}
+
+@keyframes particle-float-4 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  20% { opacity: 0.7; }
+  80% { opacity: 0.4; }
+  100% { transform: translate(-35px, 45px) scale(0); opacity: 0; }
+}
+
+@keyframes particle-float-5 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 0.3; }
+  100% { transform: translate(55px, -20px) scale(0); opacity: 0; }
+}
+
+@keyframes particle-float-6 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  25% { opacity: 0.8; }
+  75% { opacity: 0.2; }
+  100% { transform: translate(-60px, 10px) scale(0); opacity: 0; }
+}
+
+/* Energy streaks / lightning */
+@keyframes energy-streak {
+  0% { transform: scaleY(0); opacity: 0; }
+  10% { transform: scaleY(1); opacity: 0.8; }
+  20% { transform: scaleY(0.3); opacity: 0.3; }
+  30% { transform: scaleY(1.1); opacity: 0.9; }
+  50% { transform: scaleY(0.8); opacity: 0.6; }
+  100% { transform: scaleY(0); opacity: 0; }
+}
+
+/* Crystal core pulse */
+@keyframes crystal-pulse {
+  0%, 100% { 
+    filter: brightness(1) drop-shadow(0 0 8px rgba(255, 75, 92, 0.6));
+    transform: scale(1);
+  }
+  50% { 
+    filter: brightness(1.2) drop-shadow(0 0 15px rgba(255, 75, 92, 0.9));
+    transform: scale(1.03);
+  }
+}
+
+/* Energy aura rotation */
+@keyframes aura-rotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes aura-pulse {
+  0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+/* Header logo subtle glow */
+.logo-energy {
+  animation: energy-pulse 3s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+/* Hero logo full energy */
+.logo-hero-energy {
+  animation: crystal-pulse 2.5s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+/* Energy ring container */
+.energy-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  pointer-events: none;
+}
+
+.energy-ring-1 {
+  width: 130%;
+  height: 130%;
+  border-top-color: rgba(255, 75, 92, 0.6);
+  border-right-color: rgba(255, 75, 92, 0.2);
+  animation: energy-ring-rotate 4s linear infinite;
+}
+
+.energy-ring-2 {
+  width: 150%;
+  height: 150%;
+  border-bottom-color: rgba(255, 75, 92, 0.4);
+  border-left-color: rgba(255, 75, 92, 0.15);
+  animation: energy-ring-rotate-reverse 6s linear infinite;
+}
+
+.energy-ring-3 {
+  width: 170%;
+  height: 170%;
+  border-top-color: rgba(255, 75, 92, 0.25);
+  border-left-color: rgba(255, 107, 122, 0.1);
+  animation: energy-ring-rotate 8s linear infinite;
+}
+
+/* Particle dots */
+.energy-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.energy-particle-1 {
+  width: 4px; height: 4px;
+  background: rgba(255, 75, 92, 0.9);
+  top: 20%; left: 60%;
+  animation: particle-float-1 2.5s ease-out infinite;
+  box-shadow: 0 0 6px rgba(255, 75, 92, 0.8);
+}
+
+.energy-particle-2 {
+  width: 3px; height: 3px;
+  background: rgba(255, 107, 122, 0.8);
+  top: 40%; left: 15%;
+  animation: particle-float-2 3s ease-out infinite 0.5s;
+  box-shadow: 0 0 4px rgba(255, 107, 122, 0.6);
+}
+
+.energy-particle-3 {
+  width: 3px; height: 3px;
+  background: rgba(255, 75, 92, 0.7);
+  top: 70%; left: 75%;
+  animation: particle-float-3 2.8s ease-out infinite 1s;
+  box-shadow: 0 0 5px rgba(255, 75, 92, 0.7);
+}
+
+.energy-particle-4 {
+  width: 2px; height: 2px;
+  background: rgba(255, 160, 170, 0.6);
+  top: 80%; left: 25%;
+  animation: particle-float-4 3.2s ease-out infinite 0.3s;
+  box-shadow: 0 0 4px rgba(255, 160, 170, 0.5);
+}
+
+.energy-particle-5 {
+  width: 5px; height: 5px;
+  background: rgba(255, 75, 92, 0.9);
+  top: 15%; left: 30%;
+  animation: particle-float-5 2s ease-out infinite 0.8s;
+  box-shadow: 0 0 8px rgba(255, 75, 92, 0.9);
+}
+
+.energy-particle-6 {
+  width: 2px; height: 2px;
+  background: rgba(255, 200, 200, 0.7);
+  top: 55%; left: 85%;
+  animation: particle-float-6 3.5s ease-out infinite 1.5s;
+  box-shadow: 0 0 3px rgba(255, 200, 200, 0.5);
+}
+
+/* Energy streaks */
+.energy-streak {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  top: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(255, 75, 92, 0.6), transparent);
+  transform-origin: center;
+}
+
+.energy-streak-1 {
+  left: 10%;
+  animation: energy-streak 3s ease-in-out infinite;
+}
+
+.energy-streak-2 {
+  right: 15%;
+  animation: energy-streak 4s ease-in-out infinite 1.5s;
+}
+
+.energy-streak-3 {
+  left: 50%;
+  animation: energy-streak 3.5s ease-in-out infinite 0.8s;
+}
+
+/* Energy aura background */
+.energy-aura {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 75, 92, 0.08) 0%, rgba(255, 75, 92, 0.02) 40%, transparent 70%);
+  animation: aura-pulse 4s ease-in-out infinite, aura-rotate 20s linear infinite;
+  pointer-events: none;
+}
+
+/* Hero energy container */
+.hero-energy-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Swirl energy lines for hero */
+@keyframes swirl-energy {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.energy-swirl {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180%;
+  height: 180%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    rgba(255, 75, 92, 0.12) 10%,
+    transparent 20%,
+    rgba(255, 75, 92, 0.06) 35%,
+    transparent 45%,
+    rgba(255, 107, 122, 0.1) 55%,
+    transparent 65%,
+    rgba(255, 75, 92, 0.08) 80%,
+    transparent 90%,
+    rgba(255, 107, 122, 0.05) 95%,
+    transparent 100%
+  );
+  animation: swirl-energy 8s linear infinite;
+  pointer-events: none;
+}
+
+.energy-swirl-2 {
+  width: 220%;
+  height: 220%;
+  background: conic-gradient(
+    from 180deg,
+    transparent 0%,
+    rgba(255, 75, 92, 0.06) 15%,
+    transparent 25%,
+    rgba(255, 107, 122, 0.04) 45%,
+    transparent 55%,
+    rgba(255, 75, 92, 0.08) 70%,
+    transparent 80%,
+    rgba(255, 75, 92, 0.03) 90%,
+    transparent 100%
+  );
+  animation: swirl-energy 12s linear infinite reverse;
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .logo-energy,
+  .logo-hero-energy,
+  .energy-ring,
+  .energy-particle,
+  .energy-streak,
+  .energy-aura,
+  .energy-swirl {
+    animation: none !important;
+  }
+}
