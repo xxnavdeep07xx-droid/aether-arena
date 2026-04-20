@@ -16,6 +16,8 @@ export type ViewName =
   | 'admin-games'
   | 'admin-streams'
   | 'admin-affiliates'
+  | 'admin-topup'
+  | 'admin-analytics'
   | 'admin-settings';
 
 interface AppState {

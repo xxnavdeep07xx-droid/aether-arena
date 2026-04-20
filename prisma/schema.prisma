@@ -118,6 +118,7 @@ model Tournament {
   description          String    @default("")
   gameId               String
   coverImageUrl        String    @default("")
+  bannerImageUrl       String    @default("")
   format               String    @default("solo")
   entryFee             Int       @default(0)
   prizePool            Int       @default(0)
@@ -364,4 +365,27 @@ model AccountCredential {
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email])
+}
+
+// ============================================
+// TopupPack (Quick Top Up)
+// ============================================
+model TopupPack {
+  id            String   @id @default(cuid())
+  gameName      String
+  gameSlug      String
+  packName      String
+  description   String   @default("")
+  price         Int      @default(0)
+  originalPrice Int      @default(0)
+  imageUrl      String   @default("")
+  affiliateUrl  String   @default("")
+  isPopular     Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([gameSlug])
+  @@index([isActive])
+  @@index([sortOrder])
 }

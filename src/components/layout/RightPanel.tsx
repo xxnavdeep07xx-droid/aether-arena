@@ -14,6 +14,7 @@ import {
   Zap,
   Edit,
   Shield,
+  Store,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -116,6 +117,13 @@ function HomePanel() {
       <div className="border-t border-arena-border pt-4">
         <SectionTitle>Quick Actions</SectionTitle>
         <div className="space-y-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 h-auto py-2.5 px-3 text-arena-text-secondary hover:text-arena-text-primary hover:bg-arena-card rounded-xl"
+          >
+            <Store className="w-4 h-4 text-arena-warning" />
+            <span className="text-sm">⚡ Quick Top Up</span>
+          </Button>
           <Button
             variant="ghost"
             onClick={() => navigate('tournaments')}

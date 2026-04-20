@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn, paiseToRupee, formatDateTime, formatDate, timeAgo, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Area, AreaChart } from 'recharts';
 
 // ==================== SKELETON HELPERS ====================
 
@@ -267,6 +268,8 @@ function ViewRenderer() {
     'admin-games': <AdminGamesView />,
     'admin-streams': <AdminStreamsView />,
     'admin-affiliates': <AdminAffiliatesView />,
+    'admin-topup': <AdminTopupView />,
+    'admin-analytics': <AdminAnalyticsView />,
     'admin-settings': <AdminSettingsView />,
   };
 
@@ -685,6 +688,7 @@ function HomeView() {
       <StreamBannerSection />
       <TopPlayersSection />
       <AffiliateCarouselSection />
+      <TopupCarouselSection />
       <HomeTournamentsSection />
     </div>
   );
@@ -883,6 +887,124 @@ function AffiliateCarouselSection() {
       </div>
       <div className="mt-3 text-center bg-arena-accent/5 border border-arena-accent/10 rounded-xl py-2">
         <p className="text-xs text-arena-accent font-medium">Official Aether Arena Store — Coming Soon</p>
+      </div>
+    </div>
+  );
+}
+
+// ==================== QUICK TOP UP CAROUSEL ====================
+
+function TopupCarouselSection() {
+  const [current, setCurrent] = useState(0);
+  const [filterGame, setFilterGame] = useState('all');
+
+  const { data: packsData } = useQuery({
+    queryKey: ['topup-packs', filterGame],
+    queryFn: () => fetch(`/api/topup-packs${filterGame !== 'all' ? `?game=${filterGame}` : ''}`).then(r => r.json()).then(d => d.packs || []),
+    refetchInterval: 60000,
+  });
+
+  const packs = packsData || [];
+  
+  const games = [...new Set(packs.map((p: any) => p.gameName))];
+  
+  const filtered = filterGame === 'all' ? packs : packs.filter((p: any) => p.gameSlug === filterGame);
+  
+  // Items per page: 3 on desktop, 1 on mobile
+  const itemsPerPage = 3;
+  const maxIndex = Math.max(0, filtered.length - itemsPerPage);
+
+  useEffect(() => {
+    if (filtered.length <= itemsPerPage) return;
+    const timer = setInterval(() => setCurrent(c => {
+      const idx = Math.max(0, filtered.length - itemsPerPage);
+      return c >= idx ? 0 : c + 1;
+    }), 4000);
+    return () => clearInterval(timer);
+  }, [filtered, itemsPerPage]);
+
+  const prev = () => setCurrent(c => c <= 0 ? maxIndex : c - 1);
+  const next = () => setCurrent(c => c >= maxIndex ? 0 : c + 1);
+
+  if (packs.length === 0) return null;
+
+  const visible = filtered.slice(current, current + itemsPerPage);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Zap className="w-5 h-5 text-arena-warning" />
+          <h2 className="text-lg font-bold">Quick Top Up</h2>
+          <span className="text-[10px] bg-arena-warning/20 text-arena-warning font-medium px-2 py-0.5 rounded-full">Codashop</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {games.map((g: string) => (
+            <button key={g} onClick={() => { setFilterGame(filterGame === g.toLowerCase().replace(/\s+/g, '-') ? 'all' : g.toLowerCase().replace(/\s+/g, '-')); setCurrent(0); }}
+              className={cn(
+                'text-[10px] px-2.5 py-1 rounded-lg font-medium transition-all duration-150',
+                filterGame === g.toLowerCase().replace(/\s+/g, '-')
+                  ? 'bg-arena-accent text-white'
+                  : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:border-arena-accent/50'
+              )}>
+              {g}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      <div className="relative">
+        {filtered.length > itemsPerPage && (
+          <>
+            <button onClick={prev} className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button onClick={next} className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {visible.map((pack: any, i: number) => (
+            <a key={pack.id} href={pack.affiliateUrl} target="_blank" rel="noopener noreferrer"
+              className="group bg-arena-card border border-arena-border rounded-xl p-4 hover:border-arena-warning/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-warning/5 block">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-arena-accent/10 text-arena-accent">{pack.gameName}</span>
+                    {pack.isPopular && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-arena-warning/20 text-arena-warning">🔥 Popular</span>
+                    )}
+                  </div>
+                  <h3 className="font-semibold text-sm group-hover:text-arena-warning transition-colors duration-150">{pack.packName}</h3>
+                </div>
+                <ExternalLink className="w-4 h-4 text-arena-text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-1" />
+              </div>
+              {pack.description && (
+                <p className="text-xs text-arena-text-muted mb-3 line-clamp-1">{pack.description}</p>
+              )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-base font-bold text-arena-warning">₹{(pack.price / 100).toLocaleString('en-IN')}</span>
+                  {pack.originalPrice > pack.price && (
+                    <span className="text-xs text-arena-text-muted line-through">₹{(pack.originalPrice / 100).toLocaleString('en-IN')}</span>
+                  )}
+                </div>
+                <span className="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-arena-warning/20 text-arena-warning group-hover:bg-arena-warning group-hover:text-white transition-all duration-200">Buy Now</span>
+              </div>
+            </a>
+          ))}
+        </div>
+        
+        {filtered.length > itemsPerPage && (
+          <div className="flex justify-center gap-1.5 mt-3">
+            {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+              <button key={i} onClick={() => setCurrent(i)}
+                className={cn('w-1.5 h-1.5 rounded-full transition-all', i === current ? 'w-4 bg-arena-warning' : 'bg-arena-text-muted/40 hover:bg-arena-text-muted')} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1491,13 +1613,10 @@ function ProfileView() {
     enabled: isAuthenticated,
   });
 
-  const [profileFormInit, setProfileFormInit] = useState(false);
-  useEffect(() => {
-    if (profile && !profileFormInit) {
-      setProfileFormInit(true);
-      setForm({ displayName: profile.displayName || '', bio: profile.bio || '' });
-    }
-  }, [profile, profileFormInit]);
+  const startEditing = () => {
+    if (profile) setForm({ displayName: profile.displayName || '', bio: profile.bio || '' });
+    setEditing(true);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -1556,7 +1675,7 @@ function ProfileView() {
               </div>
               <p className="text-sm text-arena-text-muted">@{p?.username}</p>
             </div>
-            <button onClick={() => setEditing(!editing)} className="p-2 rounded-xl border border-arena-border hover:border-arena-accent/50 transition-colors duration-150">
+            <button onClick={() => editing ? setEditing(false) : startEditing()} className="p-2 rounded-xl border border-arena-border hover:border-arena-accent/50 transition-colors duration-150">
               <Pencil className="w-4 h-4 text-arena-text-secondary" />
             </button>
           </div>
@@ -1732,6 +1851,8 @@ function AdminDashboardView() {
           { label: 'Manage Games', icon: Gamepad2, view: 'admin-games' as ViewName },
           { label: 'Manage Streams', icon: Tv, view: 'admin-streams' as ViewName },
           { label: 'Manage Affiliates', icon: Link2, view: 'admin-affiliates' as ViewName },
+          { label: '⚡ Top Up Packs', icon: Zap, view: 'admin-topup' as ViewName },
+          { label: '📊 Analytics', icon: BarChart3, view: 'admin-analytics' as ViewName },
           { label: 'Platform Settings', icon: Settings, view: 'admin-settings' as ViewName },
         ].map(action => (
           <button key={action.label} onClick={() => navigate(action.view)}
@@ -1819,7 +1940,7 @@ function AdminTournamentsView() {
 function AdminTournamentCreateView() {
   const { navigate } = useAppStore();
   const { data: games } = useQuery({ queryKey: ['admin-games'], queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d || []) });
-  const [form, setForm] = useState({ title: '', description: '', gameId: '', format: 'solo', entryFee: '0', prizePool: '0', maxPlayers: '100', startTime: '', customRules: '', isFeatured: false, roomId: '', roomPassword: '', map: '', matchMode: '' });
+  const [form, setForm] = useState({ title: '', description: '', gameId: '', format: 'solo', entryFee: '0', prizePool: '0', maxPlayers: '100', startTime: '', customRules: '', isFeatured: false, roomId: '', roomPassword: '', map: '', matchMode: '', bannerImageUrl: '' });
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -1874,6 +1995,7 @@ function AdminTournamentCreateView() {
         </div>
         <div><label className={labelClass}>Description</label><textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} /></div>
         <div><label className={labelClass}>Custom Rules</label><textarea rows={3} value={form.customRules} onChange={e => setForm({ ...form, customRules: e.target.value })} className={cn(inputClass, 'resize-none')} /></div>
+        <div><label className={labelClass}>Banner Image URL</label><input type="url" value={form.bannerImageUrl} onChange={e => setForm({ ...form, bannerImageUrl: e.target.value })} className={inputClass} placeholder="https://example.com/banner.jpg" /></div>
         <div className="grid grid-cols-2 gap-4">
           <div><label className={labelClass}>Room ID</label><input type="text" value={form.roomId} onChange={e => setForm({ ...form, roomId: e.target.value })} className={inputClass} /></div>
           <div><label className={labelClass}>Room Password</label><input type="text" value={form.roomPassword} onChange={e => setForm({ ...form, roomPassword: e.target.value })} className={inputClass} /></div>
@@ -1993,26 +2115,112 @@ function AdminGamesView() {
     queryKey: ['admin-games-list'],
     queryFn: () => fetch('/api/admin/games').then(r => r.json()).then(d => d.games || d || []),
   });
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+
+  const emptyForm = { name: '', slug: '', iconUrl: '', bannerUrl: '', maxTeamSize: 1, description: '', isActive: true, sortOrder: 0 };
+  const [form, setForm] = useState(emptyForm);
+
+  const openCreate = () => { setForm(emptyForm); setEditing(null); setShowModal(true); };
+  const openEdit = (game: any) => { setForm({ name: game.name, slug: game.slug, iconUrl: game.iconUrl || '', bannerUrl: game.bannerUrl || '', maxTeamSize: game.maxTeamSize, description: game.description || '', isActive: game.isActive, sortOrder: game.sortOrder }); setEditing(game); setShowModal(true); };
+
+  const handleSave = async () => {
+    if (!form.name || !form.slug) { toast.error('Name and slug are required'); return; }
+    setSaving(true);
+    try {
+      if (editing) {
+        const res = await fetch(`/api/admin/games/${editing.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to update game'); setSaving(false); return; }
+        toast.success('Game updated!');
+      } else {
+        const res = await fetch('/api/admin/games', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to create game'); setSaving(false); return; }
+        toast.success('Game created!');
+      }
+      setShowModal(false);
+      refetch();
+    } catch { toast.error('Failed to save game'); }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this game? This may affect associated tournaments.')) return;
+    try {
+      const res = await fetch(`/api/admin/games/${id}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to delete game'); return; }
+      toast.success('Game deleted');
+      refetch();
+    } catch { toast.error('Failed to delete game'); }
+  };
+
+  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors duration-150";
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">Games</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
+          <h1 className="text-xl font-bold">Games</h1>
+        </div>
+        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200">
+          <Plus className="w-4 h-4" /> Add Game
+        </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {games?.map((g: any) => (
           <div key={g.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center gap-4 hover:border-arena-accent/30 transition-all duration-200">
-            <div className="w-12 h-12 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-              <Gamepad2 className="w-6 h-6 text-arena-accent" />
+            <div className="w-12 h-12 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
+              {g.iconUrl ? <img src={g.iconUrl} alt={g.name} className="w-8 h-8 object-contain rounded-lg" /> : <Gamepad2 className="w-6 h-6 text-arena-accent" />}
             </div>
-            <div>
-              <h3 className="font-semibold text-sm">{g.name}</h3>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-sm truncate">{g.name}</h3>
+                <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', g.isActive ? 'bg-arena-success/20 text-arena-success' : 'bg-arena-text-muted/20 text-arena-text-muted')}>{g.isActive ? 'Active' : 'Inactive'}</span>
+              </div>
               <p className="text-xs text-arena-text-muted">{g.slug} • Max Team: {g.maxTeamSize} • Sort: {g.sortOrder}</p>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button onClick={() => openEdit(g)} className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Edit game"><Pencil className="w-3.5 h-3.5 text-arena-text-muted" /></button>
+              <button onClick={() => handleDelete(g.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150" aria-label="Delete game"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
             </div>
           </div>
         ))}
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-fade-in-up">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold">{editing ? 'Edit Game' : 'New Game'}</h2>
+              <button onClick={() => setShowModal(false)} className="text-arena-text-muted hover:text-white" aria-label="Close"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Name *</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="BGMI" /></div>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Slug *</label><input type="text" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.replace(/\s/g, '').toLowerCase() })} className={inputClass} placeholder="bgmi" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Icon URL</label><input type="url" value={form.iconUrl} onChange={e => setForm({ ...form, iconUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Banner URL</label><input type="url" value={form.bannerUrl} onChange={e => setForm({ ...form, bannerUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
+              </div>
+              <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Game description" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Max Team Size</label><input type="number" min={1} value={form.maxTeamSize} onChange={e => setForm({ ...form, maxTeamSize: parseInt(e.target.value) || 1 })} className={inputClass} /></div>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Sort Order</label><input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className={inputClass} /></div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
+                <span className="text-sm text-arena-text-secondary">Active</span>
+              </label>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2025,28 +2233,110 @@ function AdminStreamsView() {
     queryKey: ['admin-streams-list'],
     queryFn: () => fetch('/api/admin/streams').then(r => r.json()).then(d => d.streams || d || []),
   });
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+
+  const emptyForm = { title: '', description: '', platform: '', streamUrl: '', thumbnailUrl: '', scheduledStart: '', scheduledEnd: '', isFeatured: false, status: 'scheduled' };
+  const [form, setForm] = useState(emptyForm);
+
+  const openCreate = () => { setForm(emptyForm); setEditing(null); setShowModal(true); };
+  const openEdit = (s: any) => { setForm({ title: s.title, description: s.description || '', platform: s.platform || '', streamUrl: s.streamUrl || '', thumbnailUrl: s.thumbnailUrl || '', scheduledStart: s.scheduledStart ? new Date(s.scheduledStart).toISOString().slice(0, 16) : '', scheduledEnd: s.scheduledEnd ? new Date(s.scheduledEnd).toISOString().slice(0, 16) : '', isFeatured: s.isFeatured || false, status: s.status || 'scheduled' }); setEditing(s); setShowModal(true); };
+
+  const handleSave = async () => {
+    if (!form.title || !form.scheduledStart) { toast.error('Title and scheduled start are required'); return; }
+    setSaving(true);
+    try {
+      if (editing) {
+        const res = await fetch(`/api/admin/streams/${editing.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to update stream'); setSaving(false); return; }
+        toast.success('Stream updated!');
+      } else {
+        const res = await fetch('/api/admin/streams', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to create stream'); setSaving(false); return; }
+        toast.success('Stream created!');
+      }
+      setShowModal(false);
+      refetch();
+    } catch { toast.error('Failed to save stream'); }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this stream?')) return;
+    try {
+      const res = await fetch(`/api/admin/streams/${id}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to delete stream'); return; }
+      toast.success('Stream deleted');
+      refetch();
+    } catch { toast.error('Failed to delete stream'); }
+  };
+
+  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors duration-150";
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">Stream Management</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
+          <h1 className="text-xl font-bold">Stream Management</h1>
+        </div>
+        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200">
+          <Plus className="w-4 h-4" /> Add Stream
+        </button>
       </div>
       <div className="space-y-3">
         {streams?.map((s: any) => (
-          <div key={s.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between">
-            <div>
+          <div key={s.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between hover:border-arena-accent/30 transition-all duration-200">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-medium text-sm">{s.title}</h3>
-                <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', s.status === 'live' ? 'bg-arena-accent text-white' : 'bg-arena-info/20 text-arena-info')}>{s.status.toUpperCase()}</span>
-                {s.isFeatured && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-arena-gold/20 text-arena-gold">Featured</span>}
+                <h3 className="font-medium text-sm truncate">{s.title}</h3>
+                <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', s.status === 'live' ? 'bg-arena-accent text-white' : 'bg-arena-info/20 text-arena-info')}>{s.status.toUpperCase()}</span>
+                {s.isFeatured && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-arena-warning/20 text-arena-warning flex-shrink-0">Featured</span>}
               </div>
               <p className="text-xs text-arena-text-muted">{s.platform} • {formatDateTime(s.scheduledStart)} • {s.peakViewers} peak viewers</p>
             </div>
-            {s.streamUrl && <a href={s.streamUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-arena-surface transition-colors duration-150"><ExternalLink className="w-4 h-4 text-arena-text-muted" /></a>}
+            <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+              {s.streamUrl && <a href={s.streamUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Open stream"><ExternalLink className="w-3.5 h-3.5 text-arena-text-muted" /></a>}
+              <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Edit stream"><Pencil className="w-3.5 h-3.5 text-arena-text-muted" /></button>
+              <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150" aria-label="Delete stream"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+            </div>
           </div>
         ))}
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-fade-in-up">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold">{editing ? 'Edit Stream' : 'New Stream'}</h2>
+              <button onClick={() => setShowModal(false)} className="text-arena-text-muted hover:text-white" aria-label="Close"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3">
+              <div><label className="text-xs text-arena-text-secondary mb-1 block">Title *</label><input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputClass} placeholder="Stream title" /></div>
+              <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Stream description" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Platform</label><select value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className={inputClass}><option value="">Select</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option><option value="facebook">Facebook</option><option value="other">Other</option></select></div>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Status</label><select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inputClass}><option value="scheduled">Scheduled</option><option value="live">Live</option><option value="ended">Ended</option><option value="cancelled">Cancelled</option></select></div>
+              </div>
+              <div><label className="text-xs text-arena-text-secondary mb-1 block">Stream URL</label><input type="url" value={form.streamUrl} onChange={e => setForm({ ...form, streamUrl: e.target.value })} className={inputClass} placeholder="https://youtube.com/watch?v=..." /></div>
+              <div><label className="text-xs text-arena-text-secondary mb-1 block">Thumbnail URL</label><input type="url" value={form.thumbnailUrl} onChange={e => setForm({ ...form, thumbnailUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Scheduled Start *</label><input type="datetime-local" value={form.scheduledStart} onChange={e => setForm({ ...form, scheduledStart: e.target.value })} className={inputClass} /></div>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Scheduled End</label><input type="datetime-local" value={form.scheduledEnd} onChange={e => setForm({ ...form, scheduledEnd: e.target.value })} className={inputClass} /></div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.isFeatured} onChange={e => setForm({ ...form, isFeatured: e.target.checked })} className="accent-arena-accent" />
+                <span className="text-sm text-arena-text-secondary">Featured</span>
+              </label>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2055,28 +2345,122 @@ function AdminStreamsView() {
 
 function AdminAffiliatesView() {
   const { navigate } = useAppStore();
-  const { data: affiliates } = useQuery({
+  const { data: affiliates, refetch } = useQuery({
     queryKey: ['admin-affiliates-list'],
     queryFn: () => fetch('/api/admin/affiliates').then(r => r.json()).then(d => d.affiliates || d || []),
   });
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+
+  const emptyForm = { name: '', platform: '', url: '', slug: '', description: '', category: '', imageUrl: '', price: 0, originalPrice: 0, isActive: true, sortOrder: 0 };
+  const [form, setForm] = useState(emptyForm);
+
+  const openCreate = () => { setForm(emptyForm); setEditing(null); setShowModal(true); };
+  const openEdit = (a: any) => { setForm({ name: a.name, platform: a.platform || '', url: a.url, slug: a.slug, description: a.description || '', category: a.category || '', imageUrl: a.imageUrl || '', price: a.price || 0, originalPrice: a.originalPrice || 0, isActive: a.isActive, sortOrder: a.sortOrder || 0 }); setEditing(a); setShowModal(true); };
+
+  const handleSave = async () => {
+    if (!form.name || !form.url || !form.slug) { toast.error('Name, URL, and slug are required'); return; }
+    setSaving(true);
+    try {
+      if (editing) {
+        const res = await fetch(`/api/admin/affiliates/${editing.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to update affiliate'); setSaving(false); return; }
+        toast.success('Affiliate updated!');
+      } else {
+        const res = await fetch('/api/admin/affiliates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to create affiliate'); setSaving(false); return; }
+        toast.success('Affiliate created!');
+      }
+      setShowModal(false);
+      refetch();
+    } catch { toast.error('Failed to save affiliate'); }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this affiliate?')) return;
+    try {
+      const res = await fetch(`/api/admin/affiliates/${id}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to delete affiliate'); return; }
+      toast.success('Affiliate deleted');
+      refetch();
+    } catch { toast.error('Failed to delete affiliate'); }
+  };
+
+  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors duration-150";
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">Affiliate Links</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
+          <h1 className="text-xl font-bold">Affiliate Links</h1>
+        </div>
+        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200">
+          <Plus className="w-4 h-4" /> Add Affiliate
+        </button>
       </div>
       <div className="space-y-2">
         {affiliates?.map((a: any) => (
-          <div key={a.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-sm">{a.name}</h3>
-              <p className="text-xs text-arena-text-muted">{a.platform} • ₹{a.price} • {a.clicks} clicks</p>
+          <div key={a.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between hover:border-arena-accent/30 transition-all duration-200">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              {a.imageUrl ? <img src={a.imageUrl} alt={a.name} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0"><ShoppingBag className="w-5 h-5 text-arena-accent" /></div>}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-sm truncate">{a.name}</h3>
+                  <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', a.isActive ? 'bg-arena-success/20 text-arena-success' : 'bg-arena-text-muted/20 text-arena-text-muted')}>{a.isActive ? 'Active' : 'Inactive'}</span>
+                </div>
+                <p className="text-xs text-arena-text-muted">{a.platform} • {paiseToRupee(a.price)}{a.originalPrice > a.price ? ` (was ${paiseToRupee(a.originalPrice)})` : ''} • {a.clicks} clicks</p>
+              </div>
             </div>
-            <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', a.isActive ? 'bg-arena-success/20 text-arena-success' : 'bg-arena-text-muted/20 text-arena-text-muted')}>{a.isActive ? 'Active' : 'Inactive'}</span>
+            <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+              <a href={a.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Open affiliate link"><ExternalLink className="w-3.5 h-3.5 text-arena-text-muted" /></a>
+              <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Edit affiliate"><Pencil className="w-3.5 h-3.5 text-arena-text-muted" /></button>
+              <button onClick={() => handleDelete(a.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150" aria-label="Delete affiliate"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+            </div>
           </div>
         ))}
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-fade-in-up">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold">{editing ? 'Edit Affiliate' : 'New Affiliate'}</h2>
+              <button onClick={() => setShowModal(false)} className="text-arena-text-muted hover:text-white" aria-label="Close"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Name *</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="Product name" /></div>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Slug *</label><input type="text" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.replace(/\s/g, '-').toLowerCase() })} className={inputClass} placeholder="product-slug" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Platform</label><input type="text" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className={inputClass} placeholder="Amazon" /></div>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Category</label><input type="text" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass} placeholder="Gaming" /></div>
+              </div>
+              <div><label className="text-xs text-arena-text-secondary mb-1 block">URL *</label><input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className={inputClass} placeholder="https://amazon.in/..." /></div>
+              <div><label className="text-xs text-arena-text-secondary mb-1 block">Image URL</label><input type="url" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
+              <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Product description" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Price (₹ paise)</label><input type="number" min={0} value={form.price} onChange={e => setForm({ ...form, price: parseInt(e.target.value) || 0 })} className={inputClass} placeholder="49900 = ₹499" /></div>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Original Price (₹ paise)</label><input type="number" min={0} value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: parseInt(e.target.value) || 0 })} className={inputClass} placeholder="99900 = ₹999" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
+                  <span className="text-sm text-arena-text-secondary">Active</span>
+                </label>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Sort Order</label><input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className={inputClass} /></div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2093,13 +2477,8 @@ function AdminSettingsView() {
     queryFn: () => fetch('/api/admin/settings').then(r => r.json()).then(d => d.settings || d || {}),
   });
 
-  const [settingsInit, setSettingsInit] = useState(false);
-  useEffect(() => {
-    if (fetchedSettings && !settingsInit) {
-      setSettingsInit(true);
-      setSettings(fetchedSettings);
-    }
-  }, [fetchedSettings, settingsInit]);
+  const [localSettings, setLocalSettings] = useState<Record<string, string> | null>(null);
+  const settings = localSettings !== null ? localSettings : (fetchedSettings || {});
 
   const handleSave = async () => {
     setSaving(true);
@@ -2129,7 +2508,7 @@ function AdminSettingsView() {
           {Object.entries(settings).map(([key, value]) => (
             <div key={key}>
               <label className="text-xs text-arena-text-secondary mb-1 block">{key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
-              <input type="text" value={value} onChange={e => setSettings({ ...settings, [key]: e.target.value })}
+              <input type="text" value={value} onChange={e => setLocalSettings({ ...settings, [key]: e.target.value })}
                 className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" />
             </div>
           ))}
@@ -2138,6 +2517,369 @@ function AdminSettingsView() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ==================== ADMIN TOP UP PACKS VIEW ====================
+
+function AdminTopupView() {
+  const { navigate } = useAppStore();
+  const { data: packs, refetch } = useQuery({
+    queryKey: ['admin-topup-packs'],
+    queryFn: () => fetch('/api/admin/topup-packs').then(r => r.json()).then(d => d.packs || []),
+  });
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingPack, setEditingPack] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+
+  const emptyForm = { gameName: '', gameSlug: '', packName: '', description: '', price: 0, originalPrice: 0, imageUrl: '', affiliateUrl: '', isPopular: false, isActive: true, sortOrder: 0 };
+  const [form, setForm] = useState(emptyForm);
+
+  const openCreate = () => { setForm(emptyForm); setEditingPack(null); setShowCreate(true); };
+  const openEdit = (pack: any) => { setForm(pack); setEditingPack(pack); setShowCreate(true); };
+
+  const handleSave = async () => {
+    if (!form.gameName || !form.gameSlug || !form.packName) { toast.error('Game name, slug, and pack name are required'); return; }
+    setSaving(true);
+    try {
+      if (editingPack) {
+        await fetch(`/api/admin/topup-packs/${editingPack.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        toast.success('Pack updated!');
+      } else {
+        await fetch('/api/admin/topup-packs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        toast.success('Pack created!');
+      }
+      setShowCreate(false);
+      refetch();
+    } catch { toast.error('Failed to save pack'); }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this pack?')) return;
+    try {
+      await fetch(`/api/admin/topup-packs/${id}`, { method: 'DELETE' });
+      toast.success('Pack deleted');
+      refetch();
+    } catch { toast.error('Failed to delete pack'); }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
+          <h1 className="text-xl font-bold">⚡ Top Up Packs</h1>
+        </div>
+        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-medium rounded-xl transition-all duration-200 text-sm">
+          <Plus className="w-4 h-4" /> Add Pack
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {packs?.map((pack: any) => (
+          <div key={pack.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-arena-warning/10 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-arena-warning" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h3 className="font-medium text-sm">{pack.gameName} — {pack.packName}</h3>
+                  {pack.isPopular && <span className="text-[10px] bg-arena-warning/20 text-arena-warning px-1.5 py-0.5 rounded-full">🔥 Popular</span>}
+                </div>
+                <p className="text-xs text-arena-text-muted">₹{(pack.price / 100).toLocaleString('en-IN')}{pack.originalPrice > pack.price ? ` (was ₹${(pack.originalPrice / 100).toLocaleString('en-IN')})` : ''} • Sort: {pack.sortOrder}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', pack.isActive ? 'bg-arena-success/20 text-arena-success' : 'bg-arena-text-muted/20 text-arena-text-muted')}>{pack.isActive ? 'Active' : 'Inactive'}</span>
+              <button onClick={() => openEdit(pack)} className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors"><Pencil className="w-3.5 h-3.5 text-arena-text-muted" /></button>
+              <button onClick={() => handleDelete(pack.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {showCreate && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-fade-in-up">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold">{editingPack ? 'Edit Pack' : 'New Pack'}</h2>
+              <button onClick={() => setShowCreate(false)} className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Game Name *</label>
+                  <input type="text" value={form.gameName} onChange={e => setForm({ ...form, gameName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="BGMI" />
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Game Slug *</label>
+                  <input type="text" value={form.gameSlug} onChange={e => setForm({ ...form, gameSlug: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="bgmi" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Pack Name *</label>
+                <input type="text" value={form.packName} onChange={e => setForm({ ...form, packName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="60 UC" />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Description</label>
+                <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="Basic currency pack" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Price (₹ paise) *</label>
+                  <input type="number" value={form.price} onChange={e => setForm({ ...form, price: parseInt(e.target.value) || 0 })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" />
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Original Price (₹ paise)</label>
+                  <input type="number" value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: parseInt(e.target.value) || 0 })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Affiliate URL (Codashop)</label>
+                <input type="url" value={form.affiliateUrl} onChange={e => setForm({ ...form, affiliateUrl: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="https://www.codashop.com/in/bgmi" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="isPopular" checked={form.isPopular} onChange={e => setForm({ ...form, isPopular: e.target.checked })} className="accent-arena-accent" />
+                  <label htmlFor="isPopular" className="text-xs text-arena-text-secondary">Popular</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="isActive" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
+                  <label htmlFor="isActive" className="text-xs text-arena-text-secondary">Active</label>
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Sort</label>
+                  <input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-2 py-1 text-xs focus:outline-none focus:border-arena-accent transition-colors" />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editingPack ? 'Update' : 'Create'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== ADMIN ANALYTICS VIEW ====================
+
+function AdminAnalyticsView() {
+  const { navigate } = useAppStore();
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-analytics'],
+    queryFn: () => fetch('/api/admin/analytics').then(r => r.json()),
+    refetchInterval: 120000,
+  });
+
+  const d = data?.overview;
+  const STATUS_COLORS: Record<string, string> = {
+    upcoming: '#00aaff',
+    registration_open: '#00ff88',
+    ongoing: '#ffaa00',
+    live: '#ff4444',
+    completed: '#22c55e',
+    cancelled: '#666666',
+  };
+  const LEAGUE_COLORS: Record<string, string> = {
+    bronze: '#cd7f32', silver: '#c0c0c0', gold: '#ffd700',
+    platinum: '#00bcd4', diamond: '#b9f2ff', master: '#aa44ff',
+    grandmaster: '#ff44ff', legend: '#ff6600',
+  };
+
+  if (isLoading) return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
+        <h1 className="text-xl font-bold">📊 Analytics Dashboard</h1>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[1,2,3,4,5,6].map(i => <div key={i} className="bg-arena-card border border-arena-border rounded-xl p-4"><Skeleton className="h-4 w-16 mb-2" /><Skeleton className="h-6 w-24" /></div>)}
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
+        <h1 className="text-xl font-bold">📊 Analytics Dashboard</h1>
+        <span className="text-[10px] bg-arena-accent/20 text-arena-accent font-medium px-2 py-0.5 rounded-full">Live</span>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        {[
+          { label: 'Total Players', value: d?.totalPlayers?.toLocaleString(), icon: Users, color: 'text-arena-accent', bg: 'bg-arena-accent/10' },
+          { label: 'Total Revenue', value: `₹${((d?.totalRevenue || 0) / 100).toLocaleString('en-IN')}`, icon: DollarSign, color: 'text-arena-success', bg: 'bg-arena-success/10' },
+          { label: 'Active Tours', value: String(d?.activeTournaments || 0), icon: Trophy, color: 'text-arena-warning', bg: 'bg-arena-warning/10' },
+          { label: 'Registrations', value: `${d?.todayRegistrations || 0} today`, sub: `${d?.weekRegistrations || 0}/wk ${d?.monthRegistrations || 0}/mo`, icon: User, color: 'text-arena-info', bg: 'bg-arena-info/10' },
+          { label: 'Avg. Value', value: paiseToRupee(d?.avgRegistrationValue || 0), icon: TrendingUp, color: 'text-arena-purple', bg: 'bg-arena-purple/10' },
+          { label: 'Live Streams', value: String(d?.liveStreams || 0), icon: Tv, color: 'text-red-400', bg: 'bg-red-400/10' },
+        ].map(kpi => (
+          <div key={kpi.label} className="bg-arena-card border border-arena-border rounded-xl p-4">
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mb-2', kpi.bg)}>
+              <kpi.icon className={cn('w-4 h-4', kpi.color)} />
+            </div>
+            <p className="text-lg font-bold">{kpi.value}</p>
+            <p className="text-[10px] text-arena-text-muted">{kpi.label}</p>
+            {kpi.sub && <p className="text-[9px] text-arena-text-muted mt-0.5">{kpi.sub}</p>}
+          </div>
+        ))}
+      </div>
+
+      {/* Revenue Chart */}
+      <div className="bg-arena-card border border-arena-border rounded-2xl p-5 mb-6">
+        <h3 className="text-sm font-semibold mb-4">Revenue & Registrations (12 Months)</h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data?.revenueByMonth || []}>
+              <defs>
+                <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#00ff88" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#00ff88" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <XAxis dataKey="month" tick={{ fill: '#666', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+              <YAxis tick={{ fill: '#666', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickFormatter={(v: number) => `₹${(v / 100).toLocaleString('en-IN')}`} />
+              <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
+                formatter={(value: number) => [`₹${(value / 100).toLocaleString('en-IN')}`, 'Revenue']} />
+              <Area type="monotone" dataKey="revenue" stroke="#00ff88" fill="url(#revenueGrad)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Two columns: Games + Status */}
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        {/* Registrations by Game */}
+        <div className="bg-arena-card border border-arena-border rounded-2xl p-5">
+          <h3 className="text-sm font-semibold mb-4">Registrations by Game</h3>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data?.registrationsByGame || []} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis type="number" tick={{ fill: '#666', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                <YAxis dataKey="game" type="category" tick={{ fill: '#999', fontSize: 11 }} width={80} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }} />
+                <Bar dataKey="registrations" fill="#00ff88" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Tournaments by Status */}
+        <div className="bg-arena-card border border-arena-border rounded-2xl p-5">
+          <h3 className="text-sm font-semibold mb-4">Tournaments by Status</h3>
+          <div className="h-52 flex items-center justify-center">
+            {(data?.tournamentsByStatus || []).length === 0 ? (
+              <p className="text-sm text-arena-text-muted">No tournament data</p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={(data?.tournamentsByStatus || []).map((s: any) => ({ ...s, name: s.status.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) }))} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="count" paddingAngle={2}>
+                    {(data?.tournamentsByStatus || []).map((s: any, i: number) => (
+                      <Cell key={i} fill={STATUS_COLORS[s.status] || '#666'} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-3 justify-center mt-2">
+            {(data?.tournamentsByStatus || []).map((s: any) => (
+              <span key={s.status} className="flex items-center gap-1.5 text-[10px] text-arena-text-secondary">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: STATUS_COLORS[s.status] || '#666' }} />
+                {s.status.replace(/_/g, ' ')} ({s.count})
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Three columns: Top Players + League + Activity */}
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Top Players */}
+        <div className="bg-arena-card border border-arena-border rounded-2xl p-5">
+          <h3 className="text-sm font-semibold mb-4">🏆 Top Players</h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {(data?.topPlayers || []).map((p: any, i: number) => (
+              <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-arena-surface/50 transition-colors duration-200">
+                <span className={cn('w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                  i === 0 ? 'bg-yellow-500/20 text-yellow-400' : i === 1 ? 'bg-gray-400/20 text-gray-300' : i === 2 ? 'bg-amber-700/20 text-amber-500' : 'bg-arena-surface text-arena-text-muted'
+                )}>{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{p.player?.displayName || p.player?.username}</p>
+                  <p className="text-[10px] text-arena-text-muted">{p.totalWins}W / {p.totalMatches}M • KD: {p.kdRatio}</p>
+                </div>
+                <span className="text-xs font-semibold text-arena-accent">{p.totalPoints.toLocaleString()}</span>
+              </div>
+            ))}
+            {(!data?.topPlayers || data.topPlayers.length === 0) && <p className="text-xs text-arena-text-muted text-center py-4">No data yet</p>}
+          </div>
+        </div>
+
+        {/* League Distribution */}
+        <div className="bg-arena-card border border-arena-border rounded-2xl p-5">
+          <h3 className="text-sm font-semibold mb-4">League Distribution</h3>
+          <div className="h-48 flex items-center justify-center">
+            {(data?.leagueDistribution || []).length === 0 ? (
+              <p className="text-sm text-arena-text-muted">No data</p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={data?.leagueDistribution || []} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="count" paddingAngle={2}>
+                    {(data?.leagueDistribution || []).map((l: any, i: number) => (
+                      <Cell key={i} fill={LEAGUE_COLORS[l.league] || '#666'} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-1 mt-2">
+            {(data?.leagueDistribution || []).slice(0, 6).map((l: any) => (
+              <span key={l.league} className="flex items-center gap-1.5 text-[10px] text-arena-text-secondary">
+                <span className="w-2 h-2 rounded-full" style={{ background: LEAGUE_COLORS[l.league] || '#666' }} />
+                {l.league} ({l.count})
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-arena-card border border-arena-border rounded-2xl p-5">
+          <h3 className="text-sm font-semibold mb-4">📋 Recent Activity</h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {(data?.recentActivity || []).map((a: any) => (
+              <div key={a.id} className="flex items-center gap-3 p-2 rounded-lg bg-arena-surface/30">
+                <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium',
+                  a.paymentStatus === 'verified' ? 'bg-arena-success/20 text-arena-success' : a.paymentStatus === 'pending' ? 'bg-arena-warning/20 text-arena-warning' : 'bg-red-400/20 text-red-400'
+                )}>
+                  {a.paymentStatus === 'verified' ? '✓' : a.paymentStatus === 'pending' ? '⏳' : '✗'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{a.player?.displayName || a.player?.username}</p>
+                  <p className="text-[10px] text-arena-text-muted truncate">{a.tournament?.title}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-xs font-semibold">{paiseToRupee(a.paidAmount)}</p>
+                  <p className="text-[10px] text-arena-text-muted">{timeAgo(a.createdAt)}</p>
+                </div>
+              </div>
+            ))}
+            {(!data?.recentActivity || data.recentActivity.length === 0) && <p className="text-xs text-arena-text-muted text-center py-4">No activity yet</p>}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
