@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || '1493661620239601664'
-const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'https://qrmsyjoaodtydjbwjlas.supabase.co/auth/v1/callback'
+const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'https://aether-arena.vercel.app/api/auth/discord/callback'
 
 export async function GET(request: Request) {
   try {
