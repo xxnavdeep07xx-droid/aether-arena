@@ -325,3 +325,24 @@ Stage Summary:
 - Real-time data from database with 120s auto-refresh
 - 12-month revenue trend, game distribution, status breakdown
 - Professional dark theme with arena design system colors
+
+---
+Task ID: 5-b
+Agent: fullstack-dev
+Task: Legal Pages - Privacy, Terms, Refund, Contact
+
+Work Log:
+- Added privacy-policy, terms-conditions, refund-policy, contact to ViewName
+- Created PrivacyPolicyView with 10 sections covering Indian data protection
+- Created TermsConditionsView with 11 sections covering gaming tournament rules
+- Created RefundPolicyView with 6 sections (full/partial/no refund conditions)
+- Created ContactView with Discord info + contact form
+- Created POST /api/contact endpoint
+- Updated footer links from dead spans to working navigation buttons
+- Added LegalPageWrapper for consistent legal page styling
+
+Stage Summary:
+- 4 new legal pages with professional, India-specific content
+- Footer links now navigate to actual pages
+- Contact form with validation
+- All pages accessible from both landing footer and authenticated views

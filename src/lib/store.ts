@@ -18,7 +18,11 @@ export type ViewName =
   | 'admin-affiliates'
   | 'admin-topup'
   | 'admin-analytics'
-  | 'admin-settings';
+  | 'admin-settings'
+  | 'privacy-policy'
+  | 'terms-conditions'
+  | 'refund-policy'
+  | 'contact';
 
 interface AppState {
   currentView: ViewName;
