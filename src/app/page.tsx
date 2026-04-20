@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore, useAuthStore, useSearchStore, ViewName } from '@/lib/store';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Trophy, Gamepad2, Users, Zap, Shield, ChevronRight,
@@ -12,7 +12,7 @@ import {
   Calendar, Hash, Copy, ExternalLink, Upload,
   ArrowLeft, Play, CircleDot, Medal, Award, Link2,
   Trash2, RefreshCw, MonitorPlay, ShoppingBag, Store,
-  MessageSquare, Mail
+  MessageSquare, Mail, SlidersHorizontal, ChevronDown
 } from 'lucide-react';
 import { cn, paiseToRupee, formatDateTime, formatDate, timeAgo, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -276,6 +276,7 @@ function ViewRenderer() {
     'terms-conditions': <TermsConditionsView />,
     'refund-policy': <RefundPolicyView />,
     'contact': <ContactView />,
+    'topup': <TopupFullView />,
   };
 
   return (
@@ -910,12 +911,7 @@ function TopupCarouselSection() {
   });
 
   const packs = (packsData || []) as any[];
-
-  const gameNames = [...new Set(packs.map((p: any) => p.gameName))] as string[];
-  
   const filtered = filterGame === 'all' ? packs : packs.filter((p: any) => p.gameSlug === filterGame);
-  
-  // Items per page: 3 on desktop, 1 on mobile
   const itemsPerPage = 3;
   const maxIndex = Math.max(0, filtered.length - itemsPerPage);
 
@@ -932,85 +928,169 @@ function TopupCarouselSection() {
   const next = () => setCurrent(c => c >= maxIndex ? 0 : c + 1);
 
   if (packs.length === 0) return null;
-
   const visible = filtered.slice(current, current + itemsPerPage);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-arena-warning" />
+          <Zap className="w-5 h-5 text-arena-accent" />
           <h2 className="text-lg font-bold">Quick Top Up</h2>
-          <span className="text-[10px] bg-arena-warning/20 text-arena-warning font-medium px-2 py-0.5 rounded-full">Codashop</span>
+          <span className="text-[10px] bg-arena-accent/15 text-arena-accent font-medium px-2 py-0.5 rounded-full">Codashop</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          {gameNames.map((g: string) => (
-            <button key={g} onClick={() => { setFilterGame(filterGame === g.toLowerCase().replace(/\s+/g, '-') ? 'all' : g.toLowerCase().replace(/\s+/g, '-')); setCurrent(0); }}
-              className={cn(
-                'text-[10px] px-2.5 py-1 rounded-lg font-medium transition-all duration-150',
-                filterGame === g.toLowerCase().replace(/\s+/g, '-')
-                  ? 'bg-arena-accent text-white'
-                  : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:border-arena-accent/50'
-              )}>
-              {g}
-            </button>
-          ))}
-        </div>
+        <button onClick={() => useAppStore.getState().navigate('topup')} className="text-xs text-arena-accent hover:text-arena-accent-light font-medium flex items-center gap-1 transition-colors duration-150">
+          View All <ChevronRight className="w-3.5 h-3.5" />
+        </button>
       </div>
-      
       <div className="relative">
         {filtered.length > itemsPerPage && (
           <>
-            <button onClick={prev} className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
+            <button onClick={prev} className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={next} className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
+            <button onClick={next} className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
               <ChevronRight className="w-4 h-4" />
             </button>
           </>
         )}
-        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {visible.map((pack: any, i: number) => (
+          {visible.map((pack: any) => (
             <a key={pack.id} href={pack.affiliateUrl} target="_blank" rel="noopener noreferrer"
-              className="group bg-arena-card border border-arena-border rounded-xl p-4 hover:border-arena-warning/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-warning/5 block">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-arena-accent/10 text-arena-accent">{pack.gameName}</span>
-                    {pack.isPopular && (
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-arena-warning/20 text-arena-warning">🔥 Popular</span>
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-sm group-hover:text-arena-warning transition-colors duration-150">{pack.packName}</h3>
+              className="group relative bg-arena-surface border border-arena-border rounded-2xl p-4 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5 block overflow-hidden">
+              {pack.isPopular && (
+                <div className="absolute top-0 right-0 bg-arena-accent text-white text-[9px] font-bold px-2.5 py-0.5 rounded-bl-lg">🔥 POPULAR</div>
+              )}
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="w-9 h-9 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-4 h-4 text-arena-accent" />
                 </div>
-                <ExternalLink className="w-4 h-4 text-arena-text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-1" />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-medium text-arena-text-muted">{pack.gameName}</div>
+                  <h3 className="font-semibold text-sm truncate group-hover:text-arena-accent transition-colors duration-150">{pack.packName}</h3>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-arena-text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 ml-auto" />
               </div>
               {pack.description && (
-                <p className="text-xs text-arena-text-muted mb-3 line-clamp-1">{pack.description}</p>
+                <p className="text-[11px] text-arena-text-muted mb-3 line-clamp-1">{pack.description}</p>
               )}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-2 border-t border-arena-border">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-base font-bold text-arena-warning">₹{(pack.price / 100).toLocaleString('en-IN')}</span>
+                  <span className="text-base font-bold text-white">₹{paiseToRupee(pack.price)}</span>
                   {pack.originalPrice > pack.price && (
-                    <span className="text-xs text-arena-text-muted line-through">₹{(pack.originalPrice / 100).toLocaleString('en-IN')}</span>
+                    <span className="text-[11px] text-arena-text-muted line-through">₹{paiseToRupee(pack.originalPrice)}</span>
                   )}
                 </div>
-                <span className="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-arena-warning/20 text-arena-warning group-hover:bg-arena-warning group-hover:text-white transition-all duration-200">Buy Now</span>
+                <span className="text-[10px] font-semibold px-3 py-1.5 rounded-lg bg-arena-accent text-white group-hover:bg-arena-accent-light transition-all duration-200">Buy Now</span>
               </div>
             </a>
           ))}
         </div>
-        
         {filtered.length > itemsPerPage && (
           <div className="flex justify-center gap-1.5 mt-3">
             {Array.from({ length: maxIndex + 1 }).map((_, i) => (
               <button key={i} onClick={() => setCurrent(i)}
-                className={cn('w-1.5 h-1.5 rounded-full transition-all', i === current ? 'w-4 bg-arena-warning' : 'bg-arena-text-muted/40 hover:bg-arena-text-muted')} />
+                className={cn('w-1.5 h-1.5 rounded-full transition-all', i === current ? 'w-4 bg-arena-accent' : 'bg-arena-text-muted/40 hover:bg-arena-text-muted')} />
             ))}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ==================== FULL QUICK TOP UP PAGE ====================
+
+function TopupFullView() {
+  const { navigate } = useAppStore();
+  const [filterGame, setFilterGame] = useState('all');
+
+  const { data: packsData, isLoading } = useQuery({
+    queryKey: ['topup-packs-all', filterGame],
+    queryFn: () => fetch(`/api/topup-packs${filterGame !== 'all' ? `?game=${filterGame}` : ''}`).then(r => r.json()).then(d => d.packs || []),
+  });
+
+  const packs = (packsData || []) as any[];
+  const gameNames = [...new Set(packs.map((p: any) => p.gameName))] as string[];
+
+  const activeCount = filterGame === 'all' ? packs.length : packs.filter((p: any) => p.gameSlug === filterGame).length;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-arena-accent/15 flex items-center justify-center">
+            <Zap className="w-5 h-5 text-arena-accent" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold">Quick Top Up</h1>
+            <p className="text-[11px] text-arena-text-muted">{activeCount} packs available via Codashop</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Game filter chips */}
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 scrollbar-hide">
+        <button onClick={() => setFilterGame('all')}
+          className={cn('px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0',
+            filterGame === 'all' ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
+          All Games
+        </button>
+        {gameNames.map((g: string) => {
+          const slug = g.toLowerCase().replace(/\s+/g, '-');
+          return (
+            <button key={g} onClick={() => setFilterGame(slug)}
+              className={cn('px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0',
+                filterGame === slug ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
+              {g}
+            </button>
+          );
+        })}
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-36 rounded-2xl" />)}
+        </div>
+      ) : packs.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {packs.map((pack: any) => (
+            <a key={pack.id} href={pack.affiliateUrl} target="_blank" rel="noopener noreferrer"
+              className="group relative bg-arena-surface border border-arena-border rounded-2xl p-4 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5 block overflow-hidden">
+              {pack.isPopular && (
+                <div className="absolute top-0 right-0 bg-arena-accent text-white text-[9px] font-bold px-2.5 py-0.5 rounded-bl-lg">🔥 POPULAR</div>
+              )}
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-5 h-5 text-arena-accent" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-medium text-arena-text-muted">{pack.gameName}</div>
+                  <h3 className="font-semibold text-sm truncate group-hover:text-arena-accent transition-colors duration-150">{pack.packName}</h3>
+                </div>
+                <ExternalLink className="w-4 h-4 text-arena-text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0" />
+              </div>
+              {pack.description && (
+                <p className="text-[11px] text-arena-text-muted mb-3 line-clamp-2">{pack.description}</p>
+              )}
+              <div className="flex items-center justify-between pt-3 border-t border-arena-border">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-white">₹{paiseToRupee(pack.price)}</span>
+                  {pack.originalPrice > pack.price && (
+                    <span className="text-[11px] text-arena-text-muted line-through">₹{paiseToRupee(pack.originalPrice)}</span>
+                  )}
+                </div>
+                <span className="text-[10px] font-semibold px-4 py-2 rounded-xl bg-arena-accent text-white group-hover:bg-arena-accent-light transition-all duration-200">Buy Now</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <Zap className="w-12 h-12 mx-auto mb-4 text-arena-text-muted/30" />
+          <p className="text-arena-text-muted">No top-up packs found</p>
+          <p className="text-xs text-arena-text-muted/60 mt-1">Check back later for new packs</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1103,11 +1183,29 @@ function TournamentsView() {
   const { navigate } = useAppStore();
   const { query: searchQuery } = useSearchStore();
   const [filters, setFilters] = useState({ game: '', status: '', format: '', fee: '' });
+  const [showFilters, setShowFilters] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
 
   const { data: games } = useQuery({
     queryKey: ['games-filter'],
     queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d || []),
   });
+
+  // Close filter popup on outside click
+  useEffect(() => {
+    if (!showFilters) return;
+    const handler = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilters(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFilters]);
+
+  const activeFilterCount = [filters.game, filters.status, filters.format, filters.fee].filter(Boolean).length;
+
+  const clearFilters = () => setFilters({ game: '', status: '', format: '', fee: '' });
 
   const { data: tournaments, isLoading } = useQuery({
     queryKey: ['tournaments', filters, searchQuery],
@@ -1122,44 +1220,115 @@ function TournamentsView() {
     },
   });
 
+  const statusOptions = [
+    { value: '', label: 'All Status' },
+    { value: 'upcoming', label: 'Upcoming' },
+    { value: 'registration_open', label: 'Registration Open' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'completed', label: 'Completed' },
+  ];
+  const formatOptions = [
+    { value: '', label: 'All Formats' },
+    { value: 'solo', label: 'Solo' },
+    { value: 'duo', label: 'Duo' },
+    { value: 'squad', label: 'Squad' },
+  ];
+  const feeOptions = [
+    { value: '', label: 'All' },
+    { value: 'free', label: 'Free' },
+    { value: 'paid', label: 'Paid' },
+  ];
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold">Tournaments</h1>
-        {searchQuery && (
-          <span className="text-xs text-arena-text-muted">Showing results for "<span className="text-arena-accent">{searchQuery}</span>"</span>
-        )}
-      </div>
+        <div className="flex items-center gap-2">
+          {searchQuery && (
+            <span className="text-xs text-arena-text-muted hidden sm:inline">Results for "<span className="text-arena-accent">{searchQuery}</span>"</span>
+          )}
+          {/* Filter toggle button */}
+          <div className="relative" ref={filterRef}>
+            <button onClick={() => setShowFilters(!showFilters)}
+              className={cn('flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200',
+                showFilters || activeFilterCount > 0
+                  ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20'
+                  : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className={cn('w-4.5 h-4.5 min-w-[18px] min-h-[18px] flex items-center justify-center rounded-full text-[9px] font-bold',
+                  showFilters ? 'bg-white/20 text-white' : 'bg-arena-accent text-white')}>
+                  {activeFilterCount}
+                </span>
+              )}
+              <ChevronDown className={cn('w-3 h-3 transition-transform duration-200', showFilters && 'rotate-180')} />
+            </button>
 
-      {/* Filters */}
-      <div className="space-y-3 mb-6">
-        <div className="flex flex-wrap gap-2">
-          <select value={filters.game} onChange={e => setFilters(f => ({ ...f, game: e.target.value }))}
-            className="bg-arena-card border border-arena-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-arena-accent">
-            <option value="">All Games</option>
-            {games?.map((g: any) => <option key={g.id} value={g.slug}>{g.name}</option>)}
-          </select>
-          {['', 'upcoming', 'registration_open', 'in_progress', 'completed'].map(s => (
-            <button key={s} onClick={() => setFilters(f => ({ ...f, status: s }))}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
-                filters.status === s ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white')}>
-              {s === '' ? 'All Status' : s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-            </button>
-          ))}
-          {['', 'solo', 'duo', 'squad'].map(f => (
-            <button key={f} onClick={() => setFilters(fs => ({ ...fs, format: f }))}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
-                filters.format === f ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white')}>
-              {f === '' ? 'All Formats' : getFormatLabel(f)}
-            </button>
-          ))}
-          {['', 'free', 'paid'].map(f => (
-            <button key={f} onClick={() => setFilters(fs => ({ ...fs, fee: f }))}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
-                filters.fee === f ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white')}>
-              {f === '' ? 'All' : f === 'free' ? 'Free' : 'Paid'}
-            </button>
-          ))}
+            {/* Filter popup */}
+            {showFilters && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-arena-surface border border-arena-border rounded-2xl p-4 shadow-2xl shadow-black/40 z-50 animate-fade-in">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-white">Filters</span>
+                  {activeFilterCount > 0 && (
+                    <button onClick={clearFilters} className="text-[10px] text-arena-accent hover:text-arena-accent-light font-medium transition-colors">Clear all</button>
+                  )}
+                </div>
+
+                {/* Game filter */}
+                <div className="mb-3">
+                  <label className="text-[10px] font-medium text-arena-text-muted mb-1.5 block uppercase tracking-wider">Game</label>
+                  <select value={filters.game} onChange={e => setFilters(f => ({ ...f, game: e.target.value }))}
+                    className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-arena-accent transition-colors">
+                    <option value="">All Games</option>
+                    {games?.map((g: any) => <option key={g.id} value={g.slug}>{g.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Status filter */}
+                <div className="mb-3">
+                  <label className="text-[10px] font-medium text-arena-text-muted mb-1.5 block uppercase tracking-wider">Status</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {statusOptions.map(s => (
+                      <button key={s.value} onClick={() => setFilters(f => ({ ...f, status: s.value }))}
+                        className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-150',
+                          filters.status === s.value ? 'bg-arena-accent text-white' : 'bg-arena-dark border border-arena-border text-arena-text-secondary hover:text-white')}>
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Format filter */}
+                <div className="mb-3">
+                  <label className="text-[10px] font-medium text-arena-text-muted mb-1.5 block uppercase tracking-wider">Format</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {formatOptions.map(f => (
+                      <button key={f.value} onClick={() => setFilters(fs => ({ ...fs, format: f.value }))}
+                        className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-150',
+                          filters.format === f.value ? 'bg-arena-accent text-white' : 'bg-arena-dark border border-arena-border text-arena-text-secondary hover:text-white')}>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Fee filter */}
+                <div>
+                  <label className="text-[10px] font-medium text-arena-text-muted mb-1.5 block uppercase tracking-wider">Entry Fee</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {feeOptions.map(f => (
+                      <button key={f.value} onClick={() => setFilters(fs => ({ ...fs, fee: f.value }))}
+                        className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-150',
+                          filters.fee === f.value ? 'bg-arena-accent text-white' : 'bg-arena-dark border border-arena-border text-arena-text-secondary hover:text-white')}>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -3279,6 +3448,7 @@ export default function Page() {
   const navItems = [
     { view: 'home' as ViewName, icon: Home, label: 'Home' },
     { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tournaments' },
+    { view: 'topup' as ViewName, icon: Zap, label: 'Quick Top Up' },
     { view: 'leaderboard' as ViewName, icon: BarChart3, label: 'Leaderboard' },
     { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
     { view: 'profile' as ViewName, icon: User, label: 'Profile' },
@@ -3377,7 +3547,7 @@ export default function Page() {
           {/* Main Content Area */}
           <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Top Bar - only on main content views */}
-            {(['home', 'tournaments', 'leaderboard', 'streams'] as ViewName[]).includes(currentView) && (
+            {(['home', 'tournaments', 'leaderboard', 'streams', 'topup'] as ViewName[]).includes(currentView) && (
               <header className="h-14 flex items-center justify-between px-3 md:px-6 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl gap-3">
                 {/* Hamburger menu (mobile) */}
                 <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
@@ -3402,7 +3572,7 @@ export default function Page() {
               </header>
             )}
             {/* Minimal header for non-search views (mobile still needs hamburger) */}
-            {!['home', 'tournaments', 'leaderboard', 'streams'].includes(currentView) && (
+            {!['home', 'tournaments', 'leaderboard', 'streams', 'topup'].includes(currentView) && (
               <div className="md:hidden h-12 flex items-center px-3 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl">
                 <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center">
                   <Menu className="w-5 h-5" />

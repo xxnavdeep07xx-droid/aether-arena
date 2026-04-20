@@ -22,7 +22,8 @@ export type ViewName =
   | 'privacy-policy'
   | 'terms-conditions'
   | 'refund-policy'
-  | 'contact';
+  | 'contact'
+  | 'topup';
 
 interface AppState {
   currentView: ViewName;
