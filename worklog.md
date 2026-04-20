@@ -186,3 +186,34 @@ Stage Summary:
 - Header/nav logos have subtle breathing red glow animation
 - All animations CSS-only (no JS), respecting prefers-reduced-motion
 - Dev server compiles clean with 0 new errors
+
+---
+Task ID: 8
+Agent: Main Agent
+Task: Replace intro/splash screen with animated energy logo
+
+Work Log:
+- Added splash screen CSS animations to globals.css:
+  - splash-logo-enter: Logo zooms in from scale(0.6) with brightness flash and blur transition
+  - splash-pulse-ring / splash-pulse-ring-2: Expanding red rings that fade out
+  - splash-text-reveal: Tagline fades in with letter-spacing animation
+  - splash-bg-pulse: Background radial glow breathing
+  - splash-dot-float: 3 loading indicator dots bouncing
+- Replaced LandingSkeleton (full page of grey skeleton boxes) with cinematic energy splash:
+  - Centered hero logo (w-36/w-48) with all energy effects (aura, swirls, rings, particles, streaks)
+  - Expanding pulse rings radiating outward
+  - Background radial glow pulse
+  - Two energy swirl vortexes rotating
+  - Six floating glowing particles
+  - Two energy streak effects
+  - Tagline "COMPETE · WIN · RISE" fading in with letter-spacing animation
+  - Three bouncing loading dots
+  - All pure CSS, respects prefers-reduced-motion
+
+Stage Summary:
+- Intro screen is now a dramatic animated splash instead of boring grey skeleton boxes
+- Logo enters with a cinematic brightness flash + zoom
+- Energy effects match the hero section aesthetic (rings, particles, swirls, streaks)
+- Tagline text reveal with elegant letter-spacing animation
+- Loading dots indicate the app is loading
+- Zero new lint errors, compiles clean
