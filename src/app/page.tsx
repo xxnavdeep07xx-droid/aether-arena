@@ -909,9 +909,9 @@ function TopupCarouselSection() {
     refetchInterval: 60000,
   });
 
-  const packs = packsData || [];
-  
-  const games = [...new Set(packs.map((p: any) => p.gameName))];
+  const packs = (packsData || []) as any[];
+
+  const gameNames = [...new Set(packs.map((p: any) => p.gameName))] as string[];
   
   const filtered = filterGame === 'all' ? packs : packs.filter((p: any) => p.gameSlug === filterGame);
   
@@ -944,7 +944,7 @@ function TopupCarouselSection() {
           <span className="text-[10px] bg-arena-warning/20 text-arena-warning font-medium px-2 py-0.5 rounded-full">Codashop</span>
         </div>
         <div className="flex items-center gap-1.5">
-          {games.map((g: string) => (
+          {gameNames.map((g: string) => (
             <button key={g} onClick={() => { setFilterGame(filterGame === g.toLowerCase().replace(/\s+/g, '-') ? 'all' : g.toLowerCase().replace(/\s+/g, '-')); setCurrent(0); }}
               className={cn(
                 'text-[10px] px-2.5 py-1 rounded-lg font-medium transition-all duration-150',
@@ -2482,7 +2482,7 @@ function AdminSettingsView() {
   });
 
   const [localSettings, setLocalSettings] = useState<Record<string, string> | null>(null);
-  const settings = localSettings !== null ? localSettings : (fetchedSettings || {});
+  const settings = localSettings !== null ? localSettings : ((fetchedSettings || {}) as Record<string, string>);
 
   const handleSave = async () => {
     setSaving(true);
