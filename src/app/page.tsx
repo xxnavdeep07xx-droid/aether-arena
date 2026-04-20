@@ -2474,7 +2474,6 @@ function AdminAffiliatesView() {
 
 function AdminSettingsView() {
   const { navigate } = useAppStore();
-  const [settings, setSettings] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   const { data: fetchedSettings, isLoading } = useQuery({
