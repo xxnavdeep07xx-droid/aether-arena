@@ -473,14 +473,14 @@ function LandingView() {
         <section className="max-w-7xl mx-auto px-6 pb-20">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold">Featured Tournaments</h2>
-            <button onClick={() => { const { setUser } = useAuthStore.getState(); if (useAuthStore.getState().isAuthenticated) { nav('tournaments'); } else { setShowLogin(true); }}} className="text-arena-accent text-sm font-medium hover:underline flex items-center gap-1">
+            <button onClick={() => nav('tournaments')} className="text-arena-accent text-sm font-medium hover:underline flex items-center gap-1">
               View All <ChevronRight className="w-4 h-4" />
             </button>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {featuredTournaments.slice(0, 3).map((t: any) => (
               <div key={t.id} className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
-                onClick={() => { if (useAuthStore.getState().isAuthenticated) { nav('tournament-detail', { id: t.id }); } else { setShowLogin(true); }}}>
+                onClick={() => nav('tournament-detail', { id: t.id })}>
                 <div className="h-32 bg-gradient-to-br from-arena-accent/20 to-arena-purple/20 flex items-center justify-center">
                   <Gamepad2 className="w-12 h-12 text-arena-text-muted" />
                 </div>
@@ -532,9 +532,9 @@ function LandingView() {
             <div>
               <h4 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Platform</h4>
               <ul className="space-y-2">
-                <li><button onClick={() => setShowLogin(true)} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Tournaments</button></li>
-                <li><button onClick={() => setShowLogin(true)} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Leaderboard</button></li>
-                <li><button onClick={() => setShowLogin(true)} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Streams</button></li>
+                <li><button onClick={() => nav('tournaments')} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Tournaments</button></li>
+                <li><button onClick={() => nav('leaderboard')} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Leaderboard</button></li>
+                <li><button onClick={() => nav('streams')} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Streams</button></li>
               </ul>
             </div>
             <div>
@@ -763,7 +763,20 @@ function TopPlayersSection() {
 
   const { data: entries } = useQuery({
     queryKey: ['top-players'],
-    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=10').then(r => r.json()).then(d => d.leaderboard || d || []),
+    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=50').then(r => r.json()).then(d => {
+      const all = d.leaderboard || d || [];
+      // Deduplicate: keep highest points per player
+      const best = new Map<string, any>();
+      for (const e of all) {
+        const pid = e.playerId || e.player?.id;
+        if (!pid) continue;
+        const existing = best.get(pid);
+        if (!existing || (e.points || 0) > (existing.points || 0)) {
+          best.set(pid, e);
+        }
+      }
+      return Array.from(best.values()).sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
+    }),
   });
 
   if (!entries || entries.length === 0) return null;
@@ -860,8 +873,8 @@ function AffiliateCarouselSection() {
               <h3 className="text-sm font-semibold truncate">{a.name}</h3>
               <p className="text-xs text-arena-text-muted mt-1 line-clamp-2">{a.description}</p>
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-sm font-bold text-arena-success">₹{a.price}</span>
-                {a.originalPrice > 0 && <span className="text-xs text-arena-text-muted line-through">₹{a.originalPrice}</span>}
+                <span className="text-sm font-bold text-arena-success">₹{a.priceDisplay || a.price.toLocaleString('en-IN')}</span>
+                {a.originalPrice > 0 && <span className="text-xs text-arena-text-muted line-through">₹{a.originalPriceDisplay || a.originalPrice.toLocaleString('en-IN')}</span>}
               </div>
             </div>
             <ExternalLink className="w-4 h-4 text-arena-text-muted flex-shrink-0 self-center" />
@@ -1035,8 +1048,8 @@ function TournamentsView() {
       ) : (
         <div className="text-center py-16">
           <Trophy className="w-12 h-12 mx-auto mb-4 text-arena-text-muted/30" />
-          <p className="text-arena-text-muted">No tournaments match your filters</p>
-          <p className="text-xs text-arena-text-muted/60 mt-1">Try adjusting your filters or check back later</p>
+          <p className="text-arena-text-muted">{searchQuery ? `No tournaments found for "${searchQuery}"` : 'No tournaments match your filters'}</p>
+          <p className="text-xs text-arena-text-muted/60 mt-1">{searchQuery ? 'Try different keywords' : 'Try adjusting your filters or check back later'}</p>
         </div>
       )}
     </div>
@@ -1147,7 +1160,7 @@ function TournamentDetailView() {
                 {paymentStatus === 'verified' ? '✓ Registered' : '⏳ Payment Pending'}
               </span>
             ) : !isAuthenticated ? (
-              <button onClick={() => { toast.error('Please log in to register'); navigate('home'); }} className="px-6 py-2.5 h-11 border border-arena-accent text-arena-accent font-semibold rounded-xl transition-all duration-200 text-sm">
+              <button onClick={() => { toast.error('Please log in to register'); window.dispatchEvent(new Event('show-login')); }} className="px-6 py-2.5 h-11 border border-arena-accent text-arena-accent font-semibold rounded-xl transition-all duration-200 text-sm">
                 Login to Register
               </button>
             ) : null}
@@ -1313,7 +1326,12 @@ function LeaderboardView() {
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ['leaderboard', gameFilter, period],
-    queryFn: () => fetch(`/api/leaderboard?gameId=${gameFilter}&period=${period}`).then(r => r.json()).then(d => d.leaderboard || d || []),
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (gameFilter !== 'all') params.set('gameId', gameFilter);
+      params.set('period', period);
+      return fetch(`/api/leaderboard?${params}`).then(r => r.json()).then(d => d.leaderboard || d || []);
+    },
   });
 
   return (

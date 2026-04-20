@@ -10,8 +10,8 @@ export async function GET() {
 
     const formatted = affiliates.map((a) => ({
       ...a,
-      priceDisplay: (a.price / 100).toFixed(2),
-      originalPriceDisplay: (a.originalPrice / 100).toFixed(2),
+      priceDisplay: a.price.toLocaleString('en-IN'),
+      originalPriceDisplay: a.originalPrice ? a.originalPrice.toLocaleString('en-IN') : null,
     }))
 
     return NextResponse.json({ affiliates: formatted })
