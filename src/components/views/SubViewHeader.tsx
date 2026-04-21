@@ -10,6 +10,7 @@ export function SubViewHeader({ currentView }: { currentView: ViewName }) {
   const { navigate, goBack, previousView } = useAppStore();
 
   const titles: Record<string, { title: string; back: ViewName; icon: typeof Trophy }> = {
+    'settings': { title: 'Settings', back: 'home', icon: Settings },
     'tournament-detail': { title: 'Tournament Details', back: 'tournaments', icon: Trophy },
     'admin-dashboard': { title: 'Admin Dashboard', back: 'home', icon: Shield },
     'admin-tournaments': { title: 'Manage Tournaments', back: 'admin-dashboard', icon: Trophy },

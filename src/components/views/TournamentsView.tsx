@@ -173,10 +173,22 @@ export function TournamentsView() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <Trophy className="w-12 h-12 mx-auto mb-4 text-arena-text-muted/30" />
-          <p className="text-arena-text-muted">{searchQuery ? `No tournaments found for "${searchQuery}"` : 'No tournaments match your filters'}</p>
-          <p className="text-xs text-arena-text-muted/60 mt-1">{searchQuery ? 'Try different keywords' : 'Try adjusting your filters or check back later'}</p>
+        <div className="text-center py-20 bg-arena-card/50 border border-dashed border-arena-border rounded-2xl">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-arena-accent/10 flex items-center justify-center">
+            <Trophy className="w-10 h-10 text-arena-accent/40" />
+          </div>
+          <p className="text-base font-semibold text-arena-text-secondary mb-2">
+            {searchQuery ? `No tournaments for "${searchQuery}"` : 'No tournaments match your filters'}
+          </p>
+          <p className="text-xs text-arena-text-muted max-w-sm mx-auto mb-4">
+            {searchQuery ? 'Try different keywords or browse all tournaments' : 'Try adjusting your filters or check back later for new events'}
+          </p>
+          {(searchQuery || activeFilterCount > 0) && (
+            <button onClick={() => { clearFilters(); }}
+              className="text-xs font-medium px-4 py-2 rounded-xl bg-arena-accent text-white hover:bg-arena-accent-light transition-all duration-200">
+              Clear Filters
+            </button>
+          )}
         </div>
       )}
     </div>

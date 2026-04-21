@@ -90,10 +90,14 @@ export function TopupFullView() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <Zap className="w-12 h-12 mx-auto mb-4 text-arena-text-muted/30" />
-          <p className="text-arena-text-muted">No top-up packs found</p>
-          <p className="text-xs text-arena-text-muted/60 mt-1">Check back later for new packs</p>
+        <div className="text-center py-20 bg-arena-card/50 border border-dashed border-arena-border rounded-2xl">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-arena-accent/10 flex items-center justify-center">
+            <Zap className="w-10 h-10 text-arena-accent/40" />
+          </div>
+          <p className="text-base font-semibold text-arena-text-secondary mb-2">No top-up packs available</p>
+          <p className="text-xs text-arena-text-muted max-w-sm mx-auto">
+            We are working on adding more top-up options. Check back later for in-game currency packs at the best prices!
+          </p>
         </div>
       )}
     </div>

@@ -5,7 +5,8 @@ import { useEffect } from 'react';
 import {
   Trophy, Zap, Shield, ChevronRight,
   Tv, BarChart3, User, Home, LogOut,
-  Bell, Menu, X, Search
+  Bell, Menu, X, Search, Settings, FileText,
+  ShieldCheck, Mail, HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ import { StreamsView } from '@/components/views/StreamsView';
 import { ProfileView } from '@/components/views/ProfileView';
 import { NotificationsView } from '@/components/views/NotificationsView';
 import { TopupFullView } from '@/components/views/TopupView';
+import { SettingsView } from '@/components/views/SettingsView';
 import {
   AdminDashboardView, AdminTournamentsView, AdminTournamentCreateView,
   AdminRegistrationsView, AdminGamesView, AdminStreamsView,
@@ -74,6 +76,7 @@ function ViewRenderer() {
     'refund-policy': <RefundPolicyView />,
     'contact': <ContactView />,
     'topup': <TopupFullView />,
+    'settings': <SettingsView />,
   };
 
   return (
@@ -97,15 +100,34 @@ export default function Page() {
     navigate('landing');
   };
 
-  const navItems = [
+  // Desktop sidebar items — main navigation
+  const sidebarItems = [
     { view: 'home' as ViewName, icon: Home, label: 'Home' },
     { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tournaments' },
-    { view: 'topup' as ViewName, icon: Zap, label: 'Quick Top Up' },
     { view: 'leaderboard' as ViewName, icon: BarChart3, label: 'Leaderboard' },
     { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
+    { view: 'topup' as ViewName, icon: Zap, label: 'Top Up' },
     { view: 'profile' as ViewName, icon: User, label: 'Profile' },
     ...(isAdmin ? [{ view: 'admin-dashboard' as ViewName, icon: Shield, label: 'Admin' }] : []),
   ];
+
+  // Mobile hamburger menu items — excludes bottom nav items
+  const mobileMenuItems = [
+    { view: 'topup' as ViewName, icon: Zap, label: 'Top Up' },
+    { view: 'notifications' as ViewName, icon: Bell, label: 'Notifications' },
+    { view: 'settings' as ViewName, icon: Settings, label: 'Settings' },
+    { view: 'contact' as ViewName, icon: Mail, label: 'Contact Us' },
+    ...(isAdmin ? [{ view: 'admin-dashboard' as ViewName, icon: Shield, label: 'Admin Panel' }] : []),
+  ];
+
+  const mobileMenuLinks = [
+    { view: 'privacy-policy' as ViewName, icon: ShieldCheck, label: 'Privacy Policy' },
+    { view: 'terms-conditions' as ViewName, icon: FileText, label: 'Terms & Conditions' },
+    { view: 'refund-policy' as ViewName, icon: HelpCircle, label: 'Refund Policy' },
+  ];
+
+  // Views that show the main top bar (with hamburger on mobile)
+  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications', 'settings'];
 
   // Redirect to home if authenticated and on landing
   useEffect(() => {
@@ -130,7 +152,7 @@ export default function Page() {
           <aside className="hidden md:flex flex-col items-center w-[72px] h-screen bg-arena-surface border-r border-arena-border flex-shrink-0 py-5 z-50">
             <img onClick={() => navigate('home')} src="/logo-lg.webp" alt="Aether Arena" className="w-14 h-14 rounded-2xl mb-10 logo-energy hover:opacity-90 transition-opacity cursor-pointer" />
             <nav className="flex flex-col gap-2 flex-1">
-              {navItems.map(item => (
+              {sidebarItems.map(item => (
                 <button key={item.view} onClick={() => navigate(item.view)} aria-label={item.label} title={item.label}
                   className={cn('w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 relative group',
                     currentView === item.view ? 'bg-arena-accent text-white shadow-lg shadow-arena-accent/25' : 'text-arena-text-secondary hover:bg-arena-card hover:text-white')}>
@@ -142,6 +164,9 @@ export default function Page() {
             <div className="flex flex-col gap-2 items-center">
               <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200 relative">
                 <Bell className="w-5 h-5" />
+              </button>
+              <button onClick={() => navigate('settings')} aria-label="Settings" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
+                <Settings className="w-5 h-5" />
               </button>
               <button onClick={() => navigate('profile')} aria-label="Profile" className="w-9 h-9 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold border-2 border-arena-accent/50 overflow-hidden">
                 {user?.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
@@ -156,15 +181,30 @@ export default function Page() {
           {mobileMenuOpen && (
             <div className="md:hidden fixed inset-0 z-[100] animate-fade-in">
               <div className="absolute inset-0 bg-black/60" onClick={() => setMobileMenuOpen(false)} />
-              <div className="absolute left-0 top-0 bottom-0 w-72 bg-arena-surface border-r border-arena-border p-5 animate-slide-in-left">
-                <div className="flex items-center justify-between mb-8">
+              <div className="absolute left-0 top-0 bottom-0 w-72 bg-arena-surface border-r border-arena-border p-5 animate-slide-in-left overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
                     <img src="/logo-md.webp" alt="Aether Arena" className="w-10 h-10 rounded-xl logo-energy" />
                   </div>
                   <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
-                <nav className="space-y-1">
-                  {navItems.filter(item => !['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile'].includes(item.view)).map(item => (
+
+                {/* User card */}
+                {user && (
+                  <div className="mb-4 flex items-center gap-3 px-3 py-2 bg-arena-card rounded-xl border border-arena-border">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
+                      {user.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{user.displayName || user.username}</div>
+                      <div className="text-xs text-arena-text-muted truncate">@{user.username}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Navigation items */}
+                <nav className="space-y-1 mb-4">
+                  {mobileMenuItems.map(item => (
                     <button key={item.view} onClick={() => navigate(item.view)}
                       className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
                         currentView === item.view ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:bg-arena-card hover:text-white')}>
@@ -173,22 +213,27 @@ export default function Page() {
                     </button>
                   ))}
                 </nav>
-                <div className="mt-8 pt-4 border-t border-arena-border space-y-1">
-                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-muted hover:bg-arena-accent/10 hover:text-arena-accent transition-all duration-200">
-                    <LogOut className="w-5 h-5" /> Logout
-                  </button>
-                </div>
-                {user && (
-                  <div className="mt-6 flex items-center gap-3 px-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden">
-                      {user.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">{user.displayName || user.username}</div>
-                      <div className="text-xs text-arena-text-muted">@{user.username}</div>
-                    </div>
+
+                {/* Legal links */}
+                {mobileMenuLinks.length > 0 && (
+                  <div className="pt-3 border-t border-arena-border space-y-1 mb-4">
+                    <div className="px-4 py-1 text-[10px] font-semibold text-arena-text-muted uppercase tracking-wider">Legal</div>
+                    {mobileMenuLinks.map(item => (
+                      <button key={item.view} onClick={() => navigate(item.view)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs text-arena-text-muted hover:bg-arena-card hover:text-white transition-all duration-200">
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </button>
+                    ))}
                   </div>
                 )}
+
+                {/* Logout */}
+                <div className="pt-3 border-t border-arena-border">
+                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-muted hover:bg-arena-accent/10 hover:text-arena-accent transition-all duration-200">
+                    <LogOut className="w-5 h-5" /> Log Out
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -196,9 +241,9 @@ export default function Page() {
           {/* Main Content Area */}
           <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Top Bar - only on main content views */}
-            {(['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications'] as ViewName[]).includes(currentView) && (
+            {mainViews.includes(currentView) && (
               <header className="h-14 flex items-center justify-between px-3 md:px-6 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl gap-3">
-                {/* Hamburger menu (mobile) */}
+                {/* Hamburger menu (mobile) — only on main views */}
                 <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
                   <Menu className="w-5 h-5" />
                 </button>
@@ -220,16 +265,11 @@ export default function Page() {
                 </div>
               </header>
             )}
-            {/* Minimal header for sub-views with back button + title */}
-            {!['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications'].includes(currentView) && (
-              <>
-                <div className="h-12 flex items-center px-3 md:px-6 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl gap-3">
-                  <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
-                    <Menu className="w-5 h-5" />
-                  </button>
-                  <SubViewHeader currentView={currentView} />
-                </div>
-              </>
+            {/* Minimal header for sub-views — NO hamburger menu */}
+            {!mainViews.includes(currentView) && (
+              <div className="h-12 flex items-center px-3 md:px-6 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl">
+                <SubViewHeader currentView={currentView} />
+              </div>
             )}
 
             {/* Content + Right Panel */}
@@ -255,7 +295,7 @@ export default function Page() {
             <ChevronRight className={cn('w-3 h-3 text-arena-text-muted transition-transform', !rightPanelCollapsed && 'rotate-180')} />
           </button>
 
-          {/* Mobile Bottom Navigation */}
+          {/* Mobile Bottom Navigation — Top Up moved to hamburger menu */}
           <MobileBottomNav />
         </div>
       )}
@@ -264,6 +304,8 @@ export default function Page() {
 }
 
 // ==================== MOBILE BOTTOM NAV ====================
+// 5 tabs: Home, Tourneys, Ranks, Streams, Profile
+// Top Up is now in the hamburger menu
 
 function MobileBottomNav() {
   const { currentView, navigate } = useAppStore();
@@ -272,7 +314,6 @@ function MobileBottomNav() {
     { view: 'home' as ViewName, icon: Home, label: 'Home' },
     { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tourneys' },
     { view: 'leaderboard' as ViewName, icon: BarChart3, label: 'Ranks' },
-    { view: 'topup' as ViewName, icon: Zap, label: 'Top Up' },
     { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
     { view: 'profile' as ViewName, icon: User, label: 'Profile' },
   ];

@@ -45,6 +45,21 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0f0f1a" />
         <link rel="manifest" href="/manifest.json" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('aa-theme') || 'dark';
+                  if (theme === 'system') {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+                  document.documentElement.setAttribute('data-theme', theme);
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.variable} antialiased`}>
         <Providers>{children}</Providers>

@@ -51,9 +51,14 @@ export function NotificationsView() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <Bell className="w-12 h-12 mx-auto mb-4 text-arena-text-muted/30" />
-          <p className="text-arena-text-muted">No notifications</p>
+        <div className="text-center py-20 bg-arena-card/50 border border-dashed border-arena-border rounded-2xl">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-arena-accent/10 flex items-center justify-center">
+            <Bell className="w-10 h-10 text-arena-accent/40" />
+          </div>
+          <p className="text-base font-semibold text-arena-text-secondary mb-2">All caught up!</p>
+          <p className="text-xs text-arena-text-muted max-w-sm mx-auto">
+            You have no notifications right now. We will notify you about tournament updates, results, and platform news here.
+          </p>
         </div>
       )}
     </div>

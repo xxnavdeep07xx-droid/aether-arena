@@ -121,10 +121,16 @@ export function LeaderboardView() {
           </div>
         </div>
       ) : (
-        <div className="text-center py-16">
-          <Award className="w-12 h-12 mx-auto mb-4 text-arena-text-muted/30" />
-          <p className="text-arena-text-muted">{searchQuery ? `No players found for "${searchQuery}"` : 'No leaderboard data yet'}</p>
-          <p className="text-xs text-arena-text-muted mt-1">{searchQuery ? 'Try a different name' : 'Play tournaments to appear on the leaderboard!'}</p>
+        <div className="text-center py-20 bg-arena-card/50 border border-dashed border-arena-border rounded-2xl">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-arena-accent/10 flex items-center justify-center">
+            <Award className="w-10 h-10 text-arena-accent/40" />
+          </div>
+          <p className="text-base font-semibold text-arena-text-secondary mb-2">
+            {searchQuery ? `No players found for "${searchQuery}"` : 'The leaderboard is empty'}
+          </p>
+          <p className="text-xs text-arena-text-muted max-w-sm mx-auto">
+            {searchQuery ? 'Try a different name or check the spelling' : 'Be the first to compete! Join tournaments and climb the ranks to claim your spot at the top.'}
+          </p>
         </div>
       )}
     </div>

@@ -28,6 +28,7 @@ export async function GET() {
         totalKills: true,
         totalDeaths: true,
         totalPrizeWon: true,
+        scheduledDeletionAt: true,
         credentials: {
           select: { email: true },
         },
@@ -35,6 +36,19 @@ export async function GET() {
     })
 
     if (!profile) {
+      return NextResponse.json({ user: null })
+    }
+
+    // If account has scheduled deletion and within recovery period, cancel it on login
+    if (profile.scheduledDeletionAt && new Date(profile.scheduledDeletionAt) > new Date()) {
+      await db.profile.update({
+        where: { id: session.userId },
+        data: { scheduledDeletionAt: null },
+      })
+    }
+    // If deletion period has passed, treat as deleted
+    if (profile.scheduledDeletionAt && new Date(profile.scheduledDeletionAt) <= new Date()) {
+      await db.session.deleteMany({ where: { userId: session.userId } })
       return NextResponse.json({ user: null })
     }
 

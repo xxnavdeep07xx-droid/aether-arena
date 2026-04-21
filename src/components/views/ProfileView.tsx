@@ -157,7 +157,16 @@ export function ProfileView() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-arena-text-muted text-center py-4">No tournament registrations yet</p>
+          <div className="text-center py-8">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+              <Trophy className="w-6 h-6 text-arena-accent/40" />
+            </div>
+            <p className="text-sm text-arena-text-secondary mb-1">No tournaments yet</p>
+            <p className="text-xs text-arena-text-muted mb-3">Join a tournament and show your skills!</p>
+            <button onClick={() => navigate('tournaments')} className="text-xs font-medium px-4 py-2 rounded-lg bg-arena-accent text-white hover:bg-arena-accent-light transition-all duration-200">
+              Browse Tournaments
+            </button>
+          </div>
         )}
       </div>
 

@@ -672,3 +672,53 @@
     filter: none !important;
   }
 }
+
+/* ===== LIGHT THEME OVERRIDES ===== */
+
+:root[data-theme="light"] {
+  --color-arena-dark: #f5f6f8;
+  --color-arena-darker: #ebedf0;
+  --color-arena-card: #ffffff;
+  --color-arena-card-hover: #f0f1f3;
+  --color-arena-surface: #fafbfc;
+  --color-arena-text-primary: #1a1a2e;
+  --color-arena-text-secondary: #5a5a72;
+  --color-arena-text-muted: #9a9ab0;
+  --color-arena-border: #e2e4e8;
+  --color-arena-success: #22c55e;
+  --color-arena-warning: #f59e0b;
+  --color-arena-info: #3b82f6;
+  --background: #f5f6f8;
+  --foreground: #1a1a2e;
+  --card: #ffffff;
+  --card-foreground: #1a1a2e;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a2e;
+  --muted: #f0f1f3;
+  --muted-foreground: #5a5a72;
+  --border: #e2e4e8;
+  --input: #e2e4e8;
+}
+
+:root[data-theme="light"] body {
+  background: #f5f6f8;
+  color: #1a1a2e;
+}
+
+:root[data-theme="light"] ::selection {
+  background: rgba(255, 75, 92, 0.2);
+  color: #1a1a2e;
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

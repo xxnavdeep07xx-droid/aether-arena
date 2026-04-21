@@ -359,10 +359,13 @@ function HomeTournamentsSection() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <Trophy className="w-10 h-10 mx-auto mb-3 text-arena-text-muted/30" />
-          <p className="text-sm text-arena-text-muted">No tournaments found</p>
-          <p className="text-xs text-arena-text-muted/60 mt-1">Check back soon for exciting battles!</p>
+        <div className="text-center py-16 bg-arena-card/50 border border-dashed border-arena-border rounded-2xl">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-arena-accent/10 flex items-center justify-center">
+            <Trophy className="w-8 h-8 text-arena-accent/50" />
+          </div>
+          <p className="text-sm font-medium text-arena-text-secondary mb-1">No tournaments yet</p>
+          <p className="text-xs text-arena-text-muted max-w-xs mx-auto">The arena is being prepared! Check back soon for exciting battles and epic prize pools.</p>
+          <button onClick={() => navigate('tournaments')} className="mt-4 text-xs text-arena-accent hover:text-arena-accent-light font-medium hover:underline transition-colors">Browse All Tournaments</button>
         </div>
       )}
     </div>
