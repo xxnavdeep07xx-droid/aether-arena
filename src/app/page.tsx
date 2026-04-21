@@ -569,10 +569,16 @@ function LandingView() {
               <span className="text-xs text-arena-text-muted">© 2025 Aether Arena. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150 cursor-pointer">Twitter</span>
-              <span className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150 cursor-pointer">Discord</span>
-              <span className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150 cursor-pointer">YouTube</span>
-              <span className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150 cursor-pointer">Instagram</span>
+              {[
+                { name: 'Twitter', url: '#' },
+                { name: 'Discord', url: '#' },
+                { name: 'YouTube', url: '#' },
+                { name: 'Instagram', url: '#' },
+              ].map(s => (
+                <button key={s.name} onClick={() => toast.info(`${s.name} link coming soon!`)} className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150">
+                  {s.name}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -672,23 +678,6 @@ function LandingView() {
 // ==================== HOME VIEW ====================
 
 function HomeView() {
-  const { data: streams } = useQuery({
-    queryKey: ['home-streams'],
-    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => d.streams || d || []),
-  });
-  const { data: entries } = useQuery({
-    queryKey: ['home-top-players'],
-    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=10').then(r => r.json()).then(d => d.leaderboard || d || []),
-  });
-  const { data: tournaments } = useQuery({
-    queryKey: ['home-tournaments-skel'],
-    queryFn: () => fetch('/api/tournaments?limit=4').then(r => r.json()).then(d => d.tournaments || d || []),
-  });
-
-  const isLoading = !streams && !entries && !tournaments;
-
-  if (isLoading) return <HomeSkeleton />;
-
   return (
     <div className="space-y-6">
       <StreamBannerSection />
@@ -1429,10 +1418,6 @@ function TournamentDetailView() {
 
   return (
     <div>
-      <button onClick={() => navigate('tournaments')} className="flex items-center gap-2 text-arena-text-secondary hover:text-white mb-4 text-sm transition-colors duration-150">
-        <ArrowLeft className="w-4 h-4" /> Back to Tournaments
-      </button>
-
       {/* Header */}
       <div className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden mb-6">
         <div className="h-40 bg-gradient-to-br from-arena-accent/20 via-arena-purple/15 to-arena-surface flex items-center justify-center relative">
@@ -2088,11 +2073,7 @@ function AdminTournamentsView() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-xl font-bold">Tournaments</h1>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         <button onClick={() => navigate('admin-tournament-create')} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200">
           <Plus className="w-4 h-4" /> Create
         </button>
@@ -2166,10 +2147,7 @@ function AdminTournamentCreateView() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('admin-tournaments')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">Create Tournament</h1>
-      </div>
+      <div className="mb-6"></div>
       <form onSubmit={handleCreate} className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4 max-w-2xl">
         <div><label className={labelClass}>Title *</label><input type="text" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputClass} /></div>
         <div className="grid grid-cols-2 gap-4">
@@ -2248,10 +2226,7 @@ function AdminRegistrationsView() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">Payment Verifications</h1>
-      </div>
+
       <div className="flex gap-2 mb-4">
         {['pending', 'verified', 'failed'].map(s => (
           <button key={s} onClick={() => setFilter(s)}
@@ -2350,11 +2325,7 @@ function AdminGamesView() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-xl font-bold">Games</h1>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200">
           <Plus className="w-4 h-4" /> Add Game
         </button>
@@ -2468,11 +2439,7 @@ function AdminStreamsView() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-xl font-bold">Stream Management</h1>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200">
           <Plus className="w-4 h-4" /> Add Stream
         </button>
@@ -2584,11 +2551,7 @@ function AdminAffiliatesView() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-xl font-bold">Affiliate Links</h1>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200">
           <Plus className="w-4 h-4" /> Add Affiliate
         </button>
@@ -2686,10 +2649,7 @@ function AdminSettingsView() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">Platform Settings</h1>
-      </div>
+
       {isLoading ? (
         <div className="animate-pulse space-y-3">
           {[1,2,3,4,5].map(i => <div key={i} className="bg-arena-card border border-arena-border rounded-xl h-12" />)}
@@ -2758,11 +2718,7 @@ function AdminTopupView() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-          <h1 className="text-xl font-bold">⚡ Top Up Packs</h1>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-medium rounded-xl transition-all duration-200 text-sm">
           <Plus className="w-4 h-4" /> Add Pack
         </button>
@@ -2885,10 +2841,6 @@ function AdminAnalyticsView() {
 
   if (isLoading) return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">📊 Analytics Dashboard</h1>
-      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[1,2,3,4,5,6].map(i => <div key={i} className="bg-arena-card border border-arena-border rounded-xl p-4"><Skeleton className="h-4 w-16 mb-2" /><Skeleton className="h-6 w-24" /></div>)}
       </div>
@@ -2897,8 +2849,7 @@ function AdminAnalyticsView() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('admin-dashboard')} className="text-arena-text-muted hover:text-white"><ArrowLeft className="w-5 h-5" /></button>
+      <div className="flex items-center gap-2 mb-6">
         <h1 className="text-xl font-bold">📊 Analytics Dashboard</h1>
         <span className="text-[10px] bg-arena-accent/20 text-arena-accent font-medium px-2 py-0.5 rounded-full">Live</span>
       </div>
@@ -3078,12 +3029,8 @@ function AdminAnalyticsView() {
 // ==================== LEGAL PAGES ====================
 
 function LegalPageWrapper({ title, children }: { title: string; children: React.ReactNode }) {
-  const { navigate } = useAppStore();
   return (
     <div className="max-w-3xl mx-auto">
-      <button onClick={() => navigate('landing')} className="flex items-center gap-2 text-arena-text-muted hover:text-white text-sm mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Home
-      </button>
       <h1 className="text-2xl md:text-3xl font-bold mb-6">{title}</h1>
       <div className="bg-arena-card border border-arena-border rounded-2xl p-6 md:p-8 prose-sm text-arena-text-secondary leading-relaxed space-y-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-arena-text-primary [&_h2]:mt-8 [&_h2]:mb-3 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-arena-text-primary [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:text-sm [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1.5 [&_li]:text-sm [&_strong]:text-arena-text-primary [&_strong]:font-medium [&_a]:text-arena-accent [&_a]:hover:underline">
         {children}
@@ -3362,9 +3309,6 @@ function ContactView() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <button onClick={() => navigate('landing')} className="flex items-center gap-2 text-arena-text-muted hover:text-white text-sm mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Home
-      </button>
       <h1 className="text-2xl md:text-3xl font-bold mb-2">📩 Contact Us</h1>
       <p className="text-arena-text-secondary text-sm mb-8">Have a question, issue, or suggestion? We&apos;d love to hear from you.</p>
 
@@ -3422,8 +3366,6 @@ function SubViewHeader({ currentView }: { currentView: ViewName }) {
 
   const titles: Record<string, { title: string; back: ViewName; icon: any }> = {
     'tournament-detail': { title: 'Tournament Details', back: 'tournaments', icon: Trophy },
-    'profile': { title: 'Profile', back: 'home', icon: User },
-    'notifications': { title: 'Notifications', back: 'home', icon: Bell },
     'admin-dashboard': { title: 'Admin Dashboard', back: 'home', icon: Shield },
     'admin-tournaments': { title: 'Manage Tournaments', back: 'admin-dashboard', icon: Trophy },
     'admin-tournament-create': { title: 'Create Tournament', back: 'admin-tournaments', icon: Plus },
@@ -3571,7 +3513,7 @@ export default function Page() {
                   <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
                 <nav className="space-y-1">
-                  {navItems.map(item => (
+                  {navItems.filter(item => !['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile'].includes(item.view)).map(item => (
                     <button key={item.view} onClick={() => navigate(item.view)}
                       className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
                         currentView === item.view ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:bg-arena-card hover:text-white')}>
@@ -3606,7 +3548,7 @@ export default function Page() {
           {/* Main Content Area */}
           <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Top Bar - only on main content views */}
-            {(['home', 'tournaments', 'leaderboard', 'streams', 'topup'] as ViewName[]).includes(currentView) && (
+            {(['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications'] as ViewName[]).includes(currentView) && (
               <header className="h-14 flex items-center justify-between px-3 md:px-6 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl gap-3">
                 {/* Hamburger menu (mobile) */}
                 <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
@@ -3631,7 +3573,7 @@ export default function Page() {
               </header>
             )}
             {/* Minimal header for sub-views with back button + title */}
-            {!['home', 'tournaments', 'leaderboard', 'streams', 'topup'].includes(currentView) && (
+            {!['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications'].includes(currentView) && (
               <>
                 <div className="h-12 flex items-center px-3 md:px-6 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl gap-3">
                   <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
@@ -3681,6 +3623,7 @@ function MobileBottomNav() {
   const tabs = [
     { view: 'home' as ViewName, icon: Home, label: 'Home' },
     { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tourneys' },
+    { view: 'leaderboard' as ViewName, icon: BarChart3, label: 'Ranks' },
     { view: 'topup' as ViewName, icon: Zap, label: 'Top Up' },
     { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
     { view: 'profile' as ViewName, icon: User, label: 'Profile' },
