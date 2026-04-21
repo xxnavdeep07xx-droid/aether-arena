@@ -78,7 +78,71 @@ export async function GET(request: Request) {
       results.push(`TopupPack indexes: ${msg}`)
     }
 
-    // 4. Seed top-up packs if table is empty
+    // 4. Create AccountCredential table if missing (needed for email/password login)
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "AccountCredential" (
+          "id" TEXT NOT NULL,
+          "userId" TEXT NOT NULL,
+          "email" TEXT NOT NULL,
+          "password" TEXT NOT NULL,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+          CONSTRAINT "AccountCredential_pkey" PRIMARY KEY ("id")
+        );
+      `)
+      results.push('AccountCredential table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`AccountCredential table: ${msg}`)
+    }
+
+    // 5. Create unique index on AccountCredential.email
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "AccountCredential_email_key" ON "AccountCredential"("email");
+        CREATE UNIQUE INDEX IF NOT EXISTS "AccountCredential_userId_key" ON "AccountCredential"("userId");
+      `)
+      results.push('AccountCredential indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`AccountCredential indexes: ${msg}`)
+    }
+
+    // 6. Create ContactSubmission table if missing
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "ContactSubmission" (
+          "id" TEXT NOT NULL,
+          "name" TEXT NOT NULL,
+          "email" TEXT NOT NULL,
+          "subject" TEXT,
+          "message" TEXT NOT NULL,
+          "isRead" BOOLEAN NOT NULL DEFAULT false,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+          CONSTRAINT "ContactSubmission_pkey" PRIMARY KEY ("id")
+        );
+      `)
+      results.push('ContactSubmission table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`ContactSubmission table: ${msg}`)
+    }
+
+    // 7. Create indexes for ContactSubmission
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "ContactSubmission_isRead_idx" ON "ContactSubmission"("isRead");
+        CREATE INDEX IF NOT EXISTS "ContactSubmission_createdAt_idx" ON "ContactSubmission"("createdAt");
+      `)
+      results.push('ContactSubmission indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`ContactSubmission indexes: ${msg}`)
+    }
+
+    // 8. Seed top-up packs if table is empty
     try {
       const countResult: { count: number }[] = await db.$queryRawUnsafe(`SELECT COUNT(*)::int as count FROM "TopupPack"`)
       const rowCount = countResult[0]?.count || 0

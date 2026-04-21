@@ -125,6 +125,21 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Register error:', error)
     const msg = error instanceof Error ? error.message : 'Unknown error'
+
+    // If the AccountCredential table doesn't exist, trigger setup and retry once
+    if (msg.includes('"AccountCredential"') || msg.includes('accountcredential') || msg.includes('does not exist') || msg.includes('relation')) {
+      console.log('AccountCredential table may be missing — triggering setup...')
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/setup`).catch(() => {})
+        return NextResponse.json(
+          { error: 'Service is starting up. Please try again in a few seconds.' },
+          { status: 503 }
+        )
+      } catch {
+        // continue to generic error
+      }
+    }
+
     // If it's a unique constraint violation, give a helpful error
     if (msg.includes('Unique constraint')) {
       return NextResponse.json(
