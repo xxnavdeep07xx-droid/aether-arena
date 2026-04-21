@@ -28,9 +28,7 @@ jobs:
         run: cd mini-services/discord-bot && bun install
 
       - name: Generate Prisma Client
-        run: cd mini-services/discord-bot && npx prisma generate
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: cd mini-services/discord-bot && npx prisma@6 generate
 
       - name: Start Discord Bot
         run: cd mini-services/discord-bot && bun run start
