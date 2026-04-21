@@ -1,0 +1,41 @@
+name: Aether Arena Discord Bot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mini-services/discord-bot/**'
+      - '.github/workflows/discord-bot.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: cd mini-services/discord-bot && bun install
+
+      - name: Generate Prisma Client
+        run: cd mini-services/discord-bot && npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Start Discord Bot
+        run: cd mini-services/discord-bot && bun run start
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID || '1493661620239601664' }}
+          BASE_URL: ${{ secrets.BASE_URL || 'https://aether-arena.vercel.app' }}
