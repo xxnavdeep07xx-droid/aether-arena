@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "bun run --watch index.ts",
-    "build": "npx prisma generate && tsc && cp -r prisma dist/prisma",
+    "build": "npx prisma@6 generate && tsc && cp -r prisma dist/prisma",
     "start": "node dist/index.js"
   },
   "dependencies": {
     "discord.js": "^14.16.3",
     "@prisma/client": "^6.11.1",
+    "prisma": "^6.19.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   },
