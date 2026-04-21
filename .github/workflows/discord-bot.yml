@@ -7,11 +7,19 @@ on:
       - 'mini-services/discord-bot/**'
       - '.github/workflows/discord-bot.yml'
   workflow_dispatch:
+  schedule:
+    # Auto-restart every 5 hours to stay within 6-hour timeout
+    # Runs at minute 0 of hours 0, 5, 10, 15, 20 UTC
+    - cron: '0 0,5,10,15,20 * * *'
+
+concurrency:
+  group: discord-bot-runner
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
 
