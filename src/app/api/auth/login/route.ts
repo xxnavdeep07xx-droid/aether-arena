@@ -68,7 +68,10 @@ export async function POST(request: Request) {
     })
 
     return response
-  } catch {
+  } catch (error) {
+    console.error('Login error:', error)
+    const msg = error instanceof Error ? error.message : 'Unknown error'
+    // Don't expose internal errors to client
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

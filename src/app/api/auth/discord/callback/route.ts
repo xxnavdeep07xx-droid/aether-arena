@@ -173,7 +173,8 @@ export async function GET(request: Request) {
     })
 
     return response
-  } catch {
+  } catch (error) {
+    console.error('Discord OAuth error:', error)
     const url = new URL(request.url)
     return NextResponse.redirect(`${url.origin}/?error=discord_oauth_failed`)
   }

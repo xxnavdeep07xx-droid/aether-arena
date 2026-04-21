@@ -139,6 +139,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       {children}
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       <Toaster
+        position="top-center"
         theme="dark"
         toastOptions={{
           style: {

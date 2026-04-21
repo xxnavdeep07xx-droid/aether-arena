@@ -122,7 +122,16 @@ export async function POST(request: Request) {
     })
 
     return response
-  } catch {
+  } catch (error) {
+    console.error('Register error:', error)
+    const msg = error instanceof Error ? error.message : 'Unknown error'
+    // If it's a unique constraint violation, give a helpful error
+    if (msg.includes('Unique constraint')) {
+      return NextResponse.json(
+        { error: 'Email or username already exists' },
+        { status: 409 }
+      )
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

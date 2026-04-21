@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore, useAuthStore } from '@/lib/store';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Trophy, Gamepad2, Users, Coins, ChevronRight,
@@ -24,6 +24,23 @@ export function LandingView() {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [signupForm, setSignupForm] = useState({ email: '', password: '', username: '', displayName: '' });
   const [loading, setLoading] = useState(false);
+
+  // Handle OAuth error params from Discord callback redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+    if (error) {
+      const errorMessages: Record<string, string> = {
+        'discord_oauth_cancelled': 'Discord login was cancelled.',
+        'no_code': 'No authorization code received. Please try again.',
+        'discord_oauth_failed': 'Discord login failed. Please try again.',
+        'account_banned': 'This account has been banned.',
+      };
+      toast.error(errorMessages[error] || `Login error: ${error}`);
+      // Clean URL without reloading
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const { data: featuredTournaments } = useQuery({
     queryKey: ['featured-tournaments'],
