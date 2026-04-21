@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, CommandInteraction, User } from 'discord.js'
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction, User } from 'discord.js'
 import { PrismaClient } from '@prisma/client'
 
 const db = new PrismaClient()
@@ -22,14 +22,14 @@ export const data = new SlashCommandBuilder()
     option.setName('user').setDescription('Mention a Discord user (defaults to you)').setRequired(false)
   )
 
-export async function execute(interaction: CommandInteraction) {
+export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply()
 
   try {
     const targetUser = (interaction.options.get('user')?.user as User | null) || interaction.user
     const discordId = targetUser.id
 
-    const profile = await db.profile.findUnique({
+    const profile = await db.profile.findFirst({
       where: { discordId },
       select: {
         username: true,

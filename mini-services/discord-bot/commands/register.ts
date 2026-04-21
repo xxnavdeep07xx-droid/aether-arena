@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, CommandInteraction } from 'discord.js'
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js'
 import { PrismaClient } from '@prisma/client'
 
 const db = new PrismaClient()
@@ -17,7 +17,7 @@ export const data = new SlashCommandBuilder()
       .setMaxLength(24)
   )
 
-export async function execute(interaction: CommandInteraction) {
+export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: true })
 
   try {
@@ -26,7 +26,7 @@ export async function execute(interaction: CommandInteraction) {
     const discordUsername = `${interaction.user.username}#${interaction.user.discriminator}`
 
     // Check if this Discord user already has a profile
-    const existingByDiscord = await db.profile.findUnique({
+    const existingByDiscord = await db.profile.findFirst({
       where: { discordId },
     })
 

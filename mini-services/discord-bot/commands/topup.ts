@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, CommandInteraction } from 'discord.js'
+import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js'
 import { PrismaClient } from '@prisma/client'
 
 const db = new PrismaClient()
@@ -12,7 +12,7 @@ export const data = new SlashCommandBuilder()
     option.setName('game').setDescription('Filter by game name (e.g., BGMI, Free Fire)').setRequired(false)
   )
 
-export async function execute(interaction: CommandInteraction) {
+export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply()
 
   try {

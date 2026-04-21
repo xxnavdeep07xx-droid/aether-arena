@@ -21,7 +21,7 @@ if (!DISCORD_TOKEN) {
 const db = new PrismaClient()
 
 // ─── Commands Map ────────────────────────────────────────
-const commands: { data: SlashCommandBuilder; execute: (interaction: any) => Promise<void> }[] = [
+const commands: { data: any; execute: (interaction: any) => Promise<void> }[] = [
   { data: tournamentsData, execute: tournamentsExecute },
   { data: leaderboardData, execute: leaderboardExecute },
   { data: profileData, execute: profileExecute },

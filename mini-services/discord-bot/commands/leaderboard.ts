@@ -4,7 +4,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  CommandInteraction,
+  ChatInputCommandInteraction,
   ButtonInteraction,
   ComponentType,
 } from 'discord.js'
@@ -21,7 +21,7 @@ export const data = new SlashCommandBuilder()
     option.setName('game').setDescription('Filter by game name (e.g., BGMI, Free Fire)').setRequired(false)
   )
 
-export async function execute(interaction: CommandInteraction) {
+export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply()
 
   try {
