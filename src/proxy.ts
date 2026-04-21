@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
-export function middleware(request: NextRequest) {
+// Next.js 16 proxy convention — replaces deprecated middleware.ts
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Protect admin API routes

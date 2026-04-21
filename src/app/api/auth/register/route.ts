@@ -4,13 +4,13 @@ import bcrypt from 'bcryptjs'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
 
 export async function POST(request: Request) {
-  // Parse body ONCE before any try/catch that might retry
+  // Parse body ONCE before any try/catch
   let body: { email?: string; password?: string; username?: string; displayName?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json(
-      { error: 'Invalid request body. Please check your input and try again.' },
+      { error: 'Invalid request body' },
       { status: 400 }
     )
   }
@@ -134,9 +134,9 @@ export async function POST(request: Request) {
     return response
   } catch (error) {
     console.error('Register error:', error)
-    const msg = error instanceof Error ? error.message : 'Unknown error'
+    const msg = error instanceof Error ? error.message : String(error)
 
-    // If it's a unique constraint violation, give a helpful error
+    // Only catch known unique constraint violations — everything else surfaces the real error
     if (msg.includes('Unique constraint')) {
       return NextResponse.json(
         { error: 'Email or username already exists' },
@@ -144,50 +144,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Classify the error for a helpful user-facing message
-    const isTableMissing = msg.includes('"AccountCredential"') ||
-      msg.includes('accountcredential') ||
-      msg.includes('does not exist') ||
-      msg.includes('relation')
-
-    const isDbConnection = msg.includes('ECONNREFUSED') ||
-      msg.includes('ENOTFOUND') ||
-      msg.includes('connect') ||
-      msg.includes('timeout') ||
-      msg.includes('could not connect') ||
-      msg.includes('Connection refused') ||
-      msg.includes('P1001') ||
-      msg.includes('P1000')
-
-    if (isTableMissing || isDbConnection) {
-      // Try to trigger database setup
-      console.log('Database issue detected — triggering setup...')
-      try {
-        const setupUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/setup`
-        const setupHeaders: Record<string, string> = {}
-        if (process.env.SETUP_SECRET) {
-          setupHeaders['Authorization'] = `Bearer ${process.env.SETUP_SECRET}`
-        }
-        await fetch(setupUrl, { headers: setupHeaders }).catch(() => {})
-      } catch {
-        // Setup call failed, continue to user error
-      }
-      return NextResponse.json(
-        { error: 'Service is starting up. Please try again in a few seconds.' },
-        { status: 503 }
-      )
-    }
-
-    // In development, include the actual error message for debugging
-    if (process.env.NODE_ENV === 'development') {
-      return NextResponse.json(
-        { error: `Registration failed: ${msg}` },
-        { status: 500 }
-      )
-    }
-
     return NextResponse.json(
-      { error: 'Something went wrong. Please try again later.' },
+      { error: `Registration failed: ${msg}` },
       { status: 500 }
     )
   }

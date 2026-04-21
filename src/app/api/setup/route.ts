@@ -97,7 +97,7 @@ export async function GET(request: Request) {
       results.push(`AccountCredential table: ${msg}`)
     }
 
-    // 5. Create unique index on AccountCredential.email
+    // 5. Create unique index on AccountCredential.email + FK constraint
     try {
       await db.$executeRawUnsafe(`
         CREATE UNIQUE INDEX IF NOT EXISTS "AccountCredential_email_key" ON "AccountCredential"("email");
@@ -107,6 +107,28 @@ export async function GET(request: Request) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error';
       results.push(`AccountCredential indexes: ${msg}`)
+    }
+
+    // 5b. Add FK constraint from AccountCredential.userId → Profile.id (cascade delete)
+    try {
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'AccountCredential_userId_fkey'
+            AND table_name = 'AccountCredential'
+          ) THEN
+            ALTER TABLE "AccountCredential"
+              ADD CONSTRAINT "AccountCredential_userId_fkey"
+              FOREIGN KEY ("userId") REFERENCES "Profile"("id") ON DELETE CASCADE;
+          END IF;
+        END $$
+      `)
+      results.push('AccountCredential FK → Profile: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`AccountCredential FK: ${msg}`)
     }
 
     // 6. Create ContactSubmission table if missing
