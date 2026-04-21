@@ -45,7 +45,7 @@ export async function GET() {
         credentials: undefined,
       },
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

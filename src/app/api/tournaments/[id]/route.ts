@@ -95,7 +95,7 @@ export async function GET(
       isRegistered,
       userRegistration,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

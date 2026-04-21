@@ -21,7 +21,7 @@ export async function POST(
     }
 
     return NextResponse.json({ success: true, url: affiliate.url })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

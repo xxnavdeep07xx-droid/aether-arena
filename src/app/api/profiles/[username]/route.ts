@@ -51,7 +51,7 @@ export async function GET(
       winRate,
       totalPrizeWonDisplay: (profile.totalPrizeWon / 100).toFixed(2),
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

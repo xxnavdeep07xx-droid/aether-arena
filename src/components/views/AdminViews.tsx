@@ -7,7 +7,7 @@ import {
   Users, Trophy, Clock, DollarSign, CheckCircle2, XCircle, Plus,
   Eye, Trash2, Gamepad2, Pencil, X, Tv, ExternalLink, Link2,
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
-  ChevronRight, SlidersHorizontal
+  ChevronRight
 } from 'lucide-react';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime, timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -215,7 +215,6 @@ export function AdminTournamentCreateView() {
 // ==================== ADMIN REGISTRATIONS ====================
 
 export function AdminRegistrationsView() {
-  const { navigate } = useAppStore();
   const [filter, setFilter] = useState('pending');
 
   const { data: registrations, refetch } = useQuery({
@@ -305,7 +304,6 @@ export function AdminRegistrationsView() {
 // ==================== ADMIN GAMES ====================
 
 export function AdminGamesView() {
-  const { navigate } = useAppStore();
   const { data: games, refetch } = useQuery({
     queryKey: ['admin-games-list'],
     queryFn: () => fetch('/api/admin/games').then(r => r.json()).then(d => d.games || d || []),
@@ -419,7 +417,6 @@ export function AdminGamesView() {
 // ==================== ADMIN STREAMS ====================
 
 export function AdminStreamsView() {
-  const { navigate } = useAppStore();
   const { data: streams, refetch } = useQuery({
     queryKey: ['admin-streams-list'],
     queryFn: () => fetch('/api/admin/streams').then(r => r.json()).then(d => d.streams || d || []),
@@ -531,7 +528,6 @@ export function AdminStreamsView() {
 // ==================== ADMIN AFFILIATES ====================
 
 export function AdminAffiliatesView() {
-  const { navigate } = useAppStore();
   const { data: affiliates, refetch } = useQuery({
     queryKey: ['admin-affiliates-list'],
     queryFn: () => fetch('/api/admin/affiliates').then(r => r.json()).then(d => d.affiliates || d || []),
@@ -651,7 +647,6 @@ export function AdminAffiliatesView() {
 // ==================== ADMIN SETTINGS ====================
 
 export function AdminSettingsView() {
-  const { navigate } = useAppStore();
   const [saving, setSaving] = useState(false);
 
   const { data: fetchedSettings, isLoading } = useQuery({
@@ -702,7 +697,6 @@ export function AdminSettingsView() {
 // ==================== ADMIN TOP UP PACKS ====================
 
 export function AdminTopupView() {
-  const { navigate } = useAppStore();
   const { data: packs, refetch } = useQuery({
     queryKey: ['admin-topup-packs'],
     queryFn: () => fetch('/api/admin/topup-packs').then(r => r.json()).then(d => d.packs || []),
@@ -844,7 +838,6 @@ export function AdminTopupView() {
 // ==================== ADMIN ANALYTICS ====================
 
 export function AdminAnalyticsView() {
-  const { navigate } = useAppStore();
   const { data, isLoading } = useQuery({
     queryKey: ['admin-analytics'],
     queryFn: () => fetch('/api/admin/analytics').then(r => r.json()),

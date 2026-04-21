@@ -4,7 +4,7 @@ import { useAppStore, useSearchStore } from '@/lib/store';
 import { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Trophy, SlidersHorizontal, ChevronDown, Gamepad2, CircleDot, Star
+  Trophy, SlidersHorizontal, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TournamentCard } from './HomeView';

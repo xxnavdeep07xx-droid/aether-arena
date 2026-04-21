@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore, useSearchStore } from '@/lib/store';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 
 export function SearchBarInput() {

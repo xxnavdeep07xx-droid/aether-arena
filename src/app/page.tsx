@@ -1,10 +1,10 @@
 'use client';
 
-import { useAppStore, useAuthStore, useSearchStore, ViewName } from '@/lib/store';
-import { useEffect, useState } from 'react';
+import { useAppStore, useAuthStore, ViewName } from '@/lib/store';
+import { useEffect } from 'react';
 import {
-  Trophy, Gamepad2, Users, Zap, Shield, ChevronRight,
-  Tv, BarChart3, User, Home, Settings, LogOut,
+  Trophy, Zap, Shield, ChevronRight,
+  Tv, BarChart3, User, Home, LogOut,
   Bell, Menu, X, Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';

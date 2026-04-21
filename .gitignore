@@ -58,7 +58,4 @@ server.log
 # Uploads
 /upload/
 
-# Database
-/db/*.db
-/db/*.db-journal.env
-.env.local
+

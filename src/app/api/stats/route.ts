@@ -27,7 +27,7 @@ export async function GET() {
       activeTournaments,
       liveStreams,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

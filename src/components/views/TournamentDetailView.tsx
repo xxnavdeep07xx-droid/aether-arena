@@ -5,14 +5,14 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star, CircleDot, Calendar, MonitorPlay, Gamepad2,
-  Shield, Copy, X, Trophy, Eye, Upload
+  Shield, Copy, X, Upload
 } from 'lucide-react';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Skeleton } from './Skeletons';
 
 export function TournamentDetailView() {
-  const { viewParams, navigate } = useAppStore();
+  const { viewParams } = useAppStore();
   const { isAuthenticated } = useAuthStore();
   const [showRegister, setShowRegister] = useState(false);
   const [registered, setRegistered] = useState(false);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore, useAuthStore } from '@/lib/store';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Trophy, Gamepad2, Users, Coins, ChevronRight,
