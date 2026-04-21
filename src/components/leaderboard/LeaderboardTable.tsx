@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { LEAGUE_CONFIG } from '@/lib/utils';
 import { LeagueBadge } from './LeagueBadge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { BarChart3, Crown, Medal } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 
 interface LeaderboardEntry {
   id: string;
@@ -55,13 +54,7 @@ export function LeaderboardTable() {
     fetchLeaderboard();
   }, [activeGame, activePeriod]);
 
-  const gameSlugMap: Record<string, string> = {
-    'Free Fire': 'free-fire',
-    'BGMI': 'bgmi',
-    'COD': 'cod',
-    'Minecraft': 'minecraft',
-    'Pokemon Go': 'pokemon-go',
-  };
+  
 
   return (
     <div className="space-y-4">

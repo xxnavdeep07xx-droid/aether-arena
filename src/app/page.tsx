@@ -9,9 +9,9 @@ import {
   Crown, Target, Clock, Coins, Plus, Eye, Pencil,
   CheckCircle2, XCircle, Search, Bell, ChevronLeft,
   Menu, X, Swords, Star, TrendingUp, DollarSign,
-  Calendar, Hash, Copy, ExternalLink, Upload,
-  ArrowLeft, Play, CircleDot, Medal, Award, Link2,
-  Trash2, RefreshCw, MonitorPlay, ShoppingBag, Store,
+  Calendar, Copy, ExternalLink, Upload,
+  ArrowLeft, Play, CircleDot, Award, Link2,
+  Trash2, MonitorPlay, ShoppingBag,
   MessageSquare, Mail, SlidersHorizontal, ChevronDown
 } from 'lucide-react';
 import { cn, paiseToRupee, formatDateTime, formatDate, timeAgo, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
@@ -236,8 +236,8 @@ function LandingSkeleton() {
 }
 
 function ViewRenderer() {
-  const { currentView, viewParams, navigate } = useAppStore();
-  const { isAuthenticated, isLoading, user } = useAuthStore();
+  const { currentView } = useAppStore();
+  const { isLoading } = useAuthStore();
 
   // Skeleton loading based on current view instead of spinner
   if (isLoading) {
@@ -850,7 +850,7 @@ function AffiliateCarouselSection() {
     return () => clearInterval(timer);
   }, [affiliates]);
 
-  const handleClick = async (affiliate: any, e: React.MouseEvent) => {
+  const handleClick = async (affiliate: any) => {
     try { await fetch(`/api/affiliates/${affiliate.id}/click`, { method: 'POST' }); } catch {}
   };
 
@@ -875,7 +875,7 @@ function AffiliateCarouselSection() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {visible.map((a: any) => (
-          <a key={a.id} href={a.url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => handleClick(a, e)}
+          <a key={a.id} href={a.url || '#'} target="_blank" rel="noopener noreferrer" onClick={() => handleClick(a)}
             className="group bg-arena-surface border border-arena-border rounded-2xl p-4 md:p-5 flex gap-4 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5 block">
             <div className="w-16 h-16 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
               <Gamepad2 className="w-8 h-8 text-arena-accent/60" />
@@ -900,7 +900,7 @@ function AffiliateCarouselSection() {
 
 function TopupCarouselSection() {
   const [current, setCurrent] = useState(0);
-  const [filterGame, setFilterGame] = useState('all');
+  const [filterGame] = useState('all');
 
   const { data: packsData } = useQuery({
     queryKey: ['topup-packs', filterGame],
@@ -999,7 +999,6 @@ function TopupCarouselSection() {
 // ==================== FULL QUICK TOP UP PAGE ====================
 
 function TopupFullView() {
-  const { navigate } = useAppStore();
   const [filterGame, setFilterGame] = useState('all');
 
   const { data: packsData, isLoading } = useQuery({
@@ -1360,7 +1359,7 @@ function TournamentsView() {
 
 function TournamentDetailView() {
   const { viewParams, navigate } = useAppStore();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [showRegister, setShowRegister] = useState(false);
   const [registered, setRegistered] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
@@ -3495,7 +3494,7 @@ function SearchBarInput() {
 
 export default function Page() {
   const { currentView, navigate, mobileMenuOpen, setMobileMenuOpen, rightPanelCollapsed, setRightPanelCollapsed } = useAppStore();
-  const { isAuthenticated, isLoading, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout } = useAuthStore();
   const isLanding = currentView === 'landing';
   const isAdmin = user?.isAdmin;
 
@@ -3678,7 +3677,6 @@ export default function Page() {
 
 function MobileBottomNav() {
   const { currentView, navigate } = useAppStore();
-  const { user } = useAuthStore();
 
   const tabs = [
     { view: 'home' as ViewName, icon: Home, label: 'Home' },

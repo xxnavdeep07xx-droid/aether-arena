@@ -71,11 +71,7 @@ async function seed() {
   const CODM = 'game_codm';
   const CR = 'game_clashroyale';
 
-  // Date helpers (IST = UTC + 5:30)
-  const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const toIST = (d: Date) => new Date(d.getTime() + istOffset);
-
+  // Date helpers
   const inDays = (days: number, hours = 0, mins = 0) => {
     const d = new Date(Date.now() + days * 86400000 + hours * 3600000 + mins * 60000);
     return d.toISOString();

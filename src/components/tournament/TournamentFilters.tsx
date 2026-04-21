@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 import { Gamepad2, Users, DollarSign, Swords } from 'lucide-react';
 
 interface TournamentFiltersProps {
@@ -30,7 +29,6 @@ export function TournamentFilters({
   onFormatChange,
   onFeeChange,
 }: TournamentFiltersProps) {
-  const [showMore, setShowMore] = useState(false);
 
   return (
     <div className="space-y-3">

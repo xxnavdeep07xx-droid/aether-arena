@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import { paiseToRupee } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Check,
   X,
-  Eye,
   CreditCard,
   Image as ImageIcon,
 } from 'lucide-react';

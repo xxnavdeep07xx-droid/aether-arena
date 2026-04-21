@@ -2,7 +2,7 @@
 
 import { useAppStore, useAuthStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
-import { paiseToRupee, LEAGUE_CONFIG } from '@/lib/utils';
+import { LEAGUE_CONFIG } from '@/lib/utils';
 import {
   ChevronRight,
   ChevronLeft,
@@ -22,20 +22,10 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 
 export function RightPanel() {
-  const { currentView, viewParams, rightPanelCollapsed, setRightPanelCollapsed } = useAppStore();
-  const { user } = useAuthStore();
-
-  const { data: stats } = useQuery({
-    queryKey: ['panel-stats'],
-    queryFn: () => fetch('/api/stats').then(r => r.json()),
-    refetchInterval: 60000,
-  });
-
-  if (currentView === 'landing') return null;
-
+  const { currentView, rightPanelCollapsed, setRightPanelCollapsed } = useAppStore();
   const toggleCollapse = () => setRightPanelCollapsed(!rightPanelCollapsed);
 
-  const panelWidth = rightPanelCollapsed ? 'w-0 md:w-[280px]' : 'w-0 md:w-[280px]';
+  if (currentView === 'landing') return null;
 
   return (
     <>
@@ -62,7 +52,7 @@ export function RightPanel() {
           <div className="p-4 space-y-4">
             {currentView === 'home' && <HomePanel />}
             {currentView === 'tournaments' && <TournamentsPanel />}
-            {currentView === 'tournament-detail' && <TournamentDetailPanel tournamentId={viewParams.id || ''} />}
+            {currentView === 'tournament-detail' && <TournamentDetailPanel />}
             {currentView === 'leaderboard' && <LeaderboardPanel />}
             {currentView === 'profile' && <ProfilePanel />}
             {currentView === 'streams' && <StreamsPanel />}
@@ -214,7 +204,7 @@ function TournamentsPanel() {
   );
 }
 
-function TournamentDetailPanel({ tournamentId }: { tournamentId: string }) {
+function TournamentDetailPanel() {
   return (
     <>
       <div className="space-y-3">
@@ -319,7 +309,7 @@ function LeaderboardPanel() {
 }
 
 function ProfilePanel() {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const { navigate } = useAppStore();
 
   return (

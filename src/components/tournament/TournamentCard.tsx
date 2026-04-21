@@ -3,8 +3,6 @@
 import { cn } from '@/lib/utils';
 import { paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Users, Trophy, Star, Gamepad2 } from 'lucide-react';
 
 interface TournamentCardProps {

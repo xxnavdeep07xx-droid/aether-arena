@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
 import { LEAGUE_CONFIG } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
