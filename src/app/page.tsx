@@ -174,9 +174,6 @@ export default function Page() {
                   ))}
                 </nav>
                 <div className="mt-8 pt-4 border-t border-arena-border space-y-1">
-                  <button onClick={() => { navigate('notifications'); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
-                    <Bell className="w-5 h-5" /> Notifications
-                  </button>
                   <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-muted hover:bg-arena-accent/10 hover:text-arena-accent transition-all duration-200">
                     <LogOut className="w-5 h-5" /> Logout
                   </button>
