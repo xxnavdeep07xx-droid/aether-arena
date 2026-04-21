@@ -83,17 +83,16 @@ export async function POST(request: Request) {
     const msg = error instanceof Error ? error.message : 'Unknown error'
 
     // Classify the error for a helpful user-facing message
+    // Use SPECIFIC patterns only — avoid broad words like 'connect' or 'relation'
     const isTableMissing = msg.includes('"AccountCredential"') ||
       msg.includes('accountcredential') ||
-      msg.includes('does not exist') ||
-      msg.includes('relation')
+      msg.includes('does not exist')
 
     const isDbConnection = msg.includes('ECONNREFUSED') ||
       msg.includes('ENOTFOUND') ||
-      msg.includes('connect') ||
-      msg.includes('timeout') ||
       msg.includes('could not connect') ||
       msg.includes('Connection refused') ||
+      msg.includes('Unable to connect') ||
       msg.includes('P1001') ||
       msg.includes('P1000')
 
@@ -116,16 +115,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // In development, include the actual error message for debugging
-    if (process.env.NODE_ENV === 'development') {
-      return NextResponse.json(
-        { error: `Login failed: ${msg}` },
-        { status: 500 }
-      )
-    }
-
+    // Return the actual error for debugging — will be cleaned up once issue is resolved
     return NextResponse.json(
-      { error: 'Something went wrong. Please try again later.' },
+      { error: `Login failed: ${msg}` },
       { status: 500 }
     )
   }
