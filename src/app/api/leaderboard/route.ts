@@ -155,7 +155,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ leaderboard: filtered })
   } catch (error) {
-    console.error('Get leaderboard error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

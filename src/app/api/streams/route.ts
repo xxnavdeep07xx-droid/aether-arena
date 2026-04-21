@@ -39,7 +39,6 @@ export async function GET() {
 
     return NextResponse.json({ streams })
   } catch (error) {
-    console.error('Get streams error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

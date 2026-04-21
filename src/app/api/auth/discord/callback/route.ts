@@ -2,17 +2,23 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
 
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || '1493661620239601664'
-const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || ''
-const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'https://aether-arena.vercel.app/api/auth/discord/callback'
+function getDiscordEnv() {
+  const clientId = process.env.DISCORD_CLIENT_ID;
+  const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+  const redirectUri = process.env.DISCORD_REDIRECT_URI;
+  if (!clientId || !clientSecret || !redirectUri) {
+    throw new Error('DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, and DISCORD_REDIRECT_URI environment variables are required');
+  }
+  return { clientId, clientSecret, redirectUri };
+}
 
-async function exchangeCode(code: string, redirectUri: string) {
+async function exchangeCode(code: string, redirectUri: string, clientId: string, clientSecret: string) {
   const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      client_secret: DISCORD_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       grant_type: 'authorization_code',
       code,
       redirect_uri: redirectUri,
@@ -41,6 +47,8 @@ async function getDiscordUser(accessToken: string) {
 
 export async function GET(request: Request) {
   try {
+    const { clientId, clientSecret, redirectUri } = getDiscordEnv();
+
     const url = new URL(request.url)
     const code = url.searchParams.get('code')
     const error = url.searchParams.get('error')
@@ -53,11 +61,8 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${url.origin}/?error=no_code`)
     }
 
-    // Determine redirect URI
-    const redirectUri = DISCORD_REDIRECT_URI
-
     // Exchange code for token
-    const tokenData = await exchangeCode(code, redirectUri)
+    const tokenData = await exchangeCode(code, redirectUri, clientId, clientSecret)
 
     // Get Discord user info
     const discordUser = await getDiscordUser(tokenData.access_token)
@@ -168,8 +173,7 @@ export async function GET(request: Request) {
     })
 
     return response
-  } catch (error) {
-    console.error('Discord OAuth callback error:', error)
+  } catch {
     const url = new URL(request.url)
     return NextResponse.redirect(`${url.origin}/?error=discord_oauth_failed`)
   }

@@ -54,7 +54,6 @@ export async function GET(
       const authError = error as { statusCode: number; message: string }
       return NextResponse.json({ error: authError.message }, { status: authError.statusCode })
     }
-    console.error('Admin get tournament error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -152,7 +151,6 @@ export async function PUT(
       const authError = error as { statusCode: number; message: string }
       return NextResponse.json({ error: authError.message }, { status: authError.statusCode })
     }
-    console.error('Admin update tournament error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -178,7 +176,6 @@ export async function DELETE(
       const authError = error as { statusCode: number; message: string }
       return NextResponse.json({ error: authError.message }, { status: authError.statusCode })
     }
-    console.error('Admin delete tournament error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

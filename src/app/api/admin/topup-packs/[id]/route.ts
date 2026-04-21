@@ -27,7 +27,6 @@ export async function PUT(
       const authError = error as { statusCode: number; message: string }
       return NextResponse.json({ error: authError.message }, { status: authError.statusCode })
     }
-    console.error('Error updating topup pack:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -53,7 +52,6 @@ export async function DELETE(
       const authError = error as { statusCode: number; message: string }
       return NextResponse.json({ error: authError.message }, { status: authError.statusCode })
     }
-    console.error('Error deleting topup pack:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

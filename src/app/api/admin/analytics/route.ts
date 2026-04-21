@@ -147,7 +147,6 @@ export async function GET(request: Request) {
       const authError = error as { statusCode: number; message: string };
       return NextResponse.json({ error: authError.message }, { status: authError.statusCode });
     }
-    console.error('Analytics error:', error);
     return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
   }
 }

@@ -37,7 +37,6 @@ export async function GET(request: Request) {
         }
       } catch { /* ignore setup failure */ }
     }
-    console.error('Error fetching topup packs:', error)
     return NextResponse.json({ packs: [] })
   }
 }
@@ -62,7 +61,6 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({ pack })
   } catch (error: any) {
-    console.error('Error creating topup pack:', error)
     return NextResponse.json({ error: 'Failed to create pack' }, { status: 500 })
   }
 }

@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
 
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || '1493661620239601664'
-const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'https://aether-arena.vercel.app/api/auth/discord/callback'
-
 export async function GET() {
   try {
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    const redirectUri = process.env.DISCORD_REDIRECT_URI;
+    if (!clientId || !redirectUri) {
+      throw new Error('DISCORD_CLIENT_ID and DISCORD_REDIRECT_URI environment variables are required');
+    }
+
     const params = new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      redirect_uri: DISCORD_REDIRECT_URI,
+      client_id: clientId,
+      redirect_uri: redirectUri,
       response_type: 'code',
       scope: 'identify email',
     })
@@ -15,8 +18,7 @@ export async function GET() {
     return NextResponse.redirect(
       `https://discord.com/api/oauth2/authorize?${params.toString()}`
     )
-  } catch (error) {
-    console.error('Discord OAuth init error:', error)
+  } catch {
     return NextResponse.json(
       { error: 'Failed to initiate Discord OAuth' },
       { status: 500 }

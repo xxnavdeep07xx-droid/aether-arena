@@ -122,7 +122,6 @@ export async function GET(request: Request) {
       // Return empty on first attempt — client will refetch
       return NextResponse.json({ tournaments: [], pagination: { page: 1, limit: 12, total: 0, totalPages: 0 } })
     }
-    console.error('Get tournaments error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

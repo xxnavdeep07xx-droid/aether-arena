@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// One-time database setup — creates missing tables/columns and seeds data.
+// Database setup endpoint — creates missing tables/columns and seeds data.
+// Protected by SETUP_SECRET to prevent unauthorized access.
 // This is needed because prisma db push cannot be run from Vercel.
-// After successful setup, this endpoint returns current DB status.
-export async function GET() {
+
+const SETUP_SECRET = process.env.SETUP_SECRET;
+
+export async function GET(request: Request) {
+  // Verify setup secret if configured
+  if (SETUP_SECRET) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${SETUP_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   try {
     const results: string[] = []
 
@@ -22,8 +33,9 @@ export async function GET() {
         END $$
       `)
       results.push('Tournament.bannerImageUrl: OK')
-    } catch (e: any) {
-      results.push(`Tournament.bannerImageUrl: ${e.message || 'error'}`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`Tournament.bannerImageUrl: ${msg}`)
     }
 
     // 2. Create TopupPack table if missing
@@ -48,8 +60,9 @@ export async function GET() {
         );
       `)
       results.push('TopupPack table: OK')
-    } catch (e: any) {
-      results.push(`TopupPack table: ${e.message || 'error'}`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`TopupPack table: ${msg}`)
     }
 
     // 3. Create indexes for TopupPack
@@ -60,13 +73,14 @@ export async function GET() {
         CREATE INDEX IF NOT EXISTS "TopupPack_sortOrder_idx" ON "TopupPack"("sortOrder");
       `)
       results.push('TopupPack indexes: OK')
-    } catch (e: any) {
-      results.push(`TopupPack indexes: ${e.message || 'error'}`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`TopupPack indexes: ${msg}`)
     }
 
     // 4. Seed top-up packs if table is empty
     try {
-      const countResult: any[] = await db.$queryRawUnsafe(`SELECT COUNT(*)::int as count FROM "TopupPack"`)
+      const countResult: { count: number }[] = await db.$queryRawUnsafe(`SELECT COUNT(*)::int as count FROM "TopupPack"`)
       const rowCount = countResult[0]?.count || 0
 
       if (rowCount === 0) {
@@ -100,13 +114,14 @@ export async function GET() {
       } else {
         results.push(`TopupPack already has ${rowCount} rows`)
       }
-    } catch (e: any) {
-      results.push(`Seed topup packs: ${e.message || 'error'}`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`Seed topup packs: ${msg}`)
     }
 
     return NextResponse.json({ success: true, results })
-  } catch (error: any) {
-    console.error('Setup error:', error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 })
   }
 }

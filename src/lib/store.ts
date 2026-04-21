@@ -28,14 +28,12 @@ export type ViewName =
 interface AppState {
   currentView: ViewName;
   viewParams: Record<string, string>;
-  sidebarCollapsed: boolean;
   rightPanelCollapsed: boolean;
   mobileMenuOpen: boolean;
   previousView: ViewName | null;
 
   navigate: (view: ViewName, params?: Record<string, string>) => void;
   goBack: () => void;
-  setSidebarCollapsed: (collapsed: boolean) => void;
   setRightPanelCollapsed: (collapsed: boolean) => void;
   setMobileMenuOpen: (open: boolean) => void;
 }
@@ -43,7 +41,6 @@ interface AppState {
 export const useAppStore = create<AppState>((set, get) => ({
   currentView: 'landing',
   viewParams: {},
-  sidebarCollapsed: false,
   rightPanelCollapsed: false,
   mobileMenuOpen: false,
   previousView: null,
@@ -69,7 +66,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   setRightPanelCollapsed: (collapsed) => set({ rightPanelCollapsed: collapsed }),
   setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
 }));

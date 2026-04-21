@@ -16,7 +16,6 @@ export async function GET() {
 
     return NextResponse.json({ affiliates: formatted })
   } catch (error) {
-    console.error('Get affiliates error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -56,7 +56,6 @@ export async function POST(
       const authError = error as { statusCode: number; message: string }
       return NextResponse.json({ error: authError.message }, { status: authError.statusCode })
     }
-    console.error('Admin verify registration error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

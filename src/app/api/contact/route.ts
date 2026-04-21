@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -9,13 +10,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name, email, and message are required' }, { status: 400 });
     }
 
-    // In production, this would send an email or save to database
-    // For now, we'll just log it and return success
-    console.log('Contact form submission:', { name, email, subject, message: message.substring(0, 100) });
+    // Save contact submission to database
+    await db.contactSubmission.create({
+      data: {
+        name,
+        email,
+        subject: subject || null,
+        message,
+      },
+    });
 
-    return NextResponse.json({ success: true, message: 'Message received' });
-  } catch (error) {
-    console.error('Contact form error:', error);
+    return NextResponse.json({ success: true, message: 'Message received. We will get back to you soon!' });
+  } catch {
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
   }
 }

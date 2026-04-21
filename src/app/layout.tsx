@@ -10,6 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://aetherarena.com"),
   title: {
     default: "Aether Arena — India's #1 Mobile Esports Tournament Platform",
     template: "%s | Aether Arena",

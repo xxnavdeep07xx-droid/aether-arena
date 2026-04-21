@@ -28,7 +28,6 @@ export async function GET() {
       liveStreams,
     })
   } catch (error) {
-    console.error('Get stats error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

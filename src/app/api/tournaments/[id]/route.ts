@@ -96,7 +96,6 @@ export async function GET(
       userRegistration,
     })
   } catch (error) {
-    console.error('Get tournament error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
