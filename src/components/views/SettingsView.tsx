@@ -43,6 +43,17 @@ function AppearanceSection() {
   useEffect(() => {
     const saved = localStorage.getItem('aa-theme') as Theme | null;
     if (saved) setTheme(saved);
+
+    // Listen for OS theme changes when set to "system"
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      const current = localStorage.getItem('aa-theme');
+      if (current === 'system') {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      }
+    };
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
   const applyTheme = (t: Theme) => {

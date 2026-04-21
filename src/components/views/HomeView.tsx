@@ -38,7 +38,20 @@ function StreamBannerSection() {
     return () => clearInterval(timer);
   }, [streams]);
 
-  if (!streams || streams.length === 0) return null;
+  if (!streams || streams.length === 0) {
+    return (
+      <div className="relative rounded-2xl overflow-hidden border border-dashed border-arena-border h-48 md:h-56 bg-arena-card/50">
+        <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/5 via-arena-purple/5 to-arena-dark" />
+        <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-arena-accent/10 flex items-center justify-center mb-3">
+            <Play className="w-6 h-6 text-arena-accent/50" />
+          </div>
+          <h2 className="text-lg font-semibold mb-1">No streams right now</h2>
+          <p className="text-xs text-arena-text-muted max-w-sm">Tune in later for live tournament broadcasts, gameplay streams, and community events.</p>
+        </div>
+      </div>
+    );
+  }
 
   const stream = streams[current];
 
@@ -111,7 +124,27 @@ function TopPlayersSection() {
     }),
   });
 
-  if (!entries || entries.length === 0) return null;
+  if (!entries || entries.length === 0) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Crown className="w-5 h-5 text-arena-gold" /> Top Players
+          </h2>
+          <button onClick={() => navigate('leaderboard')} className="text-arena-accent text-xs font-medium hover:underline flex items-center gap-1">
+            View All <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+        <div className="bg-arena-card/50 border border-dashed border-arena-border rounded-2xl p-6 text-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-arena-gold/10 flex items-center justify-center">
+            <Crown className="w-6 h-6 text-arena-gold/50" />
+          </div>
+          <p className="text-sm font-medium text-arena-text-secondary mb-1">No ranked players yet</p>
+          <p className="text-xs text-arena-text-muted">Be the first to compete and claim the top spot!</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -176,7 +209,24 @@ function AffiliateCarouselSection() {
     try { await fetch(`/api/affiliates/${affiliate.id}/click`, { method: 'POST' }); } catch {}
   };
 
-  if (!affiliates || affiliates.length === 0) return null;
+  if (!affiliates || affiliates.length === 0) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-arena-accent" /> Recommended Gear
+          </h2>
+        </div>
+        <div className="bg-arena-card/50 border border-dashed border-arena-border rounded-2xl p-6 text-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+            <Gamepad2 className="w-6 h-6 text-arena-accent/50" />
+          </div>
+          <p className="text-sm font-medium text-arena-text-secondary mb-1">No gear recommendations yet</p>
+          <p className="text-xs text-arena-text-muted">We are partnering with top gaming brands. Stay tuned for exclusive deals!</p>
+        </div>
+      </div>
+    );
+  }
 
   const visible = affiliates.slice(current, current + 3).concat(
     affiliates.length - current < 3 ? affiliates.slice(0, 3 - (affiliates.length - current)) : []
@@ -247,7 +297,27 @@ function TopupCarouselSection() {
   const prev = () => setCurrent(c => c <= 0 ? maxIndex : c - 1);
   const next = () => setCurrent(c => c >= maxIndex ? 0 : c + 1);
 
-  if (packs.length === 0) return null;
+  if (packs.length === 0) return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Zap className="w-5 h-5 text-arena-accent" />
+          <h2 className="text-lg font-bold">Quick Top Up</h2>
+          <span className="text-[10px] bg-arena-accent/15 text-arena-accent font-medium px-2 py-0.5 rounded-full">Codashop</span>
+        </div>
+        <button onClick={() => useAppStore.getState().navigate('topup')} className="text-xs text-arena-accent hover:text-arena-accent-light font-medium flex items-center gap-1 transition-colors duration-150">
+          View All <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="bg-arena-card/50 border border-dashed border-arena-border rounded-2xl p-5 text-center">
+        <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+          <Zap className="w-5 h-5 text-arena-accent/50" />
+        </div>
+        <p className="text-sm font-medium text-arena-text-secondary mb-1">Top-up packs coming soon</p>
+        <p className="text-xs text-arena-text-muted">Get game currency at the best prices. Stay tuned!</p>
+      </div>
+    </div>
+  );
   const visible = filtered.slice(current, current + itemsPerPage);
 
   return (

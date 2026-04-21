@@ -106,7 +106,6 @@ export default function Page() {
     { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tournaments' },
     { view: 'leaderboard' as ViewName, icon: BarChart3, label: 'Leaderboard' },
     { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
-    { view: 'topup' as ViewName, icon: Zap, label: 'Top Up' },
     { view: 'profile' as ViewName, icon: User, label: 'Profile' },
     ...(isAdmin ? [{ view: 'admin-dashboard' as ViewName, icon: Shield, label: 'Admin' }] : []),
   ];
@@ -162,10 +161,13 @@ export default function Page() {
               ))}
             </nav>
             <div className="flex flex-col gap-2 items-center">
-              <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200 relative">
+              <button onClick={() => navigate('topup')} aria-label="Top Up" title="Top Up" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
+                <Zap className="w-5 h-5" />
+              </button>
+              <button onClick={() => navigate('notifications')} aria-label="Notifications" title="Notifications" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200 relative">
                 <Bell className="w-5 h-5" />
               </button>
-              <button onClick={() => navigate('settings')} aria-label="Settings" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
+              <button onClick={() => navigate('settings')} aria-label="Settings" title="Settings" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
                 <Settings className="w-5 h-5" />
               </button>
               <button onClick={() => navigate('profile')} aria-label="Profile" className="w-9 h-9 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold border-2 border-arena-accent/50 overflow-hidden">
