@@ -23,23 +23,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install dependencies
-        run: cd mini-services/discord-bot && bun install
+        run: cd mini-services/discord-bot && npm install
 
-      - name: Generate Prisma Client
-        run: cd mini-services/discord-bot && npx prisma@6 generate
+      - name: Build
+        run: cd mini-services/discord-bot && npm run build
 
       - name: Start Discord Bot
-        run: cd mini-services/discord-bot && bun run start
+        run: cd mini-services/discord-bot && npm start
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
