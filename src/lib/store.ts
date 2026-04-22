@@ -23,7 +23,6 @@ export type ViewName =
   | 'terms-conditions'
   | 'refund-policy'
   | 'contact'
-  | 'topup'
   | 'settings'
   | 'aether'
   | 'aether-tasks'

@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Crown, ChevronRight, Swords, Star, CircleDot, Clock,
-  Gamepad2, Trophy, ShoppingBag, ExternalLink, Zap,
-  ChevronLeft, Play, Eye, Timer
+  Gamepad2, Trophy, ShoppingBag, ExternalLink,
+  Play, Eye, Timer
 } from 'lucide-react';
 import { cn, paiseToRupee, formatDate, getCountdown, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
 
@@ -16,7 +16,6 @@ export function HomeView() {
       <StreamBannerSection />
       <TopPlayersSection />
       <AffiliateCarouselSection />
-      <TopupCarouselSection />
       <HomeTournamentsSection />
     </div>
   );
@@ -268,124 +267,6 @@ function AffiliateCarouselSection() {
   );
 }
 
-// ==================== QUICK TOP UP CAROUSEL ====================
-
-function TopupCarouselSection() {
-  const [current, setCurrent] = useState(0);
-
-  const { data: packsData } = useQuery({
-    queryKey: ['topup-packs'],
-    queryFn: () => fetch('/api/topup-packs').then(r => r.json()).then(d => d.packs || []),
-    refetchInterval: 60000,
-  });
-
-  const packs = (packsData || []) as any[];
-  const filtered = packs;
-  const itemsPerPage = 3;
-  const maxIndex = Math.max(0, filtered.length - itemsPerPage);
-
-  useEffect(() => {
-    if (filtered.length <= itemsPerPage) return;
-    const timer = setInterval(() => setCurrent(c => {
-      const idx = Math.max(0, filtered.length - itemsPerPage);
-      return c >= idx ? 0 : c + 1;
-    }), 4000);
-    return () => clearInterval(timer);
-  }, [filtered, itemsPerPage]);
-
-  const prev = () => setCurrent(c => c <= 0 ? maxIndex : c - 1);
-  const next = () => setCurrent(c => c >= maxIndex ? 0 : c + 1);
-
-  if (packs.length === 0) return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-arena-accent" />
-          <h2 className="text-lg font-bold">Quick Top Up</h2>
-          <span className="text-[10px] bg-arena-accent/15 text-arena-accent font-medium px-2 py-0.5 rounded-full">Codashop</span>
-        </div>
-        <button onClick={() => useAppStore.getState().navigate('topup')} className="text-xs text-arena-accent hover:text-arena-accent-light font-medium flex items-center gap-1 transition-colors duration-150">
-          View All <ChevronRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-      <div className="bg-arena-card/50 border border-dashed border-arena-border rounded-2xl p-5 text-center">
-        <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-          <Zap className="w-5 h-5 text-arena-accent/50" />
-        </div>
-        <p className="text-sm font-medium text-arena-text-secondary mb-1">Top-up packs coming soon</p>
-        <p className="text-xs text-arena-text-muted">Get game currency at the best prices. Stay tuned!</p>
-      </div>
-    </div>
-  );
-  const visible = filtered.slice(current, current + itemsPerPage);
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-arena-accent" />
-          <h2 className="text-lg font-bold">Quick Top Up</h2>
-          <span className="text-[10px] bg-arena-accent/15 text-arena-accent font-medium px-2 py-0.5 rounded-full">Codashop</span>
-        </div>
-        <button onClick={() => useAppStore.getState().navigate('topup')} className="text-xs text-arena-accent hover:text-arena-accent-light font-medium flex items-center gap-1 transition-colors duration-150">
-          View All <ChevronRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-      <div className="relative">
-        {filtered.length > itemsPerPage && (
-          <>
-            <button onClick={prev} className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button onClick={next} className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {visible.map((pack: any) => (
-            <a key={pack.id} href={pack.affiliateUrl} target="_blank" rel="noopener noreferrer"
-              className="group relative bg-arena-surface border border-arena-border rounded-2xl p-4 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5 block overflow-hidden">
-              {pack.isPopular && (
-                <div className="absolute top-0 right-0 bg-arena-accent text-white text-[9px] font-bold px-2.5 py-0.5 rounded-bl-lg">🔥 POPULAR</div>
-              )}
-              <div className="flex items-center gap-2 mb-2.5">
-                <div className="w-9 h-9 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
-                  <Zap className="w-4 h-4 text-arena-accent" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-medium text-arena-text-muted">{pack.gameName}</div>
-                  <h3 className="font-semibold text-sm truncate group-hover:text-arena-accent transition-colors duration-150">{pack.packName}</h3>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 text-arena-text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 ml-auto" />
-              </div>
-              {pack.description && (
-                <p className="text-[11px] text-arena-text-muted mb-3 line-clamp-1">{pack.description}</p>
-              )}
-              <div className="flex items-center justify-between pt-2 border-t border-arena-border">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-base font-bold text-white">{paiseToRupee(pack.price)}</span>
-                  {pack.originalPrice > pack.price && (
-                    <span className="text-[11px] text-arena-text-muted line-through">{paiseToRupee(pack.originalPrice)}</span>
-                  )}
-                </div>
-                <span className="text-[10px] font-semibold px-3 py-1.5 rounded-lg bg-arena-accent text-white group-hover:bg-arena-accent-light transition-all duration-200">Buy Now</span>
-              </div>
-            </a>
-          ))}
-        </div>
-        {filtered.length > itemsPerPage && (
-          <div className="flex justify-center gap-1.5 mt-3">
-            {Array.from({ length: maxIndex + 1 }).map((_, i) => (
-              <button key={i} onClick={() => setCurrent(i)}
-                className={cn('w-1.5 h-1.5 rounded-full transition-all', i === current ? 'w-4 bg-arena-accent' : 'bg-arena-text-muted/40 hover:bg-arena-text-muted')} />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function HomeTournamentsSection() {
   const { navigate } = useAppStore();

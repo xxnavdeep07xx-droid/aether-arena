@@ -84,43 +84,6 @@ export async function GET(request: Request) {
       results.push(`Tournament columns: ${msg}`)
     }
 
-    // ── TopupPack table ─────────────────────────────────────────
-    try {
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "TopupPack" (
-          "id" TEXT NOT NULL,
-          "gameName" TEXT NOT NULL,
-          "gameSlug" TEXT NOT NULL,
-          "packName" TEXT NOT NULL,
-          "description" TEXT NOT NULL DEFAULT '',
-          "price" INTEGER NOT NULL DEFAULT 0,
-          "originalPrice" INTEGER NOT NULL DEFAULT 0,
-          "imageUrl" TEXT NOT NULL DEFAULT '',
-          "affiliateUrl" TEXT NOT NULL DEFAULT '',
-          "isPopular" BOOLEAN NOT NULL DEFAULT false,
-          "isActive" BOOLEAN NOT NULL DEFAULT true,
-          "sortOrder" INTEGER NOT NULL DEFAULT 0,
-          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT "TopupPack_pkey" PRIMARY KEY ("id")
-        )
-      `)
-      results.push('TopupPack table: OK')
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'error'
-      results.push(`TopupPack table: ${msg}`)
-    }
-
-    // ── TopupPack indexes (one statement per call for PgBouncer) ─
-    try {
-      await safeCreateIndex('TopupPack', 'gameSlug')
-      await safeCreateIndex('TopupPack', 'isActive')
-      await safeCreateIndex('TopupPack', 'sortOrder')
-      results.push('TopupPack indexes: OK')
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'error'
-      results.push(`TopupPack indexes: ${msg}`)
-    }
-
     // ── AccountCredential table ─────────────────────────────────
     try {
       await db.$executeRawUnsafe(`
@@ -622,7 +585,6 @@ export async function DELETE(request: Request) {
       'Match',
       'TournamentRegistration',
       'Tournament',
-      'TopupPack',
       'StreamSchedule',
       'AffiliateLink',
       'PlatformSetting',
@@ -635,6 +597,7 @@ export async function DELETE(request: Request) {
       'AetherBalance',
       'UserStreak',
       'AetherTask',
+      'TopupPack',
     ]
 
     for (const table of dataTables) {

@@ -95,8 +95,6 @@ export function AdminDashboardView() {
           { label: 'Manage Streams', icon: Tv, view: 'admin-streams' as ViewName },
           { label: 'Manage Affiliates', icon: Link2, view: 'admin-affiliates' as ViewName },
           { label: 'Top Up Packs', icon: Zap, view: 'admin-topup' as ViewName },
-          { label: 'Redemptions', icon: Wallet, view: 'admin-redemptions' as ViewName },
-          { label: 'Manage Aether', icon: Wallet, view: 'admin-aether-manage' as ViewName },
           { label: 'Analytics', icon: BarChart3, view: 'admin-analytics' as ViewName },
           { label: 'Platform Settings', icon: Settings, view: 'admin-settings' as ViewName },
         ].map(action => (

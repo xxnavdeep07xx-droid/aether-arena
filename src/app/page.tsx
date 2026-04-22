@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn } from '@/lib/utils';
+import { AETHER_SYMBOL } from '@/lib/aether';
 
 // View imports
 import { LandingSkeleton, HomeSkeleton, TournamentsSkeleton, LeaderboardSkeleton, StreamsSkeleton, ProfileSkeleton, NotificationsSkeleton } from '@/components/views/Skeletons';
@@ -22,7 +23,6 @@ import { LeaderboardView } from '@/components/views/LeaderboardView';
 import { StreamsView } from '@/components/views/StreamsView';
 import { ProfileView } from '@/components/views/ProfileView';
 import { NotificationsView } from '@/components/views/NotificationsView';
-import { TopupFullView } from '@/components/views/TopupView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { AetherView, AetherTasks, AetherRedeem, AetherHistory } from '@/components/views/EarnAetherView';
 import {
@@ -126,7 +126,6 @@ function ViewRenderer() {
     'terms-conditions': <TermsConditionsView />,
     'refund-policy': <RefundPolicyView />,
     'contact': <ContactView />,
-    'topup': <TopupFullView />,
     'settings': <SettingsView />,
   };
 
@@ -141,9 +140,21 @@ function ViewRenderer() {
 
 export default function Page() {
   const { currentView, navigate, mobileMenuOpen, setMobileMenuOpen, rightPanelCollapsed, setRightPanelCollapsed } = useAppStore();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout, aetherBalance, setAetherBalance } = useAuthStore();
   const isLanding = currentView === 'landing';
   const isAdmin = user?.isAdmin;
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  // Fetch aether balance for header display
+  useQuery({
+    queryKey: ['aether-balance-header'],
+    queryFn: () => fetch('/api/aether/balance').then(r => r.json()).then(d => {
+      if (d.balance !== undefined) setAetherBalance(d.balance);
+      return d;
+    }),
+    enabled: isAuthenticated && aetherBalance === null,
+    refetchInterval: 60000,
+  });
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -164,14 +175,11 @@ export default function Page() {
 
   // Mobile hamburger menu items — excludes bottom nav items
   const mobileMenuItems = [
-    { view: 'topup' as ViewName, icon: Zap, label: 'Top Up' },
     { view: 'notifications' as ViewName, icon: Bell, label: 'Notifications' },
     { view: 'settings' as ViewName, icon: Settings, label: 'Settings' },
     { view: 'aether' as ViewName, icon: Wallet, label: 'Aether' },
     { view: 'contact' as ViewName, icon: Mail, label: 'Contact Us' },
     ...(isAdmin ? [
-      { view: 'admin-redemptions' as ViewName, icon: Wallet, label: 'Redemptions' },
-      { view: 'admin-aether-manage' as ViewName, icon: Wallet, label: 'Manage Aether' },
       { view: 'admin-dashboard' as ViewName, icon: Shield, label: 'Admin Panel' },
     ] : []),
   ];
@@ -183,7 +191,7 @@ export default function Page() {
   ];
 
   // Views that show the main top bar (with hamburger on mobile)
-  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications', 'settings', 'admin-dashboard', 'contact', 'aether'];
+  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'profile', 'notifications', 'settings', 'admin-dashboard', 'contact', 'aether'];
 
   // Views where the search bar is useful and functional
   const searchableViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams'];
@@ -239,9 +247,6 @@ export default function Page() {
               ))}
             </nav>
             <div className="flex flex-col gap-2 items-center">
-              <button onClick={() => navigate('topup')} aria-label="Top Up" title="Top Up" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
-                <Zap className="w-5 h-5" />
-              </button>
               <button onClick={() => navigate('notifications')} aria-label="Notifications" title="Notifications" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
                 <BellWithBadge />
               </button>
@@ -334,21 +339,35 @@ export default function Page() {
                     <h1 className="text-base font-semibold truncate">{currentSection.title}</h1>
                   </div>
                 ) : searchableViews.includes(currentView) ? (
-                  <div className="relative flex-1 max-w-md">
-                    <SearchBarInput />
+                  <div className={cn(
+                    'relative transition-all duration-300 ease-in-out',
+                    searchFocused ? 'flex-1 max-w-full' : 'flex-1 max-w-md'
+                  )}>
+                    <SearchBarInput onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} />
                   </div>
                 ) : null}
-                {/* Right icons */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200">
-                    <BellWithBadgeSm />
-                  </button>
-                  <button onClick={() => navigate('profile')} className="w-9 h-9 rounded-xl overflow-hidden border-2 border-arena-accent/50 hover:border-arena-accent transition-colors duration-150 cursor-pointer">
-                    {user?.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (
-                      <div className="w-full h-full bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-xs font-bold">{(user?.username || '?')[0].toUpperCase()}</div>
-                    )}
-                  </button>
-                </div>
+                {/* Aether Balance in header - for authenticated users on main views (always visible) */}
+                {isAuthenticated && !searchFocused && (
+                  <a onClick={(e) => { e.preventDefault(); navigate('aether'); }}
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-arena-card border border-arena-border hover:border-arena-accent/30 transition-all duration-200 flex-shrink-0 cursor-pointer">
+                    <AetherIcon size="sm" animated />
+                    <span className="text-sm font-bold text-arena-accent">{aetherBalance ?? '...'}</span>
+                    <span className="hidden sm:inline text-xs text-arena-text-muted">{AETHER_SYMBOL}</span>
+                  </a>
+                )}
+                {/* Right icons (hidden when search is focused) */}
+                {!searchFocused && (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200">
+                      <BellWithBadgeSm />
+                    </button>
+                    <button onClick={() => navigate('profile')} className="w-9 h-9 rounded-xl overflow-hidden border-2 border-arena-accent/50 hover:border-arena-accent transition-colors duration-150 cursor-pointer">
+                      {user?.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (
+                        <div className="w-full h-full bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-xs font-bold">{(user?.username || '?')[0].toUpperCase()}</div>
+                      )}
+                    </button>
+                  </div>
+                )}
               </header>
             )}
             {/* Minimal header for sub-views — back arrow + title */}

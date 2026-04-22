@@ -3,7 +3,7 @@
 import { useAppStore, useAuthStore } from '@/lib/store';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Pencil, Trophy, Crown, Target, Coins, LogOut } from 'lucide-react';
+import { Pencil, Trophy, Crown, Target, Coins, LogOut, Wallet, ChevronRight } from 'lucide-react';
 import { cn, paiseToRupee, formatDate, LEAGUE_CONFIG } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ProfileSkeleton } from './Skeletons';
@@ -176,6 +176,23 @@ export function ProfileView() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Redemptions Admin Card (only for admin, own profile) */}
+      {!viewingOtherUser && user?.isAdmin && (
+        <button
+          onClick={() => navigate('admin-redemptions')}
+          className="w-full bg-arena-card border border-arena-border rounded-2xl p-5 mb-6 flex items-center gap-4 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer"
+        >
+          <div className="w-11 h-11 rounded-xl bg-green-500/15 flex items-center justify-center flex-shrink-0">
+            <Wallet className="w-5 h-5 text-green-400" />
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <div className="font-semibold text-sm">Redemptions</div>
+            <div className="text-xs text-arena-text-muted">Manage and process Aether redemption requests</div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-arena-text-muted flex-shrink-0" />
+        </button>
       )}
 
       {/* Logout (only for own profile) */}

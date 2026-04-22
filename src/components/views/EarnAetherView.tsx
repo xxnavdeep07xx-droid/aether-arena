@@ -9,7 +9,7 @@ import {
   Flame, Gift, ExternalLink, CheckCircle2, Clock,
   Copy, Share2, ChevronRight, Loader2, AlertCircle,
   Wallet, History, Zap, Trophy, Star, Gamepad2,
-  Users, ArrowRight
+  Users, ArrowRight, Shield
 } from 'lucide-react';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import {
@@ -50,6 +50,7 @@ function FloatingAether({ amount, key }: { amount: number; key: number }) {
 
 function AetherOverview() {
   const { navigate } = useAppStore();
+  const { user } = useAuthStore();
 
   const { data: balanceData } = useQuery({
     queryKey: ['aether-balance-overview'],
@@ -78,6 +79,15 @@ function AetherOverview() {
   };
 
   const subsections = [
+    ...(user?.isAdmin ? [{
+      view: 'admin-aether-manage' as ViewName,
+      icon: Shield,
+      title: 'Manage Aether',
+      description: 'Admin panel to manage Aether currency, tasks and rewards',
+      color: 'from-red-500/20 to-orange-500/20',
+      borderColor: 'border-red-500/20',
+      iconColor: 'text-red-400',
+    }] : []),
     {
       view: 'aether-tasks' as ViewName,
       icon: Zap,
