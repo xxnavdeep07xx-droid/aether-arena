@@ -7,8 +7,9 @@ import {
   Trophy, Zap, Shield, ChevronRight,
   Tv, BarChart3, User, Home, LogOut,
   Bell, Menu, X, Search, Settings, FileText,
-  ShieldCheck, Mail, HelpCircle, Diamond, Wallet
+  ShieldCheck, Mail, HelpCircle, Wallet
 } from 'lucide-react';
+import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn } from '@/lib/utils';
 
 // View imports
@@ -156,7 +157,7 @@ export default function Page() {
     { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tournaments' },
     { view: 'leaderboard' as ViewName, icon: BarChart3, label: 'Leaderboard' },
     { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
-    { view: 'aether' as ViewName, icon: Diamond, label: 'Aether' },
+    { view: 'aether' as ViewName, icon: Wallet, label: 'Aether' },
     { view: 'profile' as ViewName, icon: User, label: 'Profile' },
     ...(isAdmin ? [{ view: 'admin-dashboard' as ViewName, icon: Shield, label: 'Admin' }] : []),
   ];
@@ -166,11 +167,11 @@ export default function Page() {
     { view: 'topup' as ViewName, icon: Zap, label: 'Top Up' },
     { view: 'notifications' as ViewName, icon: Bell, label: 'Notifications' },
     { view: 'settings' as ViewName, icon: Settings, label: 'Settings' },
-    { view: 'aether' as ViewName, icon: Diamond, label: 'Aether' },
+    { view: 'aether' as ViewName, icon: Wallet, label: 'Aether' },
     { view: 'contact' as ViewName, icon: Mail, label: 'Contact Us' },
     ...(isAdmin ? [
       { view: 'admin-redemptions' as ViewName, icon: Wallet, label: 'Redemptions' },
-      { view: 'admin-aether-manage' as ViewName, icon: Diamond, label: 'Manage Aether' },
+      { view: 'admin-aether-manage' as ViewName, icon: Wallet, label: 'Manage Aether' },
       { view: 'admin-dashboard' as ViewName, icon: Shield, label: 'Admin Panel' },
     ] : []),
   ];
@@ -191,7 +192,7 @@ export default function Page() {
   const sectionTitles: Record<string, { title: string; icon: typeof Shield }> = {
     'admin-dashboard': { title: 'Admin Panel', icon: Shield },
     'contact': { title: 'Contact Us', icon: Mail },
-    'aether': { title: 'Aether', icon: Diamond },
+    'aether': { title: 'Aether', icon: Wallet },
   };
 
   const currentSection = sectionTitles[currentView];
@@ -233,7 +234,7 @@ export default function Page() {
                   className={cn('w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 relative group',
                     currentView === item.view ? 'bg-arena-accent text-white shadow-lg shadow-arena-accent/25' : 'text-arena-text-secondary hover:bg-arena-card hover:text-white')}>
                   {currentView === item.view && <div className="absolute left-[-14px] w-[3px] h-5 bg-arena-accent rounded-r" />}
-                  <item.icon className="w-5 h-5" />
+                  {item.view === 'aether' ? <AetherIcon size="md" /> : <item.icon className="w-5 h-5" />}
                 </button>
               ))}
             </nav>
@@ -287,7 +288,7 @@ export default function Page() {
                     <button key={item.view} onClick={() => navigate(item.view)}
                       className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
                         currentView === item.view ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:bg-arena-card hover:text-white')}>
-                      <item.icon className="w-5 h-5" />
+                      {item.view === 'aether' ? <AetherIcon size="md" /> : <item.icon className="w-5 h-5" />}
                       {item.label}
                     </button>
                   ))}
@@ -329,7 +330,7 @@ export default function Page() {
                 {/* Section title or search bar */}
                 {currentSection ? (
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <currentSection.icon className="w-5 h-5 text-arena-accent flex-shrink-0" />
+                    {currentView === 'aether' ? <AetherIcon size="md" /> : <currentSection.icon className="w-5 h-5 text-arena-accent flex-shrink-0" />}
                     <h1 className="text-base font-semibold truncate">{currentSection.title}</h1>
                   </div>
                 ) : searchableViews.includes(currentView) ? (

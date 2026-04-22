@@ -9,8 +9,9 @@ import {
   Flame, Gift, ExternalLink, CheckCircle2, Clock,
   Copy, Share2, ChevronRight, Loader2, AlertCircle,
   Wallet, History, Zap, Trophy, Star, Gamepad2,
-  Users, ArrowRight, Diamond
+  Users, ArrowRight
 } from 'lucide-react';
+import { AetherIcon } from '@/components/ui/aether-icon';
 import {
   AETHER_SYMBOL, AETHER_NAME, REDEEM_MINIMUM, CONVERSION_RATE,
   formatAether, aetherToInr, getNextStreakMilestone
@@ -114,7 +115,7 @@ function AetherOverview() {
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-arena-purple/5 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="relative">
           <div className="flex items-center gap-2 mb-2">
-            <Diamond className="w-5 h-5 text-arena-accent animate-glow-pulse" />
+            <AetherIcon size="md" className="animate-glow-pulse" />
             <span className="text-xs font-medium text-arena-accent uppercase tracking-wider">{AETHER_NAME} Balance</span>
           </div>
           <div className="flex items-baseline gap-2 mb-4">
@@ -651,7 +652,7 @@ export function AetherView() {
     return (
       <div className="text-center py-20">
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-arena-accent/10 flex items-center justify-center">
-          <Diamond className="w-8 h-8 text-arena-accent" />
+          <AetherIcon size="xl" />
         </div>
         <h2 className="text-lg font-bold mb-2">{AETHER_NAME}</h2>
         <p className="text-sm text-arena-text-muted">Sign in to start earning {AETHER_NAME}!</p>
@@ -663,7 +664,7 @@ export function AetherView() {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-          <Diamond className="w-5 h-5 text-arena-accent" />
+          <AetherIcon size="md" />
         </div>
         <div>
           <h1 className="text-xl font-bold">{AETHER_NAME}</h1>

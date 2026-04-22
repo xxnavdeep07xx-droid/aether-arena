@@ -3,8 +3,9 @@
 import { useAppStore, ViewName } from '@/lib/store';
 import {
   ArrowLeft, Trophy, Shield, Plus, CheckCircle2, Gamepad2,
-  Tv, Link2, Zap, BarChart3, Settings, Diamond, Wallet, History
+  Tv, Link2, Zap, BarChart3, Settings, Wallet, History
 } from 'lucide-react';
+import { AetherIcon } from '@/components/ui/aether-icon';
 
 export function SubViewHeader({ currentView }: { currentView: ViewName }) {
   const { navigate, goBack, previousView } = useAppStore();
@@ -22,7 +23,7 @@ export function SubViewHeader({ currentView }: { currentView: ViewName }) {
     'admin-analytics': { title: 'Analytics', back: 'admin-dashboard', icon: BarChart3 },
     'admin-settings': { title: 'Platform Settings', back: 'admin-dashboard', icon: Settings },
     'admin-redemptions': { title: 'Redemptions', back: 'admin-dashboard', icon: Wallet },
-    'admin-aether-manage': { title: 'Manage Aether', back: 'admin-dashboard', icon: Diamond },
+    'admin-aether-manage': { title: 'Manage Aether', back: 'admin-dashboard', icon: Wallet },
     'aether-tasks': { title: 'Tasks', back: 'aether', icon: Zap },
     'aether-redeem': { title: 'Redeem', back: 'aether', icon: Wallet },
     'aether-history': { title: 'History', back: 'aether', icon: History },

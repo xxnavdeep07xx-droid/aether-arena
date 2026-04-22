@@ -7,8 +7,9 @@ import {
   Users, Trophy, Clock, DollarSign, CheckCircle2, XCircle, Plus,
   Eye, Trash2, Gamepad2, Pencil, X, Tv, ExternalLink, Link2,
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
-  ChevronRight, AlertTriangle, Diamond, Wallet, Loader2
+  ChevronRight, AlertTriangle, Wallet, Loader2
 } from 'lucide-react';
+import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime, timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -95,7 +96,7 @@ export function AdminDashboardView() {
           { label: 'Manage Affiliates', icon: Link2, view: 'admin-affiliates' as ViewName },
           { label: 'Top Up Packs', icon: Zap, view: 'admin-topup' as ViewName },
           { label: 'Redemptions', icon: Wallet, view: 'admin-redemptions' as ViewName },
-          { label: 'Manage Aether', icon: Diamond, view: 'admin-aether-manage' as ViewName },
+          { label: 'Manage Aether', icon: Wallet, view: 'admin-aether-manage' as ViewName },
           { label: 'Analytics', icon: BarChart3, view: 'admin-analytics' as ViewName },
           { label: 'Platform Settings', icon: Settings, view: 'admin-settings' as ViewName },
         ].map(action => (
@@ -1309,7 +1310,7 @@ export function AdminAetherManageView() {
       {/* Adjust User Balance */}
       <div className="bg-arena-card border border-arena-border rounded-2xl p-6">
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <Diamond className="w-5 h-5 text-arena-accent" /> Adjust User Balance
+          <AetherIcon size="md" /> Adjust User Balance
         </h2>
         <div className="space-y-4">
           <div>

@@ -2,7 +2,8 @@
 
 import { useAppStore, useAuthStore, ViewName } from '@/lib/store';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, BarChart3, Tv, Diamond } from 'lucide-react';
+import { Trophy, BarChart3, Tv } from 'lucide-react';
+import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn, LEAGUE_CONFIG } from '@/lib/utils';
 import { AETHER_SYMBOL } from '@/lib/aether';
 
@@ -22,7 +23,7 @@ function AetherBalanceCard() {
     <div>
       <div className="flex items-center gap-2 mb-3">
         <span className="relative animate-glow-pulse">
-          <Diamond className="w-5 h-5 text-arena-accent" />
+          <AetherIcon size="md" className="animate-glow-pulse" />
         </span>
         <span className="text-2xl font-bold text-arena-accent">{balance} <span className="text-lg">{AETHER_SYMBOL}</span></span>
       </div>
