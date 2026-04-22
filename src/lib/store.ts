@@ -79,8 +79,10 @@ interface AuthState {
     displayName: string | null;
     avatarUrl: string | null;
     isAdmin: boolean;
+    isBanned: boolean;
     league: string;
     leaguePoints: number;
+    totalWins: number;
   } | null;
   isAuthenticated: boolean;
   isLoading: boolean;

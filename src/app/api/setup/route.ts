@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// Database setup endpoint — creates missing tables/columns and seeds data.
+// Database setup endpoint — creates missing tables/columns.
+// DELETE handler clears all seed/demo data from tables.
 // Protected by SETUP_SECRET to prevent unauthorized access.
 // This is needed because prisma db push cannot be run from Vercel.
 // All SQL is PgBouncer-safe: single statements only, no multi-command strings.
@@ -200,38 +201,48 @@ export async function GET(request: Request) {
       results.push(`ContactSubmission indexes: ${msg}`)
     }
 
-    // ── Seed top-up packs if table is empty ─────────────────────
-    try {
-      const countResult: { count: number }[] = await db.$queryRawUnsafe(`SELECT COUNT(*)::int as count FROM "TopupPack"`)
-      const rowCount = countResult[0]?.count || 0
+    return NextResponse.json({ success: true, results })
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 })
+  }
+}
 
-      if (rowCount === 0) {
-        const packs = [
-          { id: 'tp_bgmi_uc60', gameName: 'BGMI', gameSlug: 'bgmi', packName: '60 UC', description: '60 Unknown Cash for in-game purchases', price: 75, originalPrice: 80, affiliateUrl: 'https://www.codashop.com/in/bgmi', isPopular: false, sortOrder: 1 },
-          { id: 'tp_bgmi_uc325', gameName: 'BGMI', gameSlug: 'bgmi', packName: '325 UC', description: '325 Unknown Cash — most popular top-up', price: 400, originalPrice: 430, affiliateUrl: 'https://www.codashop.com/in/bgmi', isPopular: true, sortOrder: 2 },
-          { id: 'tp_bgmi_uc660', gameName: 'BGMI', gameSlug: 'bgmi', packName: '660 UC', description: '660 Unknown Cash for premium items', price: 800, originalPrice: 850, affiliateUrl: 'https://www.codashop.com/in/bgmi', isPopular: true, sortOrder: 3 },
-          { id: 'tp_ff_100d', gameName: 'Free Fire', gameSlug: 'free-fire', packName: '100 Diamonds', description: '100 Diamonds for skins and characters', price: 80, originalPrice: 90, affiliateUrl: 'https://www.codashop.com/in/freefire', isPopular: false, sortOrder: 4 },
-          { id: 'tp_ff_310d', gameName: 'Free Fire', gameSlug: 'free-fire', packName: '310 Diamonds', description: '310 Diamonds — best value pack', price: 240, originalPrice: 260, affiliateUrl: 'https://www.codashop.com/in/freefire', isPopular: true, sortOrder: 5 },
-          { id: 'tp_ff_520d', gameName: 'Free Fire', gameSlug: 'free-fire', packName: '520 Diamonds', description: '520 Diamonds for elite pass and bundles', price: 400, originalPrice: 430, affiliateUrl: 'https://www.codashop.com/in/freefire', isPopular: true, sortOrder: 6 },
-          { id: 'tp_codm_80cp', gameName: 'COD Mobile', gameSlug: 'cod-mobile', packName: '80 CP', description: '80 COD Points for battle pass tiers', price: 75, originalPrice: 80, affiliateUrl: 'https://www.codashop.com/in/call-of-duty-mobile', isPopular: false, sortOrder: 7 },
-          { id: 'tp_codm_400cp', gameName: 'COD Mobile', gameSlug: 'cod-mobile', packName: '400 CP', description: '400 COD Points — premium weapon skins', price: 380, originalPrice: 400, affiliateUrl: 'https://www.codashop.com/in/call-of-duty-mobile', isPopular: true, sortOrder: 8 },
-          { id: 'tp_cr_80g', gameName: 'Clash Royale', gameSlug: 'clash-royale', packName: '80 Gems', description: '80 Gems for chests and challenges', price: 75, originalPrice: 80, affiliateUrl: 'https://www.codashop.com/in/clash-royale', isPopular: false, sortOrder: 9 },
-          { id: 'tp_cr_500g', gameName: 'Clash Royale', gameSlug: 'clash-royale', packName: '500 Gems', description: '500 Gems — unlock legendary chest', price: 450, originalPrice: 500, affiliateUrl: 'https://www.codashop.com/in/clash-royale', isPopular: true, sortOrder: 10 },
-        ]
+// DELETE /api/setup — Clear all seed/demo data from data tables (keeps schema + users)
+export async function DELETE(request: Request) {
+  if (SETUP_SECRET) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${SETUP_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
 
-        for (const pack of packs) {
-          await db.$executeRawUnsafe(
-            `INSERT INTO "TopupPack" ("id","gameName","gameSlug","packName","description","price","originalPrice","imageUrl","affiliateUrl","isPopular","isActive","sortOrder") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT ("id") DO NOTHING`,
-            pack.id, pack.gameName, pack.gameSlug, pack.packName, pack.description, pack.price, pack.originalPrice, '', pack.affiliateUrl, pack.isPopular, true, pack.sortOrder
-          )
-        }
-        results.push(`Seeded ${packs.length} top-up packs`)
-      } else {
-        results.push(`TopupPack already has ${rowCount} rows`)
+  try {
+    const results: string[] = []
+
+    // Clear all non-user data tables in dependency order
+    const tables = [
+      'Notification',
+      'Registration',
+      'Tournament',
+      'TopupPack',
+      'StreamSchedule',
+      'PlatformSetting',
+      'ContactSubmission',
+    ]
+
+    for (const table of tables) {
+      try {
+        const res: { count: number }[] = await db.$queryRawUnsafe(
+          `SELECT COUNT(*)::int as count FROM "${table}"`
+        )
+        const before = res[0]?.count || 0
+        await db.$executeRawUnsafe(`DELETE FROM "${table}"`)
+        results.push(`${table}: deleted ${before} rows`)
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'unknown'
+        results.push(`${table}: skipped (${msg})`)
       }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'error'
-      results.push(`Seed topup packs: ${msg}`)
     }
 
     return NextResponse.json({ success: true, results })

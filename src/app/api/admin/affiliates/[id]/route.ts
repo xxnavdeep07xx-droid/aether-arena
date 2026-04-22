@@ -16,17 +16,17 @@ export async function PUT(
       return NextResponse.json({ error: 'Affiliate not found' }, { status: 404 })
     }
 
-    // Convert price from rupees to paise if provided as number
-    if (body.price !== undefined && typeof body.price === 'number' && !Number.isInteger(body.price)) {
-      body.price = Math.round(body.price * 100)
-    }
-    if (body.originalPrice !== undefined && typeof body.originalPrice === 'number' && !Number.isInteger(body.originalPrice)) {
-      body.originalPrice = Math.round(body.originalPrice * 100)
+    const ALLOWED_FIELDS = ['name', 'slug', 'url', 'imageUrl', 'description', 'category', 'platform', 'price', 'originalPrice', 'isActive'] as const;
+    const updateData: Record<string, unknown> = {};
+    for (const key of ALLOWED_FIELDS) {
+      if (body[key] !== undefined) {
+        updateData[key] = body[key];
+      }
     }
 
     const affiliate = await db.affiliateLink.update({
       where: { id },
-      data: body,
+      data: updateData,
     })
 
     return NextResponse.json({ affiliate })

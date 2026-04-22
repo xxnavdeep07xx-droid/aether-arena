@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -43,7 +44,19 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await requireAdmin(request)
     const body = await request.json()
+
+    if (!body.gameName || !body.gameSlug || !body.packName) {
+      return NextResponse.json({ error: 'gameName, gameSlug, and packName are required' }, { status: 400 })
+    }
+
+    if (body.price !== undefined && typeof body.price === 'number') {
+      if (body.price < 0) {
+        return NextResponse.json({ error: 'Price must be non-negative' }, { status: 400 })
+      }
+    }
+
     const pack = await db.topupPack.create({
       data: {
         gameName: body.gameName,
@@ -60,7 +73,11 @@ export async function POST(request: Request) {
       },
     })
     return NextResponse.json({ pack })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      const authError = error as { statusCode: number; message: string }
+      return NextResponse.json({ error: authError.message }, { status: authError.statusCode })
+    }
     return NextResponse.json({ error: 'Failed to create pack' }, { status: 500 })
   }
 }

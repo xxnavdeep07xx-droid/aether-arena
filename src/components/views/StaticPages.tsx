@@ -13,7 +13,7 @@ function LegalPageWrapper({ title, children }: { title: string; children: React.
       <div className="bg-arena-card border border-arena-border rounded-2xl p-6 md:p-8 prose-sm text-arena-text-secondary leading-relaxed space-y-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-arena-text-primary [&_h2]:mt-8 [&_h2]:mb-3 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-arena-text-primary [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:text-sm [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1.5 [&_li]:text-sm [&_strong]:text-arena-text-primary [&_strong]:font-medium [&_a]:text-arena-accent [&_a]:hover:underline">
         {children}
       </div>
-      <p className="text-xs text-arena-text-muted mt-4 text-center">Last updated: {new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <p className="text-xs text-arena-text-muted mt-4 text-center">Last updated: April 2025</p>
     </div>
   );
 }
@@ -292,18 +292,30 @@ export function ContactView() {
 
       <div className="grid md:grid-cols-3 gap-6 mb-8">
         {[
-          { icon: MessageSquare, title: 'Discord', desc: 'Join our Discord server for instant support', value: 'Join Server', color: 'text-[#5865F2]', bg: 'bg-[#5865F2]/10' },
+          { icon: MessageSquare, title: 'Discord', desc: 'Join our Discord server for instant support', value: 'Join Server', color: 'text-[#5865F2]', bg: 'bg-[#5865F2]/10', href: 'https://discord.gg/aetherarena' },
           { icon: Mail, title: 'Email', desc: 'For business inquiries only', value: 'support@aetherarena.com', color: 'text-arena-accent', bg: 'bg-arena-accent/10' },
           { icon: Clock, title: 'Response Time', desc: 'We typically reply within', value: '24-48 hours', color: 'text-arena-warning', bg: 'bg-arena-warning/10' },
         ].map(item => (
-          <div key={item.title} className="bg-arena-card border border-arena-border rounded-xl p-4 text-center">
-            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3', item.bg)}>
-              <item.icon className={cn('w-5 h-5', item.color)} />
+          (item as any).href ? (
+            <a key={item.title} href={(item as any).href} target="_blank" rel="noopener noreferrer"
+              className="bg-arena-card border border-arena-border rounded-xl p-4 text-center hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3', item.bg)}>
+                <item.icon className={cn('w-5 h-5', item.color)} />
+              </div>
+              <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
+              <p className="text-xs text-arena-text-muted mb-2">{item.desc}</p>
+              <p className={cn('text-xs font-medium', item.color)}>{item.value}</p>
+            </a>
+          ) : (
+            <div key={item.title} className="bg-arena-card border border-arena-border rounded-xl p-4 text-center">
+              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3', item.bg)}>
+                <item.icon className={cn('w-5 h-5', item.color)} />
+              </div>
+              <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
+              <p className="text-xs text-arena-text-muted mb-2">{item.desc}</p>
+              <p className={cn('text-xs font-medium', item.color)}>{item.value}</p>
             </div>
-            <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
-            <p className="text-xs text-arena-text-muted mb-2">{item.desc}</p>
-            <p className={cn('text-xs font-medium', item.color)}>{item.value}</p>
-          </div>
+          )
         ))}
       </div>
 

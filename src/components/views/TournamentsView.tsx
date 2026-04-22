@@ -36,7 +36,10 @@ export function TournamentsView() {
 
   const activeFilterCount = [filters.game, filters.status, filters.format, filters.fee].filter(Boolean).length;
 
-  const clearFilters = () => setFilters({ game: '', status: '', format: '', fee: '' });
+  const clearFilters = () => {
+    setFilters({ game: '', status: '', format: '', fee: '' });
+    useSearchStore.getState().setQuery('');
+  };
 
   const { data: tournaments, isLoading } = useQuery({
     queryKey: ['tournaments', filters, searchQuery],

@@ -157,6 +157,7 @@ export function AdminTournamentsView() {
               <div className="text-xs text-arena-text-muted">{t.game?.name} • {paiseToRupee(t.entryFee)} • {t.registeredPlayers}/{t.maxPlayers} players</div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+              <button onClick={() => navigate('admin-tournament-create', { id: t.id })} aria-label="Edit tournament" className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150"><Pencil className="w-4 h-4 text-arena-text-muted" /></button>
               <button onClick={() => navigate('tournament-detail', { id: t.id })} aria-label="View tournament" className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150"><Eye className="w-4 h-4 text-arena-text-muted" /></button>
               <button onClick={() => confirm('Delete Tournament', 'Are you sure you want to delete this tournament? This action cannot be undone.', () => deleteTournament(t.id))} aria-label="Delete tournament" className="p-1.5 rounded-lg hover:bg-arena-accent/10 transition-colors duration-150"><Trash2 className="w-4 h-4 text-arena-text-muted hover:text-arena-accent" /></button>
             </div>
@@ -171,32 +172,67 @@ export function AdminTournamentsView() {
 // ==================== ADMIN TOURNAMENT CREATE ====================
 
 export function AdminTournamentCreateView() {
-  const { navigate } = useAppStore();
+  const { navigate, viewParams } = useAppStore();
+  const editId = viewParams?.id;
   const { data: games } = useQuery({ queryKey: ['admin-games'], queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d || []) });
+
   const [form, setForm] = useState({ title: '', description: '', gameId: '', format: 'solo', entryFee: '0', prizePool: '0', maxPlayers: '100', startTime: '', customRules: '', isFeatured: false, roomId: '', roomPassword: '', map: '', matchMode: '', bannerImageUrl: '' });
   const [saving, setSaving] = useState(false);
+
+  // Fetch existing tournament data for editing
+  const { data: existingTournament, isLoading: loadingExisting } = useQuery({
+    queryKey: ['admin-tournament-edit', editId],
+    queryFn: () => fetch(`/api/admin/tournaments/${editId}`).then(r => r.json()).then(d => d.tournament || d),
+    enabled: !!editId,
+  });
+
+  // Populate form when editing data loads
+  const hasPopulated = useState(false);
+  if (editId && existingTournament && !hasPopulated[0] && !loadingExisting) {
+    const t = existingTournament;
+    setForm({
+      title: t.title || '',
+      description: t.description || '',
+      gameId: t.gameId || '',
+      format: t.format || 'solo',
+      entryFee: String((t.entryFee || 0) / 100),
+      prizePool: String((t.prizePool || 0) / 100),
+      maxPlayers: String(t.maxPlayers || 100),
+      startTime: t.startTime ? new Date(t.startTime).toISOString().slice(0, 16) : '',
+      customRules: t.customRules || '',
+      isFeatured: t.isFeatured || false,
+      roomId: t.roomId || '',
+      roomPassword: t.roomPassword || '',
+      map: t.map || '',
+      matchMode: t.matchMode || '',
+      bannerImageUrl: t.bannerImageUrl || '',
+    });
+    hasPopulated[1](true);
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/tournaments', {
-        method: 'POST',
+      const payload = {
+        ...form,
+        entryFee: Math.round(Number(form.entryFee) * 100),
+        prizePool: Math.round(Number(form.prizePool) * 100),
+        maxPlayers: Number(form.maxPlayers),
+        startTime: form.startTime || null,
+      };
+      const url = editId ? `/api/admin/tournaments/${editId}` : '/api/admin/tournaments';
+      const res = await fetch(url, {
+        method: editId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          entryFee: Math.round(Number(form.entryFee) * 100),
-          prizePool: Math.round(Number(form.prizePool) * 100),
-          maxPlayers: Number(form.maxPlayers),
-          startTime: form.startTime || null,
-        }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
-        toast.success('Tournament created!');
+        toast.success(editId ? 'Tournament updated!' : 'Tournament created!');
         navigate('admin-tournaments');
       } else {
         const data = await res.json();
-        toast.error(data.error || 'Failed to create tournament');
+        toast.error(data.error || 'Failed to save tournament');
       }
     } catch { toast.error('Failed'); }
     setSaving(false);
@@ -234,7 +270,7 @@ export function AdminTournamentCreateView() {
           <span className="text-sm">Mark as Featured</span>
         </label>
         <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Creating...' : 'Create Tournament'}</button>
+          <button type="submit" disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? (editId ? 'Updating...' : 'Creating...') : editId ? 'Update Tournament' : 'Create Tournament'}</button>
           <button type="button" onClick={() => navigate('admin-tournaments')} className="px-6 py-2.5 h-11 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
         </div>
       </form>

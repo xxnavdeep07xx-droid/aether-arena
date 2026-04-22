@@ -53,7 +53,7 @@ export function RightPanelContent() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="text-center bg-arena-surface rounded-lg py-2">
-              <div className="text-sm font-bold">{user.leaguePoints > 0 ? Math.floor(user.leaguePoints * 0.3) : 0}</div>
+              <div className="text-sm font-bold">{user.totalWins || 0}</div>
               <div className="text-[10px] text-arena-text-muted">Wins</div>
             </div>
             <div className="text-center bg-arena-surface rounded-lg py-2">

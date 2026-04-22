@@ -15,7 +15,10 @@ export function TopupFullView() {
   });
 
   const packs = (packsData || []) as any[];
-  const gameNames = [...new Set(packs.map((p: any) => p.gameName))] as string[];
+  const gameSlugs = [...new Map(packs.map((p: any) => [p.gameSlug, p.gameName as string])).entries()];
+  const gameNames = gameSlugs.map(([, name]) => name) as string[];
+  const slugToName = new Map(gameSlugs);
+  const nameToSlug = new Map(gameSlugs.map(([slug, name]) => [name, slug]));
   const popularPacks = packs.filter((p: any) => p.isPopular);
   const activeCount = filterGame === 'all' ? packs.length : packs.filter((p: any) => p.gameSlug === filterGame).length;
 
@@ -57,7 +60,7 @@ export function TopupFullView() {
             All Games
           </button>
           {gameNames.map((g: string) => {
-            const slug = g.toLowerCase().replace(/\s+/g, '-');
+            const slug = nameToSlug.get(g) || g.toLowerCase().replace(/\s+/g, '-');
             return (
               <button key={g} onClick={() => setFilterGame(slug)}
                 className={cn('px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0',

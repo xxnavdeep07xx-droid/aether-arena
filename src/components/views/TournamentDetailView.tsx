@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star, CircleDot, Calendar, MonitorPlay, Gamepad2,
-  Shield, Copy, X, Upload
+  Shield, Copy, X
 } from 'lucide-react';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -196,7 +196,6 @@ export function TournamentDetailView() {
 }
 
 function RegistrationModal({ tournament, onRegister, onClose }: { tournament: any; onRegister: (data: any) => void; onClose: () => void }) {
-  const [paymentMethod, setPaymentMethod] = useState<'upi_id' | 'screenshot'>('upi_id');
   const [transactionId, setTransactionId] = useState('');
   const { data: settings } = useQuery({
     queryKey: ['platform-settings'],
@@ -239,21 +238,12 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
             <Copy className="w-4 h-4 text-arena-text-muted cursor-pointer hover:text-white" onClick={() => { navigator.clipboard.writeText(upiId); toast.success('UPI ID copied!'); }} />
           </div>
         </div>
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setPaymentMethod('upi_id')} className={cn('flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200', paymentMethod === 'upi_id' ? 'bg-arena-accent text-white' : 'bg-arena-surface text-arena-text-secondary')}>Enter Transaction ID</button>
-          <button onClick={() => setPaymentMethod('screenshot')} className={cn('flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200', paymentMethod === 'screenshot' ? 'bg-arena-accent text-white' : 'bg-arena-surface text-arena-text-secondary')}>Upload Screenshot</button>
-        </div>
-        {paymentMethod === 'upi_id' ? (
+        <div className="mb-4">
+          <label className="text-xs text-arena-text-secondary mb-1 block">UPI Transaction ID *</label>
           <input type="text" placeholder="Enter UPI Transaction ID" value={transactionId} onChange={e => setTransactionId(e.target.value)}
-            className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150 mb-4" />
-        ) : (
-          <div className="bg-arena-dark border border-arena-border border-dashed rounded-xl p-6 text-center mb-4 cursor-pointer hover:border-arena-accent/50 transition-colors duration-150">
-            <Upload className="w-8 h-8 text-arena-text-muted mx-auto mb-2" />
-            <p className="text-xs text-arena-text-muted">Screenshot upload coming soon</p>
-            <p className="text-[10px] text-arena-text-muted mt-1">Use Transaction ID for now</p>
-          </div>
-        )}
-        <button onClick={() => { if (!transactionId && paymentMethod === 'upi_id') { toast.error('Please enter transaction ID'); return; } onRegister({ paymentMethod, paymentReference: transactionId }); }}
+            className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" />
+        </div>
+        <button onClick={() => { if (!transactionId) { toast.error('Please enter transaction ID'); return; } onRegister({ paymentMethod: 'upi_id', paymentReference: transactionId }); }}
           className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm">
           Submit Payment
         </button>

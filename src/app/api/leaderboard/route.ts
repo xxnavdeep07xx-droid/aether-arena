@@ -13,6 +13,16 @@ export async function GET(request: Request) {
     if (!gameId) {
       const where: Prisma.LeaderboardWhereInput = { period }
 
+      // Server-side search filter using Prisma include with filter
+      const playerFilterWhere = search
+        ? {
+            OR: [
+              { username: { contains: search, mode: Prisma.QueryMode.insensitive } },
+              { displayName: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            ],
+          }
+        : undefined;
+
       const entries = await db.leaderboard.findMany({
         where,
         include: {
@@ -25,6 +35,7 @@ export async function GET(request: Request) {
               league: true,
               leaguePoints: true,
             },
+            ...(playerFilterWhere ? { where: playerFilterWhere } : {}),
           },
           game: {
             select: {
@@ -81,15 +92,6 @@ export async function GET(request: Request) {
 
       let aggregated = Array.from(playerMap.values())
 
-      // Client-side search filter
-      if (search) {
-        const q = search.toLowerCase()
-        aggregated = aggregated.filter(e =>
-          e.player?.username?.toLowerCase().includes(q) ||
-          e.player?.displayName?.toLowerCase().includes(q)
-        )
-      }
-
       // Sort by points desc
       aggregated.sort((a, b) => b.totalPoints - a.totalPoints)
 
@@ -117,6 +119,16 @@ export async function GET(request: Request) {
     // Specific game filter
     const where: Record<string, unknown> = { period, gameId }
 
+    // Server-side search filter via player relation
+    const playerFilterWhere = search
+      ? {
+          OR: [
+            { username: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { displayName: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          ],
+        }
+      : undefined;
+
     const leaderboard = await db.leaderboard.findMany({
       where,
       include: {
@@ -129,6 +141,7 @@ export async function GET(request: Request) {
             league: true,
             leaguePoints: true,
           },
+          ...(playerFilterWhere ? { where: playerFilterWhere } : {}),
         },
         game: {
           select: {
@@ -143,17 +156,7 @@ export async function GET(request: Request) {
       take: 100,
     })
 
-    // Client-side search filter
-    let filtered = leaderboard
-    if (search) {
-      const q = search.toLowerCase()
-      filtered = leaderboard.filter(e =>
-        e.player?.username?.toLowerCase().includes(q) ||
-        e.player?.displayName?.toLowerCase().includes(q)
-      )
-    }
-
-    return NextResponse.json({ leaderboard: filtered })
+    return NextResponse.json({ leaderboard })
   } catch {
     return NextResponse.json(
       { error: 'Internal server error' },

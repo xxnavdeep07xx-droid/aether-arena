@@ -10,21 +10,23 @@ import { ProfileSkeleton } from './Skeletons';
 
 export function ProfileView() {
   const { user, isAuthenticated, setUser, logout } = useAuthStore();
-  const { navigate } = useAppStore();
+  const { navigate, viewParams } = useAppStore();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ displayName: '', bio: '' });
   const [saving, setSaving] = useState(false);
 
+  const viewingOtherUser = !!viewParams.username && viewParams.username !== user?.username;
+
   const { data: profile, isLoading, refetch } = useQuery({
-    queryKey: ['my-profile'],
-    queryFn: () => fetch('/api/profiles/me').then(r => r.json()),
-    enabled: isAuthenticated,
+    queryKey: viewingOtherUser ? ['other-profile', viewParams.username] : ['my-profile'],
+    queryFn: () => fetch(viewingOtherUser ? `/api/profiles/${viewParams.username}` : '/api/profiles/me').then(r => r.json()),
+    enabled: isAuthenticated || viewingOtherUser,
   });
 
   const { data: registrations } = useQuery({
     queryKey: ['my-registrations'],
     queryFn: () => fetch('/api/registrations').then(r => r.json()).then(d => d.registrations || d || []),
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !viewingOtherUser,
   });
 
   const startEditing = () => {
@@ -64,8 +66,10 @@ export function ProfileView() {
     navigate('landing');
   };
 
-  if (!isAuthenticated) return null;
-  if (isLoading) return <ProfileSkeleton />;
+  if (viewingOtherUser && isLoading) return <ProfileSkeleton />;
+  if (viewingOtherUser && !profile) return <div className="text-center py-20 text-arena-text-muted">Profile not found</div>;
+  if (!viewingOtherUser && !isAuthenticated) return null;
+  if (!viewingOtherUser && isLoading) return <ProfileSkeleton />;
 
   const p = profile || user;
   const league = LEAGUE_CONFIG[p?.league || 'bronze'] || LEAGUE_CONFIG.bronze;
@@ -89,13 +93,15 @@ export function ProfileView() {
               </div>
               <p className="text-sm text-arena-text-muted">@{p?.username}</p>
             </div>
-            <button onClick={() => editing ? setEditing(false) : startEditing()} className="p-2 rounded-xl border border-arena-border hover:border-arena-accent/50 transition-colors duration-150">
-              <Pencil className="w-4 h-4 text-arena-text-secondary" />
-            </button>
+            {!viewingOtherUser && (
+              <button onClick={() => editing ? setEditing(false) : startEditing()} className="p-2 rounded-xl border border-arena-border hover:border-arena-accent/50 transition-colors duration-150">
+                <Pencil className="w-4 h-4 text-arena-text-secondary" />
+              </button>
+            )}
           </div>
 
-          {/* Edit Form */}
-          {editing && (
+          {/* Edit Form (only for own profile) */}
+          {!viewingOtherUser && editing && (
             <div className="bg-arena-surface rounded-xl p-4 mb-4 space-y-3 animate-fade-in">
               <div>
                 <label className="text-xs text-arena-text-muted mb-1 block">Display Name</label>
@@ -134,46 +140,50 @@ export function ProfileView() {
         </div>
       </div>
 
-      {/* My Tournaments */}
-      <div className="bg-arena-card border border-arena-border rounded-2xl p-6 mb-6">
-        <h2 className="font-semibold mb-4">My Tournaments</h2>
-        {registrations && registrations.length > 0 ? (
-          <div className="space-y-2">
-            {registrations.map((r: any) => (
-              <div key={r.id} onClick={() => navigate('tournament-detail', { id: r.tournamentId })}
-                className="flex items-center justify-between bg-arena-surface rounded-xl p-3 cursor-pointer hover:bg-arena-card-hover transition-colors duration-150">
-                <div>
-                  <div className="font-medium text-sm">{r.tournament?.title || 'Unknown Tournament'}</div>
-                  <div className="text-xs text-arena-text-muted">{r.tournament?.game?.name} • {formatDate(r.createdAt)}</div>
+      {/* My Tournaments (only for own profile) */}
+      {!viewingOtherUser && (
+        <div className="bg-arena-card border border-arena-border rounded-2xl p-6 mb-6">
+          <h2 className="font-semibold mb-4">My Tournaments</h2>
+          {registrations && registrations.length > 0 ? (
+            <div className="space-y-2">
+              {registrations.map((r: any) => (
+                <div key={r.id} onClick={() => navigate('tournament-detail', { id: r.tournamentId })}
+                  className="flex items-center justify-between bg-arena-surface rounded-xl p-3 cursor-pointer hover:bg-arena-card-hover transition-colors duration-150">
+                  <div>
+                    <div className="font-medium text-sm">{r.tournament?.title || 'Unknown Tournament'}</div>
+                    <div className="text-xs text-arena-text-muted">{r.tournament?.game?.name} • {formatDate(r.createdAt)}</div>
+                  </div>
+                  <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full',
+                    r.paymentStatus === 'verified' ? 'bg-arena-success/20 text-arena-success' :
+                    r.paymentStatus === 'pending' ? 'bg-arena-warning/20 text-arena-warning' :
+                    r.paymentStatus === 'failed' ? 'bg-arena-accent/20 text-arena-accent' : 'bg-arena-surface text-arena-text-muted'
+                  )}>
+                    {r.paymentStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </span>
                 </div>
-                <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full',
-                  r.paymentStatus === 'verified' ? 'bg-arena-success/20 text-arena-success' :
-                  r.paymentStatus === 'pending' ? 'bg-arena-warning/20 text-arena-warning' :
-                  r.paymentStatus === 'failed' ? 'bg-arena-accent/20 text-arena-accent' : 'bg-arena-surface text-arena-text-muted'
-                )}>
-                  {r.paymentStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-arena-accent/40" />
+              ))}
             </div>
-            <p className="text-sm text-arena-text-secondary mb-1">No tournaments yet</p>
-            <p className="text-xs text-arena-text-muted mb-3">Join a tournament and show your skills!</p>
-            <button onClick={() => navigate('tournaments')} className="text-xs font-medium px-4 py-2 rounded-lg bg-arena-accent text-white hover:bg-arena-accent-light transition-all duration-200">
-              Browse Tournaments
-            </button>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                <Trophy className="w-6 h-6 text-arena-accent/40" />
+              </div>
+              <p className="text-sm text-arena-text-secondary mb-1">No tournaments yet</p>
+              <p className="text-xs text-arena-text-muted mb-3">Join a tournament and show your skills!</p>
+              <button onClick={() => navigate('tournaments')} className="text-xs font-medium px-4 py-2 rounded-lg bg-arena-accent text-white hover:bg-arena-accent-light transition-all duration-200">
+                Browse Tournaments
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Logout */}
-      <button onClick={handleLogout} className="flex items-center gap-2 text-arena-text-muted hover:text-arena-accent text-sm transition-colors duration-150">
-        <LogOut className="w-4 h-4" /> Log Out
-      </button>
+      {/* Logout (only for own profile) */}
+      {!viewingOtherUser && (
+        <button onClick={handleLogout} className="flex items-center gap-2 text-arena-text-muted hover:text-arena-accent text-sm transition-colors duration-150">
+          <LogOut className="w-4 h-4" /> Log Out
+        </button>
+      )}
     </div>
   );
 }

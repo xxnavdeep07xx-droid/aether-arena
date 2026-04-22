@@ -10,6 +10,14 @@ export async function POST(
     const auth = await requireAuth(request)
     const { id: tournamentId } = await params
 
+    // Check if user is banned
+    if (auth.profile.isBanned) {
+      return NextResponse.json(
+        { error: 'Your account has been banned. You cannot register for tournaments.' },
+        { status: 403 }
+      )
+    }
+
     // Find tournament
     const tournament = await db.tournament.findUnique({
       where: { id: tournamentId },

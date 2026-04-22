@@ -272,16 +272,15 @@ function AffiliateCarouselSection() {
 
 function TopupCarouselSection() {
   const [current, setCurrent] = useState(0);
-  const [filterGame] = useState('all');
 
   const { data: packsData } = useQuery({
-    queryKey: ['topup-packs', filterGame],
-    queryFn: () => fetch(`/api/topup-packs${filterGame !== 'all' ? `?game=${filterGame}` : ''}`).then(r => r.json()).then(d => d.packs || []),
+    queryKey: ['topup-packs'],
+    queryFn: () => fetch('/api/topup-packs').then(r => r.json()).then(d => d.packs || []),
     refetchInterval: 60000,
   });
 
   const packs = (packsData || []) as any[];
-  const filtered = filterGame === 'all' ? packs : packs.filter((p: any) => p.gameSlug === filterGame);
+  const filtered = packs;
   const itemsPerPage = 3;
   const maxIndex = Math.max(0, filtered.length - itemsPerPage);
 

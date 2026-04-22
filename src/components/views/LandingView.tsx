@@ -294,8 +294,8 @@ export function LandingView() {
             <div>
               <h4 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Support</h4>
               <ul className="space-y-2">
-                <li><span className="text-sm text-arena-text-secondary">Discord</span></li>
-                <li><span className="text-sm text-arena-text-secondary">FAQ</span></li>
+                <li><a href="https://discord.gg/aetherarena" target="_blank" rel="noopener noreferrer" className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Discord</a></li>
+                <li><button onClick={() => nav('terms-conditions')} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">FAQ</button></li>
                 <li><button onClick={() => nav('contact')} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Contact</button></li>
               </ul>
             </div>

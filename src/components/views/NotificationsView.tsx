@@ -1,12 +1,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useAppStore } from '@/lib/store';
 import { Bell } from 'lucide-react';
 import { cn, timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
 import { NotificationsSkeleton } from './Skeletons';
 
 export function NotificationsView() {
+  const { navigate } = useAppStore();
   const { data: notifications, isLoading, refetch } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => fetch('/api/notifications').then(r => r.json()).then(d => d.notifications || d || []),
@@ -26,6 +28,25 @@ export function NotificationsView() {
     }
   };
 
+  const handleClick = async (n: any) => {
+    // Mark as read
+    if (!n.isRead) {
+      try {
+        await fetch(`/api/notifications/${n.id}/read`, { method: 'POST' });
+        refetch();
+      } catch { /* ignore */ }
+    }
+
+    // Navigate based on link
+    if (n.link) {
+      const link = n.link;
+      if (link.startsWith('/tournaments/')) {
+        const tournamentId = link.replace('/tournaments/', '');
+        navigate('tournament-detail', { id: tournamentId });
+      }
+    }
+  };
+
   if (isLoading) return <NotificationsSkeleton />;
 
   return (
@@ -39,7 +60,9 @@ export function NotificationsView() {
       {notifications && notifications.length > 0 ? (
         <div className="space-y-2">
           {notifications.map((n: any) => (
-            <div key={n.id} className={cn('bg-arena-card border rounded-xl p-4 transition-all duration-200', !n.isRead ? 'border-arena-accent/30 bg-arena-accent/5' : 'border-arena-border')}>
+            <div key={n.id} onClick={() => handleClick(n)}
+              className={cn('bg-arena-card border rounded-xl p-4 transition-all duration-200 cursor-pointer',
+                !n.isRead ? 'border-arena-accent/30 bg-arena-accent/5 hover:bg-arena-accent/10' : 'border-arena-border hover:border-arena-accent/20')}>
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-medium text-sm">{n.title}</h3>
