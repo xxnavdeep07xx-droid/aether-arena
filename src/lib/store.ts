@@ -25,7 +25,10 @@ export type ViewName =
   | 'contact'
   | 'topup'
   | 'settings'
-  | 'earn-aether'
+  | 'aether'
+  | 'aether-tasks'
+  | 'aether-redeem'
+  | 'aether-history'
   | 'admin-redemptions'
   | 'admin-aether-manage';
 

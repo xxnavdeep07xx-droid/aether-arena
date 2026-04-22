@@ -23,7 +23,7 @@ import { ProfileView } from '@/components/views/ProfileView';
 import { NotificationsView } from '@/components/views/NotificationsView';
 import { TopupFullView } from '@/components/views/TopupView';
 import { SettingsView } from '@/components/views/SettingsView';
-import { EarnAetherView } from '@/components/views/EarnAetherView';
+import { AetherView, AetherTasks, AetherRedeem, AetherHistory } from '@/components/views/EarnAetherView';
 import {
   AdminDashboardView, AdminTournamentsView, AdminTournamentCreateView,
   AdminRegistrationsView, AdminGamesView, AdminStreamsView,
@@ -117,7 +117,10 @@ function ViewRenderer() {
     'admin-settings': <AdminSettingsView />,
     'admin-redemptions': <AdminRedemptionsView />,
     'admin-aether-manage': <AdminAetherManageView />,
-    'earn-aether': <EarnAetherView />,
+    'aether': <AetherView />,
+    'aether-tasks': <AetherTasks />,
+    'aether-redeem': <AetherRedeem />,
+    'aether-history': <AetherHistory />,
     'privacy-policy': <PrivacyPolicyView />,
     'terms-conditions': <TermsConditionsView />,
     'refund-policy': <RefundPolicyView />,
@@ -153,7 +156,7 @@ export default function Page() {
     { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tournaments' },
     { view: 'leaderboard' as ViewName, icon: BarChart3, label: 'Leaderboard' },
     { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
-    { view: 'earn-aether' as ViewName, icon: Diamond, label: 'Earn Aether' },
+    { view: 'aether' as ViewName, icon: Diamond, label: 'Aether' },
     { view: 'profile' as ViewName, icon: User, label: 'Profile' },
     ...(isAdmin ? [{ view: 'admin-dashboard' as ViewName, icon: Shield, label: 'Admin' }] : []),
   ];
@@ -163,7 +166,7 @@ export default function Page() {
     { view: 'topup' as ViewName, icon: Zap, label: 'Top Up' },
     { view: 'notifications' as ViewName, icon: Bell, label: 'Notifications' },
     { view: 'settings' as ViewName, icon: Settings, label: 'Settings' },
-    { view: 'earn-aether' as ViewName, icon: Diamond, label: 'Earn Aether' },
+    { view: 'aether' as ViewName, icon: Diamond, label: 'Aether' },
     { view: 'contact' as ViewName, icon: Mail, label: 'Contact Us' },
     ...(isAdmin ? [
       { view: 'admin-redemptions' as ViewName, icon: Wallet, label: 'Redemptions' },
@@ -179,7 +182,7 @@ export default function Page() {
   ];
 
   // Views that show the main top bar (with hamburger on mobile)
-  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications', 'settings', 'admin-dashboard', 'contact', 'earn-aether'];
+  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications', 'settings', 'admin-dashboard', 'contact', 'aether'];
 
   // Views where the search bar is useful and functional
   const searchableViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams'];
@@ -188,7 +191,7 @@ export default function Page() {
   const sectionTitles: Record<string, { title: string; icon: typeof Shield }> = {
     'admin-dashboard': { title: 'Admin Panel', icon: Shield },
     'contact': { title: 'Contact Us', icon: Mail },
-    'earn-aether': { title: 'Earn Aether', icon: Diamond },
+    'aether': { title: 'Aether', icon: Diamond },
   };
 
   const currentSection = sectionTitles[currentView];

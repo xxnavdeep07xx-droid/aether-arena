@@ -37,7 +37,7 @@ function AetherBalanceCard() {
         </div>
       </div>
       <button
-        onClick={() => navigate('earn-aether')}
+        onClick={() => navigate('aether')}
         className="w-full text-center text-xs font-medium text-arena-accent hover:text-arena-accent-light transition-colors py-1"
       >
         Earn More →
