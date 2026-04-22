@@ -86,6 +86,7 @@ export async function POST(request: Request) {
       streamPlatform,
       streamUrl,
       streamStartTime,
+      bannerImageUrl,
     } = body
 
     if (!title || !gameId || !maxPlayers) {
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
         streamPlatform: streamPlatform || '',
         streamUrl: streamUrl || '',
         streamStartTime: streamStartTime ? new Date(streamStartTime) : null,
+        bannerImageUrl: bannerImageUrl || '',
         createdById: auth.userId,
       },
       include: {

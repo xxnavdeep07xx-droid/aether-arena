@@ -97,6 +97,7 @@ export async function PUT(
       streamPlatform,
       streamUrl,
       streamStartTime,
+      bannerImageUrl,
     } = body
 
     const updateData: Record<string, unknown> = {}
@@ -128,6 +129,7 @@ export async function PUT(
     if (streamUrl !== undefined) updateData.streamUrl = streamUrl
     if (streamStartTime !== undefined)
       updateData.streamStartTime = streamStartTime ? new Date(streamStartTime) : null
+    if (bannerImageUrl !== undefined) updateData.bannerImageUrl = bannerImageUrl
 
     const tournament = await db.tournament.update({
       where: { id },

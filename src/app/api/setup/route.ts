@@ -512,6 +512,51 @@ export async function GET(request: Request) {
       results.push(`RedemptionRequest FK → AetherBalance: ${msg}`)
     }
 
+    // ── TopupPack table ───────────────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "TopupPack" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "gameName" TEXT NOT NULL DEFAULT '',
+          "gameSlug" TEXT NOT NULL DEFAULT '',
+          "packName" TEXT NOT NULL DEFAULT '',
+          "description" TEXT,
+          "price" INTEGER NOT NULL DEFAULT 0,
+          "originalPrice" INTEGER NOT NULL DEFAULT 0,
+          "affiliateUrl" TEXT,
+          "iconUrl" TEXT,
+          "isPopular" BOOLEAN NOT NULL DEFAULT false,
+          "sortOrder" INTEGER NOT NULL DEFAULT 0,
+          "isActive" BOOLEAN NOT NULL DEFAULT true,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "TopupPack_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('TopupPack table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`TopupPack table: ${msg}`)
+    }
+
+    // ── Announcement table ────────────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "Announcement" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "title" TEXT NOT NULL,
+          "content" TEXT NOT NULL,
+          "type" TEXT NOT NULL DEFAULT 'info',
+          "isActive" BOOLEAN NOT NULL DEFAULT true,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "Announcement_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('Announcement table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`Announcement table: ${msg}`)
+    }
+
     // ── AetherTask seed data ──────────────────────────────────
     try {
       const taskCount: { count: number }[] = await db.$queryRawUnsafe(`
