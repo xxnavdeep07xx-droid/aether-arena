@@ -2,12 +2,12 @@
 
 import { useAppStore, useAuthStore, ViewName } from '@/lib/store';
 import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Users, Trophy, Clock, DollarSign, CheckCircle2, XCircle, Plus,
   Eye, Trash2, Gamepad2, Pencil, X, Tv, ExternalLink, Link2,
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
-  ChevronRight, AlertTriangle
+  ChevronRight, AlertTriangle, Diamond, Wallet, Loader2
 } from 'lucide-react';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime, timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -94,6 +94,8 @@ export function AdminDashboardView() {
           { label: 'Manage Streams', icon: Tv, view: 'admin-streams' as ViewName },
           { label: 'Manage Affiliates', icon: Link2, view: 'admin-affiliates' as ViewName },
           { label: 'Top Up Packs', icon: Zap, view: 'admin-topup' as ViewName },
+          { label: 'Redemptions', icon: Wallet, view: 'admin-redemptions' as ViewName },
+          { label: 'Manage Aether', icon: Diamond, view: 'admin-aether-manage' as ViewName },
           { label: 'Analytics', icon: BarChart3, view: 'admin-analytics' as ViewName },
           { label: 'Platform Settings', icon: Settings, view: 'admin-settings' as ViewName },
         ].map(action => (
@@ -1106,6 +1108,250 @@ export function AdminAnalyticsView() {
             ))}
             {(!data?.recentActivity || data.recentActivity.length === 0) && <p className="text-xs text-arena-text-muted text-center py-4">No activity yet</p>}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== ADMIN REDEMPTIONS ====================
+
+export function AdminRedemptionsView() {
+  const { user } = useAuthStore();
+  const [statusFilter, setStatusFilter] = useState('');
+  const [noteDialog, setNoteDialog] = useState<{ open: boolean; redemptionId: string; action: string }>({ open: false, redemptionId: '', action: '' });
+  const [note, setNote] = useState('');
+  const [processing, setProcessing] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data, refetch } = useQuery({
+    queryKey: ['admin-redemptions', statusFilter],
+    queryFn: () => fetch(`/api/admin/redemptions${statusFilter ? `?status=${statusFilter}` : ''}`).then(r => r.json()),
+    enabled: user?.isAdmin,
+  });
+
+  const redemptions = data?.redemptions || [];
+
+  const handleAction = async (redemptionId: string, action: string) => {
+    setProcessing(true);
+    try {
+      const res = await fetch(`/api/admin/redemptions/${redemptionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, adminNote: note || undefined }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.error || 'Failed to update redemption');
+        setProcessing(false);
+        return;
+      }
+      toast.success(`Redemption ${action}d successfully`);
+      setNoteDialog({ open: false, redemptionId: '', action: '' });
+      setNote('');
+      queryClient.invalidateQueries({ queryKey: ['admin-redemptions'] });
+      refetch();
+    } catch {
+      toast.error('Failed to update redemption');
+    }
+    setProcessing(false);
+  };
+
+  const statusColors: Record<string, string> = {
+    pending: 'bg-amber-500/20 text-amber-400',
+    approved: 'bg-green-500/20 text-green-400',
+    rejected: 'bg-red-500/20 text-red-400',
+    paid: 'bg-blue-500/20 text-blue-400',
+  };
+
+  if (!user?.isAdmin) return <div className="text-center py-20 text-arena-text-muted">Access Denied</div>;
+
+  return (
+    <div>
+      <div className="flex gap-2 mb-4 overflow-x-auto">
+        {['', 'pending', 'approved', 'rejected', 'paid'].map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)}
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200',
+              statusFilter === s ? 'bg-arena-accent text-white' : 'bg-arena-card border border-arena-border text-arena-text-secondary')}>
+            {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
+      {redemptions.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-arena-border text-xs text-arena-text-muted">
+                <th className="text-left py-2 px-3 font-medium">User</th>
+                <th className="text-left py-2 px-3 font-medium">Amount</th>
+                <th className="text-left py-2 px-3 font-medium">UPI ID</th>
+                <th className="text-left py-2 px-3 font-medium">Status</th>
+                <th className="text-left py-2 px-3 font-medium">Date</th>
+                <th className="text-right py-2 px-3 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {redemptions.map((r: any) => (
+                <tr key={r.id} className="border-b border-arena-border/50 hover:bg-arena-card/50">
+                  <td className="py-3 px-3">
+                    <div className="font-medium">{r.user?.displayName || r.user?.username || 'Unknown'}</div>
+                    <div className="text-xs text-arena-text-muted">@{r.user?.username}</div>
+                  </td>
+                  <td className="py-3 px-3">
+                    <div className="font-semibold">{r.amountAether} ◆</div>
+                    <div className="text-xs text-arena-text-muted">₹{r.amountInr}</div>
+                  </td>
+                  <td className="py-3 px-3 text-xs text-arena-text-secondary">{r.upiId || '—'}</td>
+                  <td className="py-3 px-3">
+                    <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', statusColors[r.status] || '')}>{r.status}</span>
+                  </td>
+                  <td className="py-3 px-3 text-xs text-arena-text-muted">{timeAgo(r.createdAt)}</td>
+                  <td className="py-3 px-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {r.status === 'pending' && (
+                        <>
+                          <button onClick={() => { setNoteDialog({ open: true, redemptionId: r.id, action: 'approve' }); setNote(''); }}
+                            className="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] font-medium rounded-lg hover:bg-green-500/30">Approve</button>
+                          <button onClick={() => { setNoteDialog({ open: true, redemptionId: r.id, action: 'reject' }); setNote(''); }}
+                            className="px-2 py-1 bg-red-500/20 text-red-400 text-[10px] font-medium rounded-lg hover:bg-red-500/30">Reject</button>
+                        </>
+                      )}
+                      {r.status === 'approved' && (
+                        <button onClick={() => { setNoteDialog({ open: true, redemptionId: r.id, action: 'mark_paid' }); setNote(''); }}
+                          className="px-2 py-1 bg-blue-500/20 text-blue-400 text-[10px] font-medium rounded-lg hover:bg-blue-500/30">Mark Paid</button>
+                      )}
+                      {r.adminNote && <span className="text-[10px] text-arena-text-muted ml-1" title={r.adminNote}>📋</span>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="text-center py-16 text-arena-text-muted">No redemption requests found</div>
+      )}
+
+      {/* Note dialog */}
+      {noteDialog.open && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setNoteDialog({ open: false, redemptionId: '', action: '' })}>
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-sm animate-fade-in-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-1 capitalize">{noteDialog.action === 'mark_paid' ? 'Mark as Paid' : `${noteDialog.action} Redemption`}</h3>
+            <p className="text-xs text-arena-text-muted mb-4">Add an optional admin note</p>
+            <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="Optional note..."
+              className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors resize-none mb-4" />
+            <div className="flex gap-3">
+              <button onClick={() => setNoteDialog({ open: false, redemptionId: '', action: '' })} className="flex-1 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors">Cancel</button>
+              <button onClick={() => handleAction(noteDialog.redemptionId, noteDialog.action)} disabled={processing}
+                className={cn('flex-1 py-2.5 h-10 text-white font-semibold rounded-xl text-sm disabled:opacity-50',
+                  noteDialog.action === 'reject' ? 'bg-red-500 hover:bg-red-600' : noteDialog.action === 'mark_paid' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600')}>
+                {processing ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : noteDialog.action === 'mark_paid' ? 'Mark Paid' : noteDialog.action === 'reject' ? 'Reject' : 'Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== ADMIN AETHER MANAGE ====================
+
+export function AdminAetherManageView() {
+  const { user } = useAuthStore();
+  const [userId, setUserId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [adjusting, setAdjusting] = useState(false);
+  const [newBalance, setNewBalance] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: stats } = useQuery({
+    queryKey: ['admin-aether-stats'],
+    queryFn: () => fetch('/api/admin/stats').then(r => r.json()),
+    enabled: user?.isAdmin,
+  });
+
+  const handleAdjust = async () => {
+    if (!userId || !amount) { toast.error('User ID and amount are required'); return; }
+    setAdjusting(true);
+    try {
+      const res = await fetch('/api/admin/aether/adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, amount: Number(amount), reason: reason || 'Admin adjustment' }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.error || 'Failed to adjust balance');
+        setAdjusting(false);
+        return;
+      }
+      const data = await res.json();
+      setNewBalance(data.newBalance);
+      toast.success(`Balance adjusted! New balance: ${data.newBalance} ◆`);
+      setAmount('');
+      setReason('');
+      queryClient.invalidateQueries({ queryKey: ['admin-aether-stats'] });
+    } catch {
+      toast.error('Failed to adjust balance');
+    }
+    setAdjusting(false);
+  };
+
+  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150";
+  const labelClass = "text-xs text-arena-text-secondary mb-1 block";
+
+  if (!user?.isAdmin) return <div className="text-center py-20 text-arena-text-muted">Access Denied</div>;
+
+  return (
+    <div className="space-y-8 max-w-2xl">
+      {/* Adjust User Balance */}
+      <div className="bg-arena-card border border-arena-border rounded-2xl p-6">
+        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <Diamond className="w-5 h-5 text-arena-accent" /> Adjust User Balance
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>User ID or Username *</label>
+            <input type="text" value={userId} onChange={e => setUserId(e.target.value)} placeholder="Enter user ID or username" className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>Amount (positive to add, negative to deduct) *</label>
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. 100 or -50" className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>Reason</label>
+            <input type="text" value={reason} onChange={e => setReason(e.target.value)} placeholder="Reason for adjustment" className={inputClass} />
+          </div>
+          {newBalance !== null && (
+            <div className="bg-arena-dark rounded-lg px-4 py-2 text-sm">
+              <span className="text-arena-text-muted">New Balance: </span>
+              <span className="font-bold text-arena-accent">{newBalance} ◆</span>
+            </div>
+          )}
+          <button onClick={handleAdjust} disabled={adjusting || !userId || !amount}
+            className="px-6 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
+            {adjusting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Adjust Balance'}
+          </button>
+        </div>
+      </div>
+
+      {/* Platform Stats */}
+      <div className="bg-arena-card border border-arena-border rounded-2xl p-6">
+        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-arena-accent" /> Platform Stats
+        </h2>
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            { label: 'Total Users', value: stats?.totalUsers || 0, color: 'text-arena-info' },
+            { label: 'Total Revenue', value: paiseToRupee(stats?.totalRevenue || 0), color: 'text-arena-accent' },
+          ].map(s => (
+            <div key={s.label} className="bg-arena-dark rounded-xl p-4">
+              <div className={cn('text-xl font-bold', s.color)}>{s.value}</div>
+              <div className="text-xs text-arena-text-muted mt-1">{s.label}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

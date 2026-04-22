@@ -3,7 +3,7 @@
 import { useAppStore, ViewName } from '@/lib/store';
 import {
   ArrowLeft, Trophy, Shield, Plus, CheckCircle2, Gamepad2,
-  Tv, Link2, Zap, BarChart3, Settings
+  Tv, Link2, Zap, BarChart3, Settings, Diamond, Wallet
 } from 'lucide-react';
 
 export function SubViewHeader({ currentView }: { currentView: ViewName }) {
@@ -21,6 +21,9 @@ export function SubViewHeader({ currentView }: { currentView: ViewName }) {
     'admin-topup': { title: 'Manage Top Up Packs', back: 'admin-dashboard', icon: Zap },
     'admin-analytics': { title: 'Analytics', back: 'admin-dashboard', icon: BarChart3 },
     'admin-settings': { title: 'Platform Settings', back: 'admin-dashboard', icon: Settings },
+    'admin-redemptions': { title: 'Redemptions', back: 'admin-dashboard', icon: Wallet },
+    'admin-aether-manage': { title: 'Manage Aether', back: 'admin-dashboard', icon: Diamond },
+    'earn-aether': { title: 'Earn Aether', back: 'home', icon: Diamond },
     'privacy-policy': { title: 'Privacy Policy', back: 'home', icon: Shield },
     'terms-conditions': { title: 'Terms & Conditions', back: 'home', icon: Shield },
     'refund-policy': { title: 'Refund Policy', back: 'home', icon: Shield },

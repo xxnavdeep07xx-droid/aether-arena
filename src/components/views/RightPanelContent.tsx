@@ -2,8 +2,56 @@
 
 import { useAppStore, useAuthStore, ViewName } from '@/lib/store';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, BarChart3, Tv } from 'lucide-react';
+import { Trophy, BarChart3, Tv, Diamond } from 'lucide-react';
 import { cn, LEAGUE_CONFIG } from '@/lib/utils';
+import { AETHER_SYMBOL } from '@/lib/aether';
+
+function AetherBalanceCard() {
+  const { navigate } = useAppStore();
+  const { data: balanceData } = useQuery({
+    queryKey: ['aether-balance-panel'],
+    queryFn: () => fetch('/api/aether/balance').then(r => r.json()),
+    refetchInterval: 30000,
+  });
+
+  const balance = balanceData?.balance ?? 0;
+  const totalEarned = balanceData?.totalEarned ?? 0;
+  const totalRedeemed = balanceData?.totalRedeemed ?? 0;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="relative animate-glow-pulse">
+          <Diamond className="w-5 h-5 text-arena-accent" />
+        </span>
+        <span className="text-2xl font-bold text-arena-accent">{balance} <span className="text-lg">{AETHER_SYMBOL}</span></span>
+      </div>
+      <div className="space-y-1.5 mb-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-arena-text-muted">Earned</span>
+          <span className="text-arena-text-secondary">{totalEarned} {AETHER_SYMBOL}</span>
+        </div>
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-arena-text-muted">Redeemed</span>
+          <span className="text-arena-text-secondary">{totalRedeemed} {AETHER_SYMBOL}</span>
+        </div>
+      </div>
+      <button
+        onClick={() => navigate('earn-aether')}
+        className="w-full text-center text-xs font-medium text-arena-accent hover:text-arena-accent-light transition-colors py-1"
+      >
+        Earn More →
+      </button>
+      <style>{`
+        @keyframes glowPulse {
+          0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--arena-accent-rgb, 168, 85, 247), 0.3)); }
+          50% { filter: drop-shadow(0 0 8px rgba(var(--arena-accent-rgb, 168, 85, 247), 0.6)); }
+        }
+        .animate-glow-pulse { animation: glowPulse 2.5s ease-in-out infinite; }
+      `}</style>
+    </div>
+  );
+}
 
 export function RightPanelContent() {
   const { currentView, navigate } = useAppStore();
@@ -35,6 +83,14 @@ export function RightPanelContent() {
           ))}
         </div>
       </div>
+
+      {/* Aether Balance Card */}
+      {user && (
+        <div className="bg-arena-card border border-arena-border rounded-xl p-4">
+          <h3 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Aether Balance</h3>
+          <AetherBalanceCard />
+        </div>
+      )}
 
       {/* User Quick Info */}
       {user && (

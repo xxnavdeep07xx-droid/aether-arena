@@ -24,7 +24,10 @@ export type ViewName =
   | 'refund-policy'
   | 'contact'
   | 'topup'
-  | 'settings';
+  | 'settings'
+  | 'earn-aether'
+  | 'admin-redemptions'
+  | 'admin-aether-manage';
 
 interface AppState {
   currentView: ViewName;
@@ -87,6 +90,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
 
+  aetherBalance: number | null;
+  setAetherBalance: (balance: number | null) => void;
   setUser: (user: AuthState['user']) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
@@ -96,9 +101,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
+  aetherBalance: null,
 
+  setAetherBalance: (balance) => set({ aetherBalance: balance }),
   setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
-  logout: () => set({ user: null, isAuthenticated: false, isLoading: false }),
+  logout: () => set({ user: null, isAuthenticated: false, isLoading: false, aetherBalance: null }),
   setLoading: (loading) => set({ isLoading: loading }),
 }));
 

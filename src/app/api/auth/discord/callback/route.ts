@@ -129,7 +129,10 @@ export async function GET(request: Request) {
       const userCount = await tx.profile.count()
       const isAdmin = userCount === 0
 
-      return tx.profile.create({
+      // Check for ref parameter
+      const ref = url.searchParams.get('ref')
+
+      const created = tx.profile.create({
         data: {
           username,
           displayName: discordUser.global_name || discordUser.username,
@@ -139,6 +142,7 @@ export async function GET(request: Request) {
             ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
             : null,
           isAdmin,
+          referredByCode: ref || null,
           accounts: {
             create: {
               type: 'oauth',
@@ -155,6 +159,93 @@ export async function GET(request: Request) {
           },
         },
       })
+
+      // Wait for the profile to be created before creating related records
+      const newProfile = await created
+
+      // Create AetherBalance with 50 welcome bonus
+      await tx.aetherBalance.create({
+        data: {
+          userId: newProfile.id,
+          balance: 50,
+          totalEarned: 50,
+          totalRedeemed: 0,
+        },
+      })
+
+      // Create welcome bonus transaction
+      await tx.aetherTransaction.create({
+        data: {
+          userId: newProfile.id,
+          type: 'bonus',
+          source: 'welcome_bonus',
+          description: 'Welcome Bonus! 50 Aether to get you started',
+          amount: 50,
+          balanceAfter: 50,
+        },
+      })
+
+      // Create UserStreak with current streak 1
+      await tx.userStreak.create({
+        data: {
+          userId: newProfile.id,
+          currentStreak: 1,
+          longestStreak: 1,
+          lastLoginDate: new Date(),
+        },
+      })
+
+      // Auto-complete daily_login task for today
+      const now = new Date()
+      const istOffset = 5.5 * 60 * 60 * 1000
+      const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000
+      const ist = new Date(utc + istOffset)
+      ist.setHours(0, 0, 0, 0)
+
+      await tx.aetherTaskProgress.create({
+        data: {
+          userId: newProfile.id,
+          taskKey: 'daily_login',
+          completed: true,
+          completedAt: new Date(),
+          resetDate: ist,
+          timesCompleted: 1,
+        },
+      })
+
+      // Handle referral: if ref code provided, award 30 Aether to the referrer
+      if (ref && ref.trim().length > 0) {
+        const referrer = await tx.profile.findFirst({
+          where: { username: ref.trim().toLowerCase() },
+        })
+        if (referrer && referrer.id !== newProfile.id) {
+          const referrerBalance = await tx.aetherBalance.upsert({
+            where: { userId: referrer.id },
+            create: { userId: referrer.id, balance: 0, totalEarned: 0, totalRedeemed: 0 },
+            update: {},
+          })
+          const newReferrerBalance = referrerBalance.balance + 30
+          await tx.aetherBalance.update({
+            where: { userId: referrer.id },
+            data: {
+              balance: newReferrerBalance,
+              totalEarned: { increment: 30 },
+            },
+          })
+          await tx.aetherTransaction.create({
+            data: {
+              userId: referrer.id,
+              type: 'referral',
+              source: 'referral',
+              description: `Referral Bonus: ${newProfile.username} signed up using your link`,
+              amount: 30,
+              balanceAfter: newReferrerBalance,
+            },
+          })
+        }
+      }
+
+      return newProfile
     })
 
     // Create session

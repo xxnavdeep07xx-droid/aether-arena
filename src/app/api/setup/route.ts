@@ -201,6 +201,399 @@ export async function GET(request: Request) {
       results.push(`ContactSubmission indexes: ${msg}`)
     }
 
+    // ── Profile column: referredByCode ────────────────────────
+    try {
+      await safeAddColumn('Profile', 'referredByCode', 'TEXT', true)
+      results.push('Profile column referredByCode: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`Profile column referredByCode: ${msg}`)
+    }
+
+    try {
+      await safeCreateIndex('Profile', 'referredByCode')
+      results.push('Profile referredByCode index: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`Profile referredByCode index: ${msg}`)
+    }
+
+    // ── AetherBalance table ───────────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "AetherBalance" (
+          "user_id" TEXT NOT NULL,
+          "balance" INTEGER NOT NULL DEFAULT 0,
+          "total_earned" INTEGER NOT NULL DEFAULT 0,
+          "total_redeemed" INTEGER NOT NULL DEFAULT 0,
+          "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "AetherBalance_pkey" PRIMARY KEY ("user_id")
+        )
+      `)
+      results.push('AetherBalance table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherBalance table: ${msg}`)
+    }
+
+    try {
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'AetherBalance_user_id_fkey'
+            AND table_name = 'AetherBalance'
+          ) THEN
+            ALTER TABLE "AetherBalance"
+              ADD CONSTRAINT "AetherBalance_user_id_fkey"
+              FOREIGN KEY ("user_id") REFERENCES "Profile"("id") ON DELETE CASCADE;
+          END IF;
+        END $$
+      `)
+      results.push('AetherBalance FK → Profile: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherBalance FK: ${msg}`)
+    }
+
+    // ── AetherTransaction table ───────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "AetherTransaction" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "user_id" TEXT NOT NULL,
+          "type" TEXT NOT NULL,
+          "source" TEXT,
+          "description" TEXT NOT NULL,
+          "amount" INTEGER NOT NULL,
+          "balance_after" INTEGER NOT NULL,
+          "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "AetherTransaction_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('AetherTransaction table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTransaction table: ${msg}`)
+    }
+
+    try {
+      await safeCreateIndex('AetherTransaction', 'user_id')
+      await safeCreateIndex('AetherTransaction', 'created_at')
+      await safeCreateIndex('AetherTransaction', 'type')
+      results.push('AetherTransaction indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTransaction indexes: ${msg}`)
+    }
+
+    try {
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'AetherTransaction_user_id_fkey'
+            AND table_name = 'AetherTransaction'
+          ) THEN
+            ALTER TABLE "AetherTransaction"
+              ADD CONSTRAINT "AetherTransaction_user_id_fkey"
+              FOREIGN KEY ("user_id") REFERENCES "Profile"("id") ON DELETE CASCADE;
+          END IF;
+        END $$
+      `)
+      results.push('AetherTransaction FK → Profile: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTransaction FK → Profile: ${msg}`)
+    }
+
+    try {
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'AetherTransaction_balance_fkey'
+            AND table_name = 'AetherTransaction'
+          ) THEN
+            ALTER TABLE "AetherTransaction"
+              ADD CONSTRAINT "AetherTransaction_balance_fkey"
+              FOREIGN KEY ("user_id") REFERENCES "AetherBalance"("user_id") ON DELETE CASCADE;
+          END IF;
+        END $$
+      `)
+      results.push('AetherTransaction FK → AetherBalance: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTransaction FK → AetherBalance: ${msg}`)
+    }
+
+    // ── AetherTask table ──────────────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "AetherTask" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "task_key" TEXT NOT NULL,
+          "title" TEXT NOT NULL,
+          "description" TEXT NOT NULL,
+          "reward_amount" INTEGER NOT NULL,
+          "category" TEXT NOT NULL,
+          "reset_type" TEXT NOT NULL,
+          "affiliate_url" TEXT,
+          "is_active" BOOLEAN NOT NULL DEFAULT true,
+          "display_order" INTEGER NOT NULL DEFAULT 0,
+          CONSTRAINT "AetherTask_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('AetherTask table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTask table: ${msg}`)
+    }
+
+    try {
+      await safeCreateIndex('AetherTask', 'task_key', true)
+      await safeCreateIndex('AetherTask', 'category')
+      await safeCreateIndex('AetherTask', 'is_active')
+      await safeCreateIndex('AetherTask', 'display_order')
+      results.push('AetherTask indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTask indexes: ${msg}`)
+    }
+
+    // ── AetherTaskProgress table ───────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "AetherTaskProgress" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "user_id" TEXT NOT NULL,
+          "task_key" TEXT NOT NULL,
+          "completed" BOOLEAN NOT NULL DEFAULT false,
+          "completed_at" TIMESTAMP(3),
+          "reset_date" DATE,
+          "times_completed" INTEGER NOT NULL DEFAULT 0,
+          "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "AetherTaskProgress_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('AetherTaskProgress table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTaskProgress table: ${msg}`)
+    }
+
+    try {
+      await safeCreateIndex('AetherTaskProgress', 'user_id')
+      await safeCreateIndex('AetherTaskProgress', 'task_key')
+      results.push('AetherTaskProgress indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTaskProgress indexes: ${msg}`)
+    }
+
+    try {
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'AetherTaskProgress_user_id_fkey'
+            AND table_name = 'AetherTaskProgress'
+          ) THEN
+            ALTER TABLE "AetherTaskProgress"
+              ADD CONSTRAINT "AetherTaskProgress_user_id_fkey"
+              FOREIGN KEY ("user_id") REFERENCES "Profile"("id") ON DELETE CASCADE;
+          END IF;
+        END $$
+      `)
+      results.push('AetherTaskProgress FK → Profile: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTaskProgress FK → Profile: ${msg}`)
+    }
+
+    try {
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'AetherTaskProgress_task_key_fkey'
+            AND table_name = 'AetherTaskProgress'
+          ) THEN
+            ALTER TABLE "AetherTaskProgress"
+              ADD CONSTRAINT "AetherTaskProgress_task_key_fkey"
+              FOREIGN KEY ("task_key") REFERENCES "AetherTask"("task_key") ON DELETE CASCADE;
+          END IF;
+        END $$
+      `)
+      results.push('AetherTaskProgress FK → AetherTask: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTaskProgress FK → AetherTask: ${msg}`)
+    }
+
+    // ── UserStreak table ──────────────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "UserStreak" (
+          "user_id" TEXT NOT NULL,
+          "current_streak" INTEGER NOT NULL DEFAULT 0,
+          "longest_streak" INTEGER NOT NULL DEFAULT 0,
+          "last_login_date" TIMESTAMP(3),
+          "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "UserStreak_pkey" PRIMARY KEY ("user_id")
+        )
+      `)
+      results.push('UserStreak table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`UserStreak table: ${msg}`)
+    }
+
+    try {
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'UserStreak_user_id_fkey'
+            AND table_name = 'UserStreak'
+          ) THEN
+            ALTER TABLE "UserStreak"
+              ADD CONSTRAINT "UserStreak_user_id_fkey"
+              FOREIGN KEY ("user_id") REFERENCES "Profile"("id") ON DELETE CASCADE;
+          END IF;
+        END $$
+      `)
+      results.push('UserStreak FK → Profile: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`UserStreak FK: ${msg}`)
+    }
+
+    // ── RedemptionRequest table ───────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "RedemptionRequest" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "user_id" TEXT NOT NULL,
+          "amount_aether" INTEGER NOT NULL,
+          "amount_inr" DOUBLE PRECISION NOT NULL,
+          "upi_id" TEXT NOT NULL,
+          "status" TEXT NOT NULL DEFAULT 'pending',
+          "admin_note" TEXT,
+          "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "processed_at" TIMESTAMP(3),
+          CONSTRAINT "RedemptionRequest_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('RedemptionRequest table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`RedemptionRequest table: ${msg}`)
+    }
+
+    try {
+      await safeCreateIndex('RedemptionRequest', 'user_id')
+      await safeCreateIndex('RedemptionRequest', 'status')
+      await safeCreateIndex('RedemptionRequest', 'created_at')
+      results.push('RedemptionRequest indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`RedemptionRequest indexes: ${msg}`)
+    }
+
+    try {
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'RedemptionRequest_user_id_fkey'
+            AND table_name = 'RedemptionRequest'
+          ) THEN
+            ALTER TABLE "RedemptionRequest"
+              ADD CONSTRAINT "RedemptionRequest_user_id_fkey"
+              FOREIGN KEY ("user_id") REFERENCES "Profile"("id") ON DELETE CASCADE;
+          END IF;
+        END $$
+      `)
+      results.push('RedemptionRequest FK → Profile: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`RedemptionRequest FK → Profile: ${msg}`)
+    }
+
+    try {
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'RedemptionRequest_balance_fkey'
+            AND table_name = 'RedemptionRequest'
+          ) THEN
+            ALTER TABLE "RedemptionRequest"
+              ADD CONSTRAINT "RedemptionRequest_balance_fkey"
+              FOREIGN KEY ("user_id") REFERENCES "AetherBalance"("user_id") ON DELETE CASCADE;
+          END IF;
+        END $$
+      `)
+      results.push('RedemptionRequest FK → AetherBalance: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`RedemptionRequest FK → AetherBalance: ${msg}`)
+    }
+
+    // ── AetherTask seed data ──────────────────────────────────
+    try {
+      const taskCount: { count: number }[] = await db.$queryRawUnsafe(`
+        SELECT COUNT(*)::int as count FROM "AetherTask"
+      `)
+      if (taskCount[0]?.count === 0) {
+        const tasks = [
+          // Daily tasks
+          { task_key: 'daily_login', title: 'Daily Login', description: 'Open the app today', reward_amount: 5, category: 'daily', reset_type: 'daily', affiliate_url: null, display_order: 1 },
+          { task_key: 'view_tournament', title: 'View Tournament', description: 'View any tournament details', reward_amount: 3, category: 'daily', reset_type: 'daily', affiliate_url: null, display_order: 2 },
+          { task_key: 'check_leaderboard', title: 'Check Leaderboard', description: 'Visit the leaderboard page', reward_amount: 3, category: 'daily', reset_type: 'daily', affiliate_url: null, display_order: 3 },
+          // Tournament tasks
+          { task_key: 'register_tournament', title: 'Register for Tournament', description: 'Register for any tournament', reward_amount: 10, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 4 },
+          { task_key: 'play_tournament', title: 'Play a Tournament', description: 'Complete a tournament match', reward_amount: 25, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 5 },
+          { task_key: 'win_tournament', title: 'Win a Tournament', description: 'Win 1st place in a tournament', reward_amount: 100, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 6 },
+          { task_key: 'win_2nd_place', title: 'Win 2nd Place', description: 'Get 2nd place in a tournament', reward_amount: 60, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 7 },
+          { task_key: 'win_3rd_place', title: 'Win 3rd Place', description: 'Get 3rd place in a tournament', reward_amount: 40, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 8 },
+          // Engagement tasks
+          { task_key: 'complete_profile', title: 'Complete Profile', description: 'Add bio and avatar to your profile', reward_amount: 15, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 9 },
+          { task_key: 'refer_friend', title: 'Refer a Friend', description: 'Share referral link, friend signs up', reward_amount: 30, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 10 },
+          { task_key: 'streak_7', title: '7-Day Streak', description: 'Log in 7 consecutive days', reward_amount: 50, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 11 },
+          { task_key: 'streak_30', title: '30-Day Streak', description: 'Log in 30 consecutive days', reward_amount: 200, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 12 },
+          // Affiliate tasks
+          { task_key: 'try_bgmi', title: 'Try BGMI', description: 'Download BGMI via our affiliate link', reward_amount: 20, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/bgmi', display_order: 13 },
+          { task_key: 'try_freefire', title: 'Try Free Fire', description: 'Download Free Fire via our affiliate link', reward_amount: 20, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/freefire', display_order: 14 },
+          { task_key: 'try_codm', title: 'Try COD Mobile', description: 'Download COD Mobile via our affiliate link', reward_amount: 20, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/call-of-duty-mobile', display_order: 15 },
+          { task_key: 'try_clashroyale', title: 'Try Clash Royale', description: 'Download Clash Royale via our affiliate link', reward_amount: 15, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/clash-royale', display_order: 16 },
+          { task_key: 'try_valorant', title: 'Try Valorant Mobile', description: 'Download Valorant Mobile via our affiliate link', reward_amount: 15, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/valorant-mobile', display_order: 17 },
+        ]
+
+        for (const t of tasks) {
+          await db.$executeRawUnsafe(`
+            INSERT INTO "AetherTask" ("task_key", "title", "description", "reward_amount", "category", "reset_type", "affiliate_url", "display_order")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `, t.task_key, t.title, t.description, t.reward_amount, t.category, t.reset_type, t.affiliate_url, t.display_order)
+        }
+        results.push(`AetherTask seed: inserted ${tasks.length} tasks`)
+      } else {
+        results.push('AetherTask seed: already has data, skipping')
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTask seed: ${msg}`)
+    }
+
     return NextResponse.json({ success: true, results })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -236,6 +629,12 @@ export async function DELETE(request: Request) {
       'Announcement',
       'ContactSubmission',
       'Game',
+      'AetherTaskProgress',
+      'AetherTransaction',
+      'RedemptionRequest',
+      'AetherBalance',
+      'UserStreak',
+      'AetherTask',
     ]
 
     for (const table of dataTables) {

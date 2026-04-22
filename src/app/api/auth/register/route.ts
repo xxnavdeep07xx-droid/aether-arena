@@ -5,7 +5,7 @@ import { createSession, getSessionCookieOptions } from '@/lib/auth'
 
 export async function POST(request: Request) {
   // Parse body ONCE before any try/catch
-  let body: { email?: string; password?: string; username?: string; displayName?: string }
+  let body: { email?: string; password?: string; username?: string; displayName?: string; ref?: string }
   try {
     body = await request.json()
   } catch {
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const { email, password, username, displayName } = body
+  const { email, password, username, displayName, ref } = body
 
   // Validate required fields
   if (!email || !password || !username) {
@@ -89,11 +89,12 @@ export async function POST(request: Request) {
       const userCount = await tx.profile.count()
       const isAdmin = userCount === 0
 
-      return tx.profile.create({
+      const created = tx.profile.create({
         data: {
           username,
           displayName: displayName || username,
           isAdmin,
+          referredByCode: ref || null,
           credentials: {
             create: {
               email: email.toLowerCase(),
@@ -107,6 +108,93 @@ export async function POST(request: Request) {
           },
         },
       })
+
+      // Wait for the profile to be created before creating related records
+      const profile = await created
+
+      // Create AetherBalance with 50 welcome bonus
+      await tx.aetherBalance.create({
+        data: {
+          userId: profile.id,
+          balance: 50,
+          totalEarned: 50,
+          totalRedeemed: 0,
+        },
+      })
+
+      // Create welcome bonus transaction
+      await tx.aetherTransaction.create({
+        data: {
+          userId: profile.id,
+          type: 'bonus',
+          source: 'welcome_bonus',
+          description: 'Welcome Bonus! 50 Aether to get you started',
+          amount: 50,
+          balanceAfter: 50,
+        },
+      })
+
+      // Create UserStreak with current streak 1
+      await tx.userStreak.create({
+        data: {
+          userId: profile.id,
+          currentStreak: 1,
+          longestStreak: 1,
+          lastLoginDate: new Date(),
+        },
+      })
+
+      // Auto-complete daily_login task for today
+      const now = new Date()
+      const istOffset = 5.5 * 60 * 60 * 1000
+      const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000
+      const ist = new Date(utc + istOffset)
+      ist.setHours(0, 0, 0, 0)
+
+      await tx.aetherTaskProgress.create({
+        data: {
+          userId: profile.id,
+          taskKey: 'daily_login',
+          completed: true,
+          completedAt: new Date(),
+          resetDate: ist,
+          timesCompleted: 1,
+        },
+      })
+
+      // Handle referral: if ref code provided, award 30 Aether to the referrer
+      if (ref && ref.trim().length > 0) {
+        const referrer = await tx.profile.findFirst({
+          where: { username: ref.trim().toLowerCase() },
+        })
+        if (referrer && referrer.id !== profile.id) {
+          const referrerBalance = await tx.aetherBalance.upsert({
+            where: { userId: referrer.id },
+            create: { userId: referrer.id, balance: 0, totalEarned: 0, totalRedeemed: 0 },
+            update: {},
+          })
+          const newReferrerBalance = referrerBalance.balance + 30
+          await tx.aetherBalance.update({
+            where: { userId: referrer.id },
+            data: {
+              balance: newReferrerBalance,
+              totalEarned: { increment: 30 },
+            },
+          })
+          await tx.aetherTransaction.create({
+            data: {
+              userId: referrer.id,
+              type: 'referral',
+              source: 'referral',
+              description: `Referral Bonus: ${profile.username} signed up using your link`,
+              amount: 30,
+              balanceAfter: newReferrerBalance,
+            },
+          })
+        }
+      }
+
+      return profile
     })
 
     // Create session

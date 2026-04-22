@@ -83,9 +83,16 @@ model Profile {
   announcements             Announcement[]
   createdStreamSchedules    StreamSchedule[]
   updatedPlatformSettings   PlatformSetting[]
+  aetherBalance             AetherBalance?
+  aetherTransactions        AetherTransaction[]
+  userStreak                UserStreak?
+  redemptionRequests        RedemptionRequest[]
+  aetherTaskProgress        AetherTaskProgress[]
+  referredByCode            String?
 
   @@index([league])
   @@index([leaguePoints])
+  @@index([referredByCode])
 }
 
 // ============================================
@@ -366,6 +373,111 @@ model AccountCredential {
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email])
+}
+
+// ============================================
+// AetherBalance
+// ============================================
+model AetherBalance {
+  userId        String   @id @map("user_id")
+  balance       Int      @default(0)
+  totalEarned   Int      @default(0) @map("total_earned")
+  totalRedeemed Int      @default(0) @map("total_redeemed")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  user          Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  AetherTransaction[]
+  redemptions   RedemptionRequest[]
+
+  @@map("AetherBalance")
+}
+
+// ============================================
+// AetherTransaction
+// ============================================
+model AetherTransaction {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  type         String
+  source       String?
+  description  String
+  amount       Int
+  balanceAfter Int      @map("balance_after")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      AetherBalance @relation(fields: [userId], references: [userId], map: "AetherTransaction_balance_fkey")
+
+  @@map("AetherTransaction")
+}
+
+// ============================================
+// AetherTask
+// ============================================
+model AetherTask {
+  id            String   @id @default(uuid())
+  taskKey       String   @unique @map("task_key")
+  title         String
+  description   String
+  rewardAmount  Int      @map("reward_amount")
+  category      String
+  resetType     String   @map("reset_type")
+  affiliateUrl  String?  @map("affiliate_url")
+  isActive      Boolean  @default(true) @map("is_active")
+  displayOrder  Int      @default(0) @map("display_order")
+  progress      AetherTaskProgress[]
+
+  @@map("AetherTask")
+}
+
+// ============================================
+// AetherTaskProgress
+// ============================================
+model AetherTaskProgress {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  taskKey        String    @map("task_key")
+  completed      Boolean   @default(false)
+  completedAt    DateTime? @map("completed_at")
+  resetDate      DateTime? @map("reset_date")
+  timesCompleted Int       @default(0) @map("times_completed")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  user           Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task           AetherTask @relation(fields: [taskKey], references: [taskKey])
+
+  @@unique([userId, taskKey, resetDate])
+  @@map("AetherTaskProgress")
+}
+
+// ============================================
+// UserStreak
+// ============================================
+model UserStreak {
+  userId        String    @id @map("user_id")
+  currentStreak Int       @default(0) @map("current_streak")
+  longestStreak Int       @default(0) @map("longest_streak")
+  lastLoginDate DateTime? @map("last_login_date")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  user          Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("UserStreak")
+}
+
+// ============================================
+// RedemptionRequest
+// ============================================
+model RedemptionRequest {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  amountAether Int       @map("amount_aether")
+  amountInr    Float     @map("amount_inr")
+  upiId        String    @map("upi_id")
+  status       String    @default("pending")
+  adminNote    String?   @map("admin_note")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  processedAt  DateTime? @map("processed_at")
+  user         Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      AetherBalance @relation(fields: [userId], references: [userId], map: "RedemptionRequest_balance_fkey")
+
+  @@map("RedemptionRequest")
 }
 
 // ============================================
