@@ -18,26 +18,8 @@ export async function GET(request: Request) {
     })
 
     return NextResponse.json({ packs })
-  } catch (error: any) {
-    // If table doesn't exist yet, auto-trigger setup
-    const msg = error?.message || ''
-    if (msg.includes('does not exist') || msg.includes('relation')) {
-      try {
-        const setupRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/setup`)
-        if (setupRes.ok) {
-          // Retry after setup
-          const where2: Record<string, unknown> = { isActive: true }
-          if (game && game !== 'all') {
-            where2.gameSlug = game
-          }
-          const packs = await db.topupPack.findMany({
-            where: where2,
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-          })
-          return NextResponse.json({ packs })
-        }
-      } catch { /* ignore setup failure */ }
-    }
+  } catch (error: unknown) {
+    console.error('TopupPacks GET error:', error)
     return NextResponse.json({ packs: [] })
   }
 }
