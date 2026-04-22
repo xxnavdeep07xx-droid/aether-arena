@@ -19,23 +19,55 @@ export async function GET(request: Request) {
   try {
     const results: string[] = []
 
-    // 1. Add bannerImageUrl column to Tournament table if missing
-    try {
+    // Helper: add column if missing
+    async function addColumnIfMissing(table: string, column: string, type: string, nullable: boolean, defaultVal: string | null = null) {
       await db.$executeRawUnsafe(`
         DO $$
         BEGIN
           IF NOT EXISTS (
             SELECT 1 FROM information_schema.columns
-            WHERE table_name = 'Tournament' AND column_name = 'bannerImageUrl'
+            WHERE table_name = '${table}' AND column_name = '${column}'
           ) THEN
-            ALTER TABLE "Tournament" ADD COLUMN "bannerImageUrl" TEXT NOT NULL DEFAULT '';
+            EXECUTE 'ALTER TABLE "${table}" ADD COLUMN "${column}" ${type}' ||
+              CASE WHEN ${nullable} THEN '' ELSE ' NOT NULL' END ||
+              CASE WHEN ${defaultVal !== null} THEN ' DEFAULT ${defaultVal}' ELSE '' END;
           END IF;
         END $$
       `)
-      results.push('Tournament.bannerImageUrl: OK')
+    }
+
+    // 1. Profile table — add any missing columns (schema drift fix)
+    try {
+      await addColumnIfMissing('Profile', 'bio', 'TEXT', false, "''")
+      await addColumnIfMissing('Profile', 'discordId', 'TEXT', true)
+      await addColumnIfMissing('Profile', 'discordUsername', 'TEXT', true)
+      await addColumnIfMissing('Profile', 'league', 'TEXT', false, "'bronze'")
+      await addColumnIfMissing('Profile', 'leaguePoints', 'INTEGER', false, '0')
+      await addColumnIfMissing('Profile', 'totalTournamentsPlayed', 'INTEGER', false, '0')
+      await addColumnIfMissing('Profile', 'totalWins', 'INTEGER', false, '0')
+      await addColumnIfMissing('Profile', 'totalKills', 'INTEGER', false, '0')
+      await addColumnIfMissing('Profile', 'totalDeaths', 'INTEGER', false, '0')
+      await addColumnIfMissing('Profile', 'totalPrizeWon', 'INTEGER', false, '0')
+      await addColumnIfMissing('Profile', 'scheduledDeletionAt', 'TIMESTAMP(3)', true)
+      results.push('Profile columns: OK')
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error';
-      results.push(`Tournament.bannerImageUrl: ${msg}`)
+      results.push(`Profile columns: ${msg}`)
+    }
+
+    // 1b. Tournament table — add any missing columns
+    try {
+      await addColumnIfMissing('Tournament', 'bannerImageUrl', 'TEXT', false, "''")
+      await addColumnIfMissing('Tournament', 'streamScheduled', 'BOOLEAN', false, 'false')
+      await addColumnIfMissing('Tournament', 'streamPlatform', 'TEXT', false, "''")
+      await addColumnIfMissing('Tournament', 'streamUrl', 'TEXT', false, "''")
+      await addColumnIfMissing('Tournament', 'streamStartTime', 'TIMESTAMP(3)', true)
+      await addColumnIfMissing('Tournament', 'streamViewers', 'INTEGER', false, '0')
+      await addColumnIfMissing('Tournament', 'isFeatured', 'BOOLEAN', false, 'false')
+      results.push('Tournament columns: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error';
+      results.push(`Tournament columns: ${msg}`)
     }
 
     // 2. Create TopupPack table if missing
