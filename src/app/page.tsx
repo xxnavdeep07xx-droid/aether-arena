@@ -1,7 +1,8 @@
 'use client';
 
 import { useAppStore, useAuthStore, ViewName } from '@/lib/store';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Trophy, Zap, Shield, ChevronRight,
   Tv, BarChart3, User, Home, LogOut,
@@ -31,6 +32,47 @@ import { PrivacyPolicyView, TermsConditionsView, RefundPolicyView, ContactView }
 import { SubViewHeader } from '@/components/views/SubViewHeader';
 import { RightPanelContent } from '@/components/views/RightPanelContent';
 import { SearchBarInput } from '@/components/views/SearchBarInput';
+
+// ==================== NOTIFICATION BADGE ====================
+
+function useUnreadCount() {
+  const { isAuthenticated } = useAuthStore();
+  const { data: unreadCount } = useQuery({
+    queryKey: ['unread-notifications'],
+    queryFn: () => fetch('/api/notifications?limit=1').then(r => r.json()).then(d => d.unreadCount || 0),
+    refetchInterval: 30000,
+    enabled: isAuthenticated,
+  });
+  return unreadCount || 0;
+}
+
+function BellWithBadge({ className }: { className?: string }) {
+  const unread = useUnreadCount();
+  return (
+    <span className="relative">
+      <Bell className={className || 'w-5 h-5'} />
+      {unread > 0 && (
+        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold leading-none">
+          {unread > 99 ? '99+' : unread}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function BellWithBadgeSm({ className }: { className?: string }) {
+  const unread = useUnreadCount();
+  return (
+    <span className="relative">
+      <Bell className={className || 'w-4 h-4'} />
+      {unread > 0 && (
+        <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold leading-none">
+          {unread > 99 ? '99' : unread}
+        </span>
+      )}
+    </span>
+  );
+}
 
 // ==================== VIEW RENDERER ====================
 
@@ -164,8 +206,8 @@ export default function Page() {
               <button onClick={() => navigate('topup')} aria-label="Top Up" title="Top Up" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
                 <Zap className="w-5 h-5" />
               </button>
-              <button onClick={() => navigate('notifications')} aria-label="Notifications" title="Notifications" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200 relative">
-                <Bell className="w-5 h-5" />
+              <button onClick={() => navigate('notifications')} aria-label="Notifications" title="Notifications" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
+                <BellWithBadge />
               </button>
               <button onClick={() => navigate('settings')} aria-label="Settings" title="Settings" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
                 <Settings className="w-5 h-5" />
@@ -256,8 +298,8 @@ export default function Page() {
                 </div>
                 {/* Right icons */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200 relative">
-                    <Bell className="w-4 h-4" />
+                  <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200">
+                    <BellWithBadgeSm />
                   </button>
                   <button onClick={() => navigate('profile')} className="w-9 h-9 rounded-xl overflow-hidden border-2 border-arena-accent/50 hover:border-arena-accent transition-colors duration-150 cursor-pointer">
                     {user?.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (

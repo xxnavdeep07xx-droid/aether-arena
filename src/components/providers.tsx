@@ -20,12 +20,12 @@ function SplashScreen({ onFinish }: { onFinish: () => void }) {
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('hold'), 800);
     const t2 = setTimeout(() => setPhase('exit'), 2400);
-    const t3 = setTimeout(() => onFinish(), 3000);
+    const t3 = setTimeout(() => onFinish(), 2000);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onFinish]);
 
   return (
-    <div className={`fixed inset-0 z-[200] bg-arena-dark flex items-center justify-center transition-opacity duration-700 ${phase === 'exit' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+    <div onClick={() => onFinish()} className={`fixed inset-0 z-[200] bg-arena-dark flex items-center justify-center transition-opacity duration-700 cursor-pointer ${phase === 'exit' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       <div className="relative flex items-center justify-center">
         {/* Background radial glow */}
         <div className={`absolute w-[400px] h-[400px] rounded-full transition-all duration-1000 ${phase === 'enter' ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
@@ -82,6 +82,9 @@ function SplashScreen({ onFinish }: { onFinish: () => void }) {
             style={{ filter: phase === 'hold' ? 'drop-shadow(0 0 20px rgba(255,75,92,0.6)) brightness(1.1)' : 'drop-shadow(0 0 10px rgba(255,75,92,0.3))' }}
           />
         </div>
+
+        {/* Tap to skip */}
+        <p className={`absolute -bottom-20 text-[11px] text-arena-text-muted/60 transition-all duration-500 delay-700 ${phase === 'enter' ? 'opacity-0' : 'opacity-100'}`}>Tap to skip</p>
 
         {/* Loading dots */}
         <div className={`absolute -bottom-16 flex items-center gap-2 transition-all duration-500 delay-500 ${phase === 'enter' ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
@@ -140,12 +143,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       <Toaster
         position="top-center"
-        theme="dark"
         toastOptions={{
           style: {
-            background: '#1a1a24',
-            border: '1px solid #2a2a38',
-            color: '#ffffff',
+            background: 'var(--arena-card)',
+            border: '1px solid var(--arena-border)',
+            color: 'var(--arena-text-primary)',
           },
         }}
       />

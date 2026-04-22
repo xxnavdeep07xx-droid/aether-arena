@@ -6,9 +6,9 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Crown, ChevronRight, Swords, Star, CircleDot, Clock,
   Gamepad2, Trophy, ShoppingBag, ExternalLink, Zap,
-  ChevronLeft, Play, Eye
+  ChevronLeft, Play, Eye, Timer
 } from 'lucide-react';
-import { cn, paiseToRupee, formatDate, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
+import { cn, paiseToRupee, formatDate, getCountdown, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
 
 export function HomeView() {
   return (
@@ -442,6 +442,33 @@ function HomeTournamentsSection() {
   );
 }
 
+// ==================== COUNTDOWN HOOK ====================
+
+function useCountdown(targetDate: string | Date | null) {
+  const [countdown, setCountdown] = useState('');
+  useEffect(() => {
+    if (!targetDate) return;
+    const update = () => setCountdown(getCountdown(targetDate));
+    update();
+    const timer = setInterval(update, 60000); // update every minute
+    return () => clearInterval(timer);
+  }, [targetDate]);
+  return countdown;
+}
+
+// ==================== COUNTDOWN TIMER ====================
+
+function CountdownTimer({ startTime }: { startTime: string | Date }) {
+  const countdown = useCountdown(startTime);
+  if (!countdown || countdown === 'Started!') return null;
+  return (
+    <div className="flex items-center gap-1 text-[10px] text-arena-accent font-medium mb-2">
+      <Timer className="w-3 h-3" />
+      <span>Starts in {countdown}</span>
+    </div>
+  );
+}
+
 // ==================== TOURNAMENT CARD ====================
 
 export function TournamentCard({ tournament: t, onClick }: { tournament: any; onClick: () => void }) {
@@ -471,6 +498,7 @@ export function TournamentCard({ tournament: t, onClick }: { tournament: any; on
           <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{t.startTime ? formatDate(t.startTime) : 'TBD'}</span>
           <span>{t.registeredPlayers || 0}/{t.maxPlayers} Players</span>
         </div>
+        {(t.status === 'upcoming' || t.status === 'registration_open') && t.startTime && <CountdownTimer startTime={t.startTime} />}
         <div className="w-full bg-arena-dark rounded-full h-1.5">
           <div className="bg-arena-accent rounded-full h-1.5 transition-all duration-300" style={{ width: `${Math.min(100, ((t.registeredPlayers || 0) / t.maxPlayers) * 100)}%` }} />
         </div>

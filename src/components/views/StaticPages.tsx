@@ -293,7 +293,7 @@ export function ContactView() {
       <div className="grid md:grid-cols-3 gap-6 mb-8">
         {[
           { icon: MessageSquare, title: 'Discord', desc: 'Join our Discord server for instant support', value: 'Join Server', color: 'text-[#5865F2]', bg: 'bg-[#5865F2]/10' },
-          { icon: Mail, title: 'Email', desc: 'For business inquiries only', value: 'support@aetherarena.gg', color: 'text-arena-accent', bg: 'bg-arena-accent/10' },
+          { icon: Mail, title: 'Email', desc: 'For business inquiries only', value: 'support@aetherarena.com', color: 'text-arena-accent', bg: 'bg-arena-accent/10' },
           { icon: Clock, title: 'Response Time', desc: 'We typically reply within', value: '24-48 hours', color: 'text-arena-warning', bg: 'bg-arena-warning/10' },
         ].map(item => (
           <div key={item.title} className="bg-arena-card border border-arena-border rounded-xl p-4 text-center">

@@ -311,18 +311,18 @@ export function LandingView() {
           <div className="border-t border-arena-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <img src="/logo-md.webp" alt="Aether Arena" className="w-6 h-6 rounded-lg" />
-              <span className="text-xs text-arena-text-muted">© 2025 Aether Arena. All rights reserved.</span>
+              <span className="text-xs text-arena-text-muted">© {new Date().getFullYear()} Aether Arena. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-4">
               {[
-                { name: 'Twitter', url: '#' },
-                { name: 'Discord', url: '#' },
-                { name: 'YouTube', url: '#' },
-                { name: 'Instagram', url: '#' },
+                { name: 'Twitter', url: 'https://twitter.com/aetherarena' },
+                { name: 'Discord', url: 'https://discord.gg/aetherarena' },
+                { name: 'YouTube', url: 'https://youtube.com/@aetherarena' },
+                { name: 'Instagram', url: 'https://instagram.com/aetherarena' },
               ].map(s => (
-                <button key={s.name} onClick={() => toast.info(`${s.name} link coming soon!`)} className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150">
+                <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150">
                   {s.name}
-                </button>
+                </a>
               ))}
             </div>
           </div>

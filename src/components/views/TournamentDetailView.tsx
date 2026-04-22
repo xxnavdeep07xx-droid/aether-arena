@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Skeleton } from './Skeletons';
 
 export function TournamentDetailView() {
-  const { viewParams } = useAppStore();
+  const { viewParams, navigate } = useAppStore();
   const { isAuthenticated } = useAuthStore();
   const [showRegister, setShowRegister] = useState(false);
   const [registered, setRegistered] = useState(false);
@@ -109,7 +109,7 @@ export function TournamentDetailView() {
                 {paymentStatus === 'verified' ? '✓ Registered' : '⏳ Payment Pending'}
               </span>
             ) : !isAuthenticated ? (
-              <button onClick={() => { toast.error('Please log in to register'); window.dispatchEvent(new Event('show-login')); }} className="px-6 py-2.5 h-11 border border-arena-accent text-arena-accent font-semibold rounded-xl transition-all duration-200 text-sm">
+              <button onClick={() => { toast.error('Please log in to register'); navigate('landing'); }} className="px-6 py-2.5 h-11 border border-arena-accent text-arena-accent font-semibold rounded-xl transition-all duration-200 text-sm">
                 Login to Register
               </button>
             ) : null}

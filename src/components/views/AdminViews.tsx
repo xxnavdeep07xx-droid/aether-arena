@@ -1,13 +1,13 @@
 'use client';
 
 import { useAppStore, useAuthStore, ViewName } from '@/lib/store';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Users, Trophy, Clock, DollarSign, CheckCircle2, XCircle, Plus,
   Eye, Trash2, Gamepad2, Pencil, X, Tv, ExternalLink, Link2,
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
-  ChevronRight
+  ChevronRight, AlertTriangle
 } from 'lucide-react';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime, timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -16,6 +16,42 @@ import {
   PieChart, Pie, Cell, CartesianGrid, Area, AreaChart
 } from 'recharts';
 import { Skeleton } from './Skeletons';
+
+// ==================== REUSABLE CONFIRM DIALOG ====================
+
+interface ConfirmDialogState {
+  open: boolean;
+  title: string;
+  description: string;
+  onConfirm: () => void;
+}
+
+function ConfirmDialog({ state, onClose }: { state: ConfirmDialogState; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-sm animate-fade-in-up" onClick={e => e.stopPropagation()}>
+        <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-red-500/10 flex items-center justify-center">
+          <AlertTriangle className="w-6 h-6 text-red-400" />
+        </div>
+        <h3 className="text-lg font-bold text-center mb-1">{state.title}</h3>
+        <p className="text-sm text-arena-text-secondary text-center mb-6">{state.description}</p>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
+          <button onClick={() => { state.onConfirm(); onClose(); }} className="flex-1 py-2.5 h-10 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 text-sm">Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function useConfirmDialog() {
+  const [dialog, setDialog] = useState<ConfirmDialogState>({ open: false, title: '', description: '', onConfirm: () => {} });
+  const confirm = useCallback((title: string, description: string, onConfirm: () => void) => {
+    setDialog({ open: true, title, description, onConfirm });
+  }, []);
+  const close = useCallback(() => setDialog(d => ({ ...d, open: false })), []);
+  return { dialog, confirm, close };
+}
 
 // ==================== ADMIN DASHBOARD ====================
 
@@ -57,8 +93,8 @@ export function AdminDashboardView() {
           { label: 'Manage Games', icon: Gamepad2, view: 'admin-games' as ViewName },
           { label: 'Manage Streams', icon: Tv, view: 'admin-streams' as ViewName },
           { label: 'Manage Affiliates', icon: Link2, view: 'admin-affiliates' as ViewName },
-          { label: '⚡ Top Up Packs', icon: Zap, view: 'admin-topup' as ViewName },
-          { label: '📊 Analytics', icon: BarChart3, view: 'admin-analytics' as ViewName },
+          { label: 'Top Up Packs', icon: Zap, view: 'admin-topup' as ViewName },
+          { label: 'Analytics', icon: BarChart3, view: 'admin-analytics' as ViewName },
           { label: 'Platform Settings', icon: Settings, view: 'admin-settings' as ViewName },
         ].map(action => (
           <button key={action.label} onClick={() => navigate(action.view)}
@@ -78,26 +114,20 @@ export function AdminDashboardView() {
 export function AdminTournamentsView() {
   const { navigate } = useAppStore();
   const [statusFilter, setStatusFilter] = useState('');
+  const { dialog, confirm, close } = useConfirmDialog();
 
   const { data: tournaments, refetch } = useQuery({
     queryKey: ['admin-tournaments', statusFilter],
     queryFn: () => fetch(`/api/admin/tournaments${statusFilter ? `?status=${statusFilter}` : ''}`).then(r => r.json()).then(d => d.tournaments || d || []),
   });
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this tournament?')) return;
+  const deleteTournament = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/tournaments/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'Failed to delete tournament');
-        return;
-      }
+      if (!res.ok) { const data = await res.json().catch(() => ({})); toast.error(data.error || 'Failed to delete tournament'); return; }
       refetch();
       toast.success('Tournament deleted');
-    } catch {
-      toast.error('Failed to delete tournament');
-    }
+    } catch { toast.error('Failed to delete tournament'); }
   };
 
   return (
@@ -128,11 +158,12 @@ export function AdminTournamentsView() {
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 ml-4">
               <button onClick={() => navigate('tournament-detail', { id: t.id })} aria-label="View tournament" className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150"><Eye className="w-4 h-4 text-arena-text-muted" /></button>
-              <button onClick={() => handleDelete(t.id)} aria-label="Delete tournament" className="p-1.5 rounded-lg hover:bg-arena-accent/10 transition-colors duration-150"><Trash2 className="w-4 h-4 text-arena-text-muted hover:text-arena-accent" /></button>
+              <button onClick={() => confirm('Delete Tournament', 'Are you sure you want to delete this tournament? This action cannot be undone.', () => deleteTournament(t.id))} aria-label="Delete tournament" className="p-1.5 rounded-lg hover:bg-arena-accent/10 transition-colors duration-150"><Trash2 className="w-4 h-4 text-arena-text-muted hover:text-arena-accent" /></button>
             </div>
           </div>
         ))}
       </div>
+      {dialog.open && <ConfirmDialog state={dialog} onClose={close} />}
     </div>
   );
 }
@@ -176,7 +207,6 @@ export function AdminTournamentCreateView() {
 
   return (
     <div>
-      <div className="mb-6"></div>
       <form onSubmit={handleCreate} className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4 max-w-2xl">
         <div><label className={labelClass}>Title *</label><input type="text" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputClass} /></div>
         <div className="grid grid-cols-2 gap-4">
@@ -311,6 +341,7 @@ export function AdminGamesView() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const { dialog, confirm, close } = useConfirmDialog();
 
   const emptyForm = { name: '', slug: '', iconUrl: '', bannerUrl: '', maxTeamSize: 1, description: '', isActive: true, sortOrder: 0 };
   const [form, setForm] = useState(emptyForm);
@@ -337,13 +368,11 @@ export function AdminGamesView() {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this game? This may affect associated tournaments.')) return;
+  const deleteGame = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/games/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to delete game'); return; }
-      toast.success('Game deleted');
-      refetch();
+      toast.success('Game deleted'); refetch();
     } catch { toast.error('Failed to delete game'); }
   };
 
@@ -371,7 +400,7 @@ export function AdminGamesView() {
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               <button onClick={() => openEdit(g)} className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Edit game"><Pencil className="w-3.5 h-3.5 text-arena-text-muted" /></button>
-              <button onClick={() => handleDelete(g.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150" aria-label="Delete game"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+              <button onClick={() => confirm('Delete Game', 'Are you sure? This may affect associated tournaments.', () => deleteGame(g.id))} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150" aria-label="Delete game"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
             </div>
           </div>
         ))}
@@ -410,6 +439,7 @@ export function AdminGamesView() {
           </div>
         </div>
       )}
+      {dialog.open && <ConfirmDialog state={dialog} onClose={close} />}
     </div>
   );
 }
@@ -424,6 +454,7 @@ export function AdminStreamsView() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const { dialog, confirm, close } = useConfirmDialog();
 
   const emptyForm = { title: '', description: '', platform: '', streamUrl: '', thumbnailUrl: '', scheduledStart: '', scheduledEnd: '', isFeatured: false, status: 'scheduled' };
   const [form, setForm] = useState(emptyForm);
@@ -450,13 +481,11 @@ export function AdminStreamsView() {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this stream?')) return;
+  const deleteStream = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/streams/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to delete stream'); return; }
-      toast.success('Stream deleted');
-      refetch();
+      toast.success('Stream deleted'); refetch();
     } catch { toast.error('Failed to delete stream'); }
   };
 
@@ -483,7 +512,7 @@ export function AdminStreamsView() {
             <div className="flex items-center gap-1 flex-shrink-0 ml-3">
               {s.streamUrl && <a href={s.streamUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Open stream"><ExternalLink className="w-3.5 h-3.5 text-arena-text-muted" /></a>}
               <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Edit stream"><Pencil className="w-3.5 h-3.5 text-arena-text-muted" /></button>
-              <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150" aria-label="Delete stream"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+              <button onClick={() => confirm('Delete Stream', 'Are you sure you want to delete this stream?', () => deleteStream(s.id))} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150" aria-label="Delete stream"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
             </div>
           </div>
         ))}
@@ -521,6 +550,7 @@ export function AdminStreamsView() {
           </div>
         </div>
       )}
+      {dialog.open && <ConfirmDialog state={dialog} onClose={close} />}
     </div>
   );
 }
@@ -535,6 +565,7 @@ export function AdminAffiliatesView() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const { dialog, confirm, close } = useConfirmDialog();
 
   const emptyForm = { name: '', platform: '', url: '', slug: '', description: '', category: '', imageUrl: '', price: 0, originalPrice: 0, isActive: true, sortOrder: 0 };
   const [form, setForm] = useState(emptyForm);
@@ -561,13 +592,11 @@ export function AdminAffiliatesView() {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this affiliate?')) return;
+  const deleteAffiliate = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/affiliates/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Failed to delete affiliate'); return; }
-      toast.success('Affiliate deleted');
-      refetch();
+      toast.success('Affiliate deleted'); refetch();
     } catch { toast.error('Failed to delete affiliate'); }
   };
 
@@ -596,7 +625,7 @@ export function AdminAffiliatesView() {
             <div className="flex items-center gap-1 flex-shrink-0 ml-3">
               <a href={a.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Open affiliate link"><ExternalLink className="w-3.5 h-3.5 text-arena-text-muted" /></a>
               <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors duration-150" aria-label="Edit affiliate"><Pencil className="w-3.5 h-3.5 text-arena-text-muted" /></button>
-              <button onClick={() => handleDelete(a.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150" aria-label="Delete affiliate"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+              <button onClick={() => confirm('Delete Affiliate', 'Are you sure you want to delete this affiliate?', () => deleteAffiliate(a.id))} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150" aria-label="Delete affiliate"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
             </div>
           </div>
         ))}
@@ -640,6 +669,7 @@ export function AdminAffiliatesView() {
           </div>
         </div>
       )}
+      {dialog.open && <ConfirmDialog state={dialog} onClose={close} />}
     </div>
   );
 }
@@ -704,6 +734,7 @@ export function AdminTopupView() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingPack, setEditingPack] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const { dialog, confirm, close } = useConfirmDialog();
 
   const emptyForm = { gameName: '', gameSlug: '', packName: '', description: '', price: 0, originalPrice: 0, imageUrl: '', affiliateUrl: '', isPopular: false, isActive: true, sortOrder: 0 };
   const [form, setForm] = useState(emptyForm);
@@ -728,12 +759,10 @@ export function AdminTopupView() {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this pack?')) return;
+  const deletePack = async (id: string) => {
     try {
       await fetch(`/api/admin/topup-packs/${id}`, { method: 'DELETE' });
-      toast.success('Pack deleted');
-      refetch();
+      toast.success('Pack deleted'); refetch();
     } catch { toast.error('Failed to delete pack'); }
   };
 
@@ -763,7 +792,7 @@ export function AdminTopupView() {
             <div className="flex items-center gap-2">
               <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', pack.isActive ? 'bg-arena-success/20 text-arena-success' : 'bg-arena-text-muted/20 text-arena-text-muted')}>{pack.isActive ? 'Active' : 'Inactive'}</span>
               <button onClick={() => openEdit(pack)} className="p-1.5 rounded-lg hover:bg-arena-surface transition-colors"><Pencil className="w-3.5 h-3.5 text-arena-text-muted" /></button>
-              <button onClick={() => handleDelete(pack.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+              <button onClick={() => confirm('Delete Pack', 'Are you sure you want to delete this top-up pack?', () => deletePack(pack.id))} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
             </div>
           </div>
         ))}
@@ -831,6 +860,7 @@ export function AdminTopupView() {
           </div>
         </div>
       )}
+      {dialog.open && <ConfirmDialog state={dialog} onClose={close} />}
     </div>
   );
 }

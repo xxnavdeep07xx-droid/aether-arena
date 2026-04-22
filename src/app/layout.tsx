@@ -26,11 +26,13 @@ export const metadata: Metadata = {
     siteName: "Aether Arena",
     title: "Aether Arena — India's #1 Mobile Esports Tournament Platform",
     description: "Compete in mobile esports tournaments. Win real prizes.",
+    images: [{ url: '/logo-hero.webp', width: 1200, height: 630, alt: "Aether Arena - India's #1 Mobile Esports Tournament Platform" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Aether Arena — Esports Tournaments",
     description: "Compete in mobile esports tournaments. Win real prizes.",
+    images: ['/logo-hero.webp'],
   },
   robots: { index: true, follow: true },
 };
