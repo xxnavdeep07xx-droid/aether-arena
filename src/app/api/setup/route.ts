@@ -208,7 +208,8 @@ export async function GET(request: Request) {
   }
 }
 
-// DELETE /api/setup — Clear all seed/demo data from data tables (keeps schema + users)
+// DELETE /api/setup — Clear ALL seed/demo data from every data table.
+// Keeps only the first admin user profile (real user) and their credentials.
 export async function DELETE(request: Request) {
   if (SETUP_SECRET) {
     const authHeader = request.headers.get('authorization');
@@ -220,18 +221,24 @@ export async function DELETE(request: Request) {
   try {
     const results: string[] = []
 
-    // Clear all non-user data tables in dependency order
-    const tables = [
+    // Clear data tables in dependency order (child tables first)
+    const dataTables = [
       'Notification',
-      'Registration',
+      'Leaderboard',
+      'MatchParticipant',
+      'Match',
+      'TournamentRegistration',
       'Tournament',
       'TopupPack',
       'StreamSchedule',
+      'AffiliateLink',
       'PlatformSetting',
+      'Announcement',
       'ContactSubmission',
+      'Game',
     ]
 
-    for (const table of tables) {
+    for (const table of dataTables) {
       try {
         const res: { count: number }[] = await db.$queryRawUnsafe(
           `SELECT COUNT(*)::int as count FROM "${table}"`
@@ -243,6 +250,59 @@ export async function DELETE(request: Request) {
         const msg = e instanceof Error ? e.message : 'unknown'
         results.push(`${table}: skipped (${msg})`)
       }
+    }
+
+    // Reset all user profile stats to zero (keeps accounts intact)
+    try {
+      const profileReset = await db.$executeRawUnsafe(`
+        UPDATE "Profile" SET
+          "league" = 'bronze',
+          "leaguePoints" = 0,
+          "totalTournamentsPlayed" = 0,
+          "totalWins" = 0,
+          "totalKills" = 0,
+          "totalDeaths" = 0,
+          "totalPrizeWon" = 0,
+          "avatarUrl" = NULL,
+          "bio" = ''
+      `)
+      results.push(`Profile stats reset to zero`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'unknown'
+      results.push(`Profile reset: ${msg}`)
+    }
+
+    // Remove fake/seeded user profiles (keep only real admin with credentials)
+    try {
+      // Find IDs of users who have actual credentials (real registered users)
+      const realUsers: { id: string }[] = await db.$queryRawUnsafe(`
+        SELECT DISTINCT "userId" as id FROM "AccountCredential"
+      `)
+      const realIds = realUsers.map(u => u.id)
+
+      if (realIds.length > 0) {
+        const placeholders = realIds.map((_, i) => `$${i + 1}`).join(',')
+        const deleteResult: { count: number }[] = await db.$queryRawUnsafe(
+          `SELECT COUNT(*)::int as count FROM "Profile" WHERE "id" NOT IN (${placeholders})`,
+          ...realIds
+        )
+        const fakeCount = deleteResult[0]?.count || 0
+
+        if (fakeCount > 0) {
+          await db.$executeRawUnsafe(
+            `DELETE FROM "Profile" WHERE "id" NOT IN (${placeholders})`,
+            ...realIds
+          )
+          results.push(`Fake profiles deleted: ${fakeCount} (kept ${realIds.length} real users)`)
+        } else {
+          results.push(`No fake profiles found (all ${realIds.length} users have credentials)`)
+        }
+      } else {
+        results.push(`No real users found — skipping fake profile cleanup`)
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'unknown'
+      results.push(`Fake profile cleanup: ${msg}`)
     }
 
     return NextResponse.json({ success: true, results })
