@@ -3,7 +3,7 @@
 import { useAppStore, ViewName } from '@/lib/store';
 import {
   ArrowLeft, Trophy, Shield, Plus, CheckCircle2, Gamepad2,
-  Tv, Link2, Zap, BarChart3, Settings, Mail
+  Tv, Link2, Zap, BarChart3, Settings
 } from 'lucide-react';
 
 export function SubViewHeader({ currentView }: { currentView: ViewName }) {
@@ -12,7 +12,6 @@ export function SubViewHeader({ currentView }: { currentView: ViewName }) {
   const titles: Record<string, { title: string; back: ViewName; icon: typeof Trophy }> = {
     'settings': { title: 'Settings', back: 'home', icon: Settings },
     'tournament-detail': { title: 'Tournament Details', back: 'tournaments', icon: Trophy },
-    'admin-dashboard': { title: 'Admin Dashboard', back: 'home', icon: Shield },
     'admin-tournaments': { title: 'Manage Tournaments', back: 'admin-dashboard', icon: Trophy },
     'admin-tournament-create': { title: 'Create Tournament', back: 'admin-tournaments', icon: Plus },
     'admin-registrations': { title: 'Verify Payments', back: 'admin-dashboard', icon: CheckCircle2 },
@@ -25,7 +24,6 @@ export function SubViewHeader({ currentView }: { currentView: ViewName }) {
     'privacy-policy': { title: 'Privacy Policy', back: 'home', icon: Shield },
     'terms-conditions': { title: 'Terms & Conditions', back: 'home', icon: Shield },
     'refund-policy': { title: 'Refund Policy', back: 'home', icon: Shield },
-    'contact': { title: 'Contact Us', back: 'home', icon: Mail },
   };
 
   const config = titles[currentView] || { title: 'Back', back: 'home' as ViewName, icon: ArrowLeft };

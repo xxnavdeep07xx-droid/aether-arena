@@ -168,10 +168,18 @@ export default function Page() {
   ];
 
   // Views that show the main top bar (with hamburger on mobile)
-  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications', 'settings'];
+  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications', 'settings', 'admin-dashboard', 'contact'];
 
   // Views where the search bar is useful and functional
   const searchableViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams'];
+
+  // Section titles for views that are main sections but not in sidebar (shown in top bar)
+  const sectionTitles: Record<string, { title: string; icon: typeof Shield }> = {
+    'admin-dashboard': { title: 'Admin Panel', icon: Shield },
+    'contact': { title: 'Contact Us', icon: Mail },
+  };
+
+  const currentSection = sectionTitles[currentView];
 
   // Redirect to home if authenticated and on landing
   useEffect(() => {
@@ -294,12 +302,17 @@ export default function Page() {
                 <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
                   <Menu className="w-5 h-5" />
                 </button>
-                {/* Contextual search bar — only on views that support search */}
-                {searchableViews.includes(currentView) && (
+                {/* Section title or search bar */}
+                {currentSection ? (
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <currentSection.icon className="w-5 h-5 text-arena-accent flex-shrink-0" />
+                    <h1 className="text-base font-semibold truncate">{currentSection.title}</h1>
+                  </div>
+                ) : searchableViews.includes(currentView) ? (
                   <div className="relative flex-1 max-w-md">
                     <SearchBarInput />
                   </div>
-                )}
+                ) : null}
                 {/* Right icons */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200">
@@ -313,7 +326,7 @@ export default function Page() {
                 </div>
               </header>
             )}
-            {/* Minimal header for sub-views — NO hamburger menu */}
+            {/* Minimal header for sub-views — back arrow + title */}
             {!mainViews.includes(currentView) && (
               <div className="h-12 flex items-center px-3 md:px-6 border-b border-arena-border flex-shrink-0 bg-arena-dark/80 backdrop-blur-xl">
                 <SubViewHeader currentView={currentView} />
