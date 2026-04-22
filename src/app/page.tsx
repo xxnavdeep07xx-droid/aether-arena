@@ -170,6 +170,9 @@ export default function Page() {
   // Views that show the main top bar (with hamburger on mobile)
   const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'topup', 'profile', 'notifications', 'settings'];
 
+  // Views where the search bar is useful and functional
+  const searchableViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams'];
+
   // Redirect to home if authenticated and on landing
   useEffect(() => {
     if (isAuthenticated && currentView === 'landing') {
@@ -291,11 +294,12 @@ export default function Page() {
                 <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" className="md:hidden w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center flex-shrink-0">
                   <Menu className="w-5 h-5" />
                 </button>
-                {/* Contextual search bar */}
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-arena-text-muted pointer-events-none" />
-                  <SearchBarInput />
-                </div>
+                {/* Contextual search bar — only on views that support search */}
+                {searchableViews.includes(currentView) && (
+                  <div className="relative flex-1 max-w-md">
+                    <SearchBarInput />
+                  </div>
+                )}
                 {/* Right icons */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200">

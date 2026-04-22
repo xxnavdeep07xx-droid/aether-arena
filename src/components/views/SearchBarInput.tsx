@@ -31,11 +31,21 @@ export function SearchBarInput() {
     setQuery('');
   };
 
+  // Clear search when navigating to a non-searchable view
+  useEffect(() => {
+    if (!['home', 'tournaments', 'leaderboard', 'streams'].includes(currentView)) {
+      setLocalQuery('');
+      setDebouncedQuery('');
+      setQuery('');
+    }
+  }, [currentView, setQuery]);
+
   const placeholder =
-    currentView === 'home' ? 'Search tournaments, players...':
-    currentView === 'tournaments' ? 'Search tournaments...':
-    currentView === 'leaderboard' ? 'Search players...':
-    'Search streams...';
+    currentView === 'home' ? 'Search tournaments, players, streams...':
+    currentView === 'tournaments' ? 'Search tournaments by title or game...':
+    currentView === 'leaderboard' ? 'Search players by name...':
+    currentView === 'streams' ? 'Search streams by title...':
+    'Search...';
 
   return (
     <div className="relative">
