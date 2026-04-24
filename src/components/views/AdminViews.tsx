@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore, useAuthStore, ViewName } from '@/lib/store';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Users, Trophy, Clock, DollarSign, CheckCircle2, XCircle, Plus,
@@ -9,6 +9,7 @@ import {
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
   ChevronRight, AlertTriangle, Wallet, Loader2
 } from 'lucide-react';
+import { ArenaModal } from '@/components/ui/ArenaModal';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime, timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -96,6 +97,8 @@ export function AdminDashboardView() {
           { label: 'Manage Affiliates', icon: Link2, view: 'admin-affiliates' as ViewName },
           { label: 'Top Up Packs', icon: Zap, view: 'admin-topup' as ViewName },
           { label: 'Analytics', icon: BarChart3, view: 'admin-analytics' as ViewName },
+          { label: 'Manage Redemptions', icon: Wallet, view: 'admin-redemptions' as ViewName },
+          { label: 'Aether Manage', icon: Zap, view: 'admin-aether-manage' as ViewName },
           { label: 'Platform Settings', icon: Settings, view: 'admin-settings' as ViewName },
         ].map(action => (
           <button key={action.label} onClick={() => navigate(action.view)}
@@ -188,8 +191,8 @@ export function AdminTournamentCreateView() {
   });
 
   // Populate form when editing data loads
-  const hasPopulated = useState(false);
-  if (editId && existingTournament && !hasPopulated[0] && !loadingExisting) {
+  const hasPopulated = useRef(false);
+  if (editId && existingTournament && !hasPopulated.current && !loadingExisting) {
     const t = existingTournament;
     setForm({
       title: t.title || '',
@@ -209,7 +212,7 @@ export function AdminTournamentCreateView() {
       bannerImageUrl: t.bannerImageUrl || '',
       status: t.status || 'upcoming',
     });
-    hasPopulated[1](true);
+    hasPopulated.current = true;
   }
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -343,29 +346,47 @@ export function AdminRegistrationsView() {
       {registrations && registrations.length > 0 ? (
         <div className="space-y-2">
           {registrations.map((r: any) => (
-            <div key={r.id} className="bg-arena-card border border-arena-border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
+            <div key={r.id} className="bg-arena-card border border-arena-border rounded-xl p-4 hover:border-arena-accent/20 transition-all duration-200">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-arena-accent/10 flex items-center justify-center text-xs font-bold">{(r.player?.username || '?')[0].toUpperCase()}</div>
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
+                    {r.player?.avatarUrl ? <img src={r.player.avatarUrl} alt="" className="w-full h-full object-cover" /> : (r.player?.username || '?')[0].toUpperCase()}
+                  </div>
                   <div>
-                    <div className="font-medium text-sm">{r.player?.username || 'Unknown'}</div>
-                    <div className="text-xs text-arena-text-muted">{r.tournament?.title}</div>
+                    <div className="font-medium text-sm">{r.player?.displayName || r.player?.username || 'Unknown'}</div>
+                    <div className="text-xs text-arena-text-muted">@{r.player?.username}</div>
                   </div>
                 </div>
                 <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full',
                   r.paymentStatus === 'verified' ? 'bg-arena-success/20 text-arena-success' :
                   r.paymentStatus === 'pending' ? 'bg-arena-warning/20 text-arena-warning' : 'bg-arena-accent/20 text-arena-accent'
-                )}>{r.paymentStatus}</span>
+                )}>{r.paymentStatus === 'verified' ? 'Verified' : r.paymentStatus === 'pending' ? 'Pending' : 'Rejected'}</span>
               </div>
-              <div className="flex items-center justify-between text-xs text-arena-text-muted mb-2">
-                <span>Amount: {paiseToRupee(r.paidAmount)}</span>
-                {r.paymentReference && <span>Ref: {r.paymentReference}</span>}
-                <span>{timeAgo(r.createdAt)}</span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mb-3">
+                <div className="bg-arena-surface rounded-lg p-2">
+                  <div className="text-arena-text-muted">Tournament</div>
+                  <div className="font-medium truncate">{r.tournament?.title}</div>
+                </div>
+                <div className="bg-arena-surface rounded-lg p-2">
+                  <div className="text-arena-text-muted">Game</div>
+                  <div className="font-medium">{r.tournament?.game?.name || 'N/A'}</div>
+                </div>
+                <div className="bg-arena-surface rounded-lg p-2">
+                  <div className="text-arena-text-muted">Amount</div>
+                  <div className="font-bold text-arena-accent">{paiseToRupee(r.paidAmount)}</div>
+                </div>
+                <div className="bg-arena-surface rounded-lg p-2">
+                  <div className="text-arena-text-muted">Registered</div>
+                  <div className="font-medium">{timeAgo(r.createdAt)}</div>
+                </div>
               </div>
+              {r.paymentReference && (
+                <div className="text-[10px] text-arena-text-muted mb-2">Payment Ref: <span className="font-mono">{r.paymentReference}</span></div>
+              )}
               {r.paymentStatus === 'pending' && (
                 <div className="flex gap-2">
-                  <button onClick={() => handleVerify(r.id)} className="flex items-center gap-1 px-3 py-1.5 bg-arena-success/20 text-arena-success text-xs font-medium rounded-lg hover:bg-arena-success/30 transition-colors duration-150"><CheckCircle2 className="w-3 h-3" /> Verify</button>
-                  <button onClick={() => handleReject(r.id)} className="flex items-center gap-1 px-3 py-1.5 bg-arena-accent/20 text-arena-accent text-xs font-medium rounded-lg hover:bg-arena-accent/30 transition-colors duration-150"><XCircle className="w-3 h-3" /> Reject</button>
+                  <button onClick={() => handleVerify(r.id)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-arena-success/20 text-arena-success text-xs font-medium rounded-lg hover:bg-arena-success/30 transition-colors duration-150"><CheckCircle2 className="w-3 h-3" /> Verify</button>
+                  <button onClick={() => handleReject(r.id)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-arena-accent/20 text-arena-accent text-xs font-medium rounded-lg hover:bg-arena-accent/30 transition-colors duration-150"><XCircle className="w-3 h-3" /> Reject</button>
                 </div>
               )}
             </div>
@@ -453,39 +474,31 @@ export function AdminGamesView() {
         ))}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-fade-in-up">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold">{editing ? 'Edit Game' : 'New Game'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-arena-text-muted hover:text-white" aria-label="Close"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Name *</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="BGMI" /></div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Slug *</label><input type="text" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.replace(/\s/g, '').toLowerCase() })} className={inputClass} placeholder="bgmi" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Icon URL</label><input type="url" value={form.iconUrl} onChange={e => setForm({ ...form, iconUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Banner URL</label><input type="url" value={form.bannerUrl} onChange={e => setForm({ ...form, bannerUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
-              </div>
-              <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Game description" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Max Team Size</label><input type="number" min={1} value={form.maxTeamSize} onChange={e => setForm({ ...form, maxTeamSize: parseInt(e.target.value) || 1 })} className={inputClass} /></div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Sort Order</label><input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className={inputClass} /></div>
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
-                <span className="text-sm text-arena-text-secondary">Active</span>
-              </label>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
-                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
-              </div>
-            </div>
+      <ArenaModal open={showModal} onClose={() => setShowModal(false)} title={editing ? 'Edit Game' : 'New Game'} icon={<Gamepad2 className="w-5 h-5" />} size="lg">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Name *</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="BGMI" /></div>
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Slug *</label><input type="text" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.replace(/\s/g, '').toLowerCase() })} className={inputClass} placeholder="bgmi" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Icon URL</label><input type="url" value={form.iconUrl} onChange={e => setForm({ ...form, iconUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Banner URL</label><input type="url" value={form.bannerUrl} onChange={e => setForm({ ...form, bannerUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
+          </div>
+          <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Game description" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Max Team Size</label><input type="number" min={1} value={form.maxTeamSize} onChange={e => setForm({ ...form, maxTeamSize: parseInt(e.target.value) || 1 })} className={inputClass} /></div>
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Sort Order</label><input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className={inputClass} /></div>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
+            <span className="text-sm text-arena-text-secondary">Active</span>
+          </label>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
           </div>
         </div>
-      )}
+      </ArenaModal>
       {dialog.open && <ConfirmDialog state={dialog} onClose={close} />}
     </div>
   );
@@ -565,38 +578,30 @@ export function AdminStreamsView() {
         ))}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-fade-in-up">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold">{editing ? 'Edit Stream' : 'New Stream'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-arena-text-muted hover:text-white" aria-label="Close"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="space-y-3">
-              <div><label className="text-xs text-arena-text-secondary mb-1 block">Title *</label><input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputClass} placeholder="Stream title" /></div>
-              <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Stream description" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Platform</label><select value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className={inputClass}><option value="">Select</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option><option value="facebook">Facebook</option><option value="other">Other</option></select></div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Status</label><select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inputClass}><option value="scheduled">Scheduled</option><option value="live">Live</option><option value="ended">Ended</option><option value="cancelled">Cancelled</option></select></div>
-              </div>
-              <div><label className="text-xs text-arena-text-secondary mb-1 block">Stream URL</label><input type="url" value={form.streamUrl} onChange={e => setForm({ ...form, streamUrl: e.target.value })} className={inputClass} placeholder="https://youtube.com/watch?v=..." /></div>
-              <div><label className="text-xs text-arena-text-secondary mb-1 block">Thumbnail URL</label><input type="url" value={form.thumbnailUrl} onChange={e => setForm({ ...form, thumbnailUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Scheduled Start *</label><input type="datetime-local" value={form.scheduledStart} onChange={e => setForm({ ...form, scheduledStart: e.target.value })} className={inputClass} /></div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Scheduled End</label><input type="datetime-local" value={form.scheduledEnd} onChange={e => setForm({ ...form, scheduledEnd: e.target.value })} className={inputClass} /></div>
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.isFeatured} onChange={e => setForm({ ...form, isFeatured: e.target.checked })} className="accent-arena-accent" />
-                <span className="text-sm text-arena-text-secondary">Featured</span>
-              </label>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
-                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
-              </div>
-            </div>
+      <ArenaModal open={showModal} onClose={() => setShowModal(false)} title={editing ? 'Edit Stream' : 'New Stream'} icon={<Tv className="w-5 h-5" />} size="lg">
+        <div className="space-y-3">
+          <div><label className="text-xs text-arena-text-secondary mb-1 block">Title *</label><input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputClass} placeholder="Stream title" /></div>
+          <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Stream description" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Platform</label><select value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className={inputClass}><option value="">Select</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option><option value="facebook">Facebook</option><option value="other">Other</option></select></div>
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Status</label><select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inputClass}><option value="scheduled">Scheduled</option><option value="live">Live</option><option value="ended">Ended</option><option value="cancelled">Cancelled</option></select></div>
+          </div>
+          <div><label className="text-xs text-arena-text-secondary mb-1 block">Stream URL</label><input type="url" value={form.streamUrl} onChange={e => setForm({ ...form, streamUrl: e.target.value })} className={inputClass} placeholder="https://youtube.com/watch?v=..." /></div>
+          <div><label className="text-xs text-arena-text-secondary mb-1 block">Thumbnail URL</label><input type="url" value={form.thumbnailUrl} onChange={e => setForm({ ...form, thumbnailUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Scheduled Start *</label><input type="datetime-local" value={form.scheduledStart} onChange={e => setForm({ ...form, scheduledStart: e.target.value })} className={inputClass} /></div>
+            <div><label className="text-xs text-arena-text-secondary mb-1 block">Scheduled End</label><input type="datetime-local" value={form.scheduledEnd} onChange={e => setForm({ ...form, scheduledEnd: e.target.value })} className={inputClass} /></div>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={form.isFeatured} onChange={e => setForm({ ...form, isFeatured: e.target.checked })} className="accent-arena-accent" />
+            <span className="text-sm text-arena-text-secondary">Featured</span>
+          </label>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
           </div>
         </div>
-      )}
+      </ArenaModal>
       {dialog.open && <ConfirmDialog state={dialog} onClose={close} />}
     </div>
   );
@@ -867,23 +872,84 @@ export function AdminSettingsView() {
             </div>
           </div>
 
-          {/* Other Settings */}
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
-            <h2 className="text-lg font-bold">Other Settings</h2>
-            {Object.entries(settings)
-              .filter(([key]) => !key.startsWith('razorpay_'))
-              .map(([key, value]) => (
-                <div key={key}>
-                  <label className="text-xs text-arena-text-secondary mb-1 block">{key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
-                  <input type="text" value={value} onChange={e => setLocalSettings({ ...settings, [key]: e.target.value })}
-                    className={inputClass} />
+          {/* Maintenance Mode */}
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', settings.maintenance_mode === 'true' ? 'bg-arena-warning/10' : 'bg-arena-surface')}>
+                  <AlertTriangle className={cn('w-5 h-5', settings.maintenance_mode === 'true' ? 'text-arena-warning' : 'text-arena-text-muted')} />
                 </div>
-              ))}
-            {Object.keys(settings).filter(k => !k.startsWith('razorpay_')).length > 0 && (
-              <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
-                {saving ? 'Saving...' : 'Save Settings'}
+                <div>
+                  <h2 className="text-lg font-bold">Maintenance Mode</h2>
+                  <p className="text-xs text-arena-text-muted">Temporarily disable the platform for all users</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const newVal = settings.maintenance_mode === 'true' ? 'false' : 'true';
+                  setLocalSettings({ ...settings, maintenance_mode: newVal });
+                  fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...settings, maintenance_mode: newVal }),
+                  }).then(() => toast.success(newVal === 'true' ? 'Maintenance mode enabled' : 'Maintenance mode disabled')).catch(() => toast.error('Failed'));
+                }}
+                className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
+                  settings.maintenance_mode === 'true' ? 'bg-arena-warning' : 'bg-arena-border')}>
+                <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
+                  settings.maintenance_mode === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
               </button>
+            </div>
+            {settings.maintenance_message && settings.maintenance_mode === 'true' && (
+              <div className="mt-3 p-3 bg-arena-warning/5 border border-arena-warning/20 rounded-lg">
+                <p className="text-xs text-arena-warning font-medium">Message: {settings.maintenance_message}</p>
+              </div>
             )}
+          </div>
+
+          {/* Platform General Settings */}
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+            <h2 className="text-lg font-bold">Platform Settings</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Platform Name</label>
+                <input type="text" value={settings.platform_name || ''} onChange={e => setLocalSettings({ ...settings, platform_name: e.target.value })}
+                  placeholder="Aether Arena" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Support Email</label>
+                <input type="email" value={settings.support_email || ''} onChange={e => setLocalSettings({ ...settings, support_email: e.target.value })}
+                  placeholder="support@aetherarena.com" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Discord Invite Link</label>
+                <input type="url" value={settings.discord_invite || ''} onChange={e => setLocalSettings({ ...settings, discord_invite: e.target.value })}
+                  placeholder="https://discord.gg/aetherarena" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Default Max Players</label>
+                <input type="number" min="2" value={settings.default_max_players || '100'} onChange={e => setLocalSettings({ ...settings, default_max_players: e.target.value })}
+                  className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Registration Fee (%)</label>
+                <input type="number" min="0" max="100" step="0.1" value={settings.platform_fee_percent || '0'} onChange={e => setLocalSettings({ ...settings, platform_fee_percent: e.target.value })}
+                  placeholder="Platform fee percentage" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Min Withdrawal (₹)</label>
+                <input type="number" min="0" value={settings.min_withdrawal || '100'} onChange={e => setLocalSettings({ ...settings, min_withdrawal: e.target.value })}
+                  className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-arena-text-secondary mb-1 block">Maintenance Message (leave empty to disable)</label>
+              <input type="text" value={settings.maintenance_message || ''} onChange={e => setLocalSettings({ ...settings, maintenance_message: e.target.value })}
+                placeholder="Site is under maintenance..." className={inputClass} />
+            </div>
+            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save Platform Settings'}
+            </button>
           </div>
         </div>
       )}

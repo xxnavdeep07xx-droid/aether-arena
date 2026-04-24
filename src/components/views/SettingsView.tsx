@@ -34,6 +34,7 @@ export function SettingsView() {
       <AppearanceSection />
       <LanguageSection />
       <NotificationSettingsSection />
+      <PrivacyDataSection />
       <AccountSection />
     </div>
   );
@@ -167,7 +168,7 @@ function ConnectedAccountsSection() {
   const { user, isAuthenticated } = useAuthStore();
 
   const { data: profile } = useQuery({
-    queryKey: ['settings-connected-profile'],
+    queryKey: ['settings-profile'],
     queryFn: () => fetch('/api/profiles/me').then(r => r.json()),
     enabled: isAuthenticated,
   });
@@ -495,6 +496,106 @@ function NotificationSettingsSection() {
             </button>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+// ==================== PRIVACY & DATA ====================
+
+function PrivacyDataSection() {
+  const [profileVisibility, setProfileVisibility] = useState<'public' | 'private'>('public');
+  const [showLeaderboard, setShowLeaderboard] = useState(true);
+  const [showActivity, setShowActivity] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('aa-privacy-profile');
+    if (saved) setProfileVisibility(saved as 'public' | 'private');
+    const lb = localStorage.getItem('aa-privacy-leaderboard');
+    if (lb !== null) setShowLeaderboard(lb === 'true');
+    const act = localStorage.getItem('aa-privacy-activity');
+    if (act !== null) setShowActivity(act === 'true');
+  }, []);
+
+  const toggleSetting = (key: string, value: boolean) => {
+    localStorage.setItem(key, String(value));
+    toast.success('Privacy setting updated');
+  };
+
+  const clearCache = () => {
+    // Preserve important settings
+    const toPreserve = ['aa-theme', 'aa-notification-prefs', 'aa-language', 'aa-privacy-profile', 'aa-privacy-leaderboard', 'aa-privacy-activity'];
+    const saved: Record<string, string> = {};
+    for (const key of toPreserve) {
+      const val = localStorage.getItem(key);
+      if (val) saved[key] = val;
+    }
+    localStorage.clear();
+    for (const [key, val] of Object.entries(saved)) {
+      localStorage.setItem(key, val);
+    }
+    toast.success('Cache cleared successfully');
+  };
+
+  return (
+    <section className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-arena-border">
+        <h2 className="font-semibold text-sm flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-arena-accent" /> Privacy & Data
+        </h2>
+        <p className="text-xs text-arena-text-muted mt-0.5">Control your privacy and manage stored data</p>
+      </div>
+      <div className="p-3 space-y-1">
+        {/* Profile Visibility */}
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
+          <div className="flex-1 mr-3">
+            <div className="text-sm font-medium">Profile Visibility</div>
+            <div className="text-[10px] text-arena-text-muted leading-relaxed">{profileVisibility === 'public' ? 'Anyone can see your profile and stats' : 'Only you can see your profile'}</div>
+          </div>
+          <button
+            onClick={() => {
+              const next = profileVisibility === 'public' ? 'private' : 'public';
+              setProfileVisibility(next);
+              localStorage.setItem('aa-privacy-profile', next);
+              toast.success(next === 'public' ? 'Profile set to public' : 'Profile set to private');
+            }}
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0',
+              profileVisibility === 'public' ? 'bg-arena-accent/10 text-arena-accent border border-arena-accent/30' : 'bg-arena-surface text-arena-text-muted border border-arena-border')}>
+            {profileVisibility === 'public' ? 'Public' : 'Private'}
+          </button>
+        </div>
+        {/* Show on Leaderboard */}
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-arena-surface/50 transition-colors duration-150">
+          <div className="flex-1 mr-3">
+            <div className="text-sm font-medium">Show on Leaderboard</div>
+            <div className="text-[10px] text-arena-text-muted leading-relaxed">Display your ranking on public leaderboards</div>
+          </div>
+          <button onClick={() => { setShowLeaderboard(!showLeaderboard); toggleSetting('aa-privacy-leaderboard', !showLeaderboard); }}
+            className={cn('relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0', showLeaderboard ? 'bg-arena-accent' : 'bg-arena-border')}>
+            <div className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200', showLeaderboard ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+          </button>
+        </div>
+        {/* Show Activity */}
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-arena-surface/50 transition-colors duration-150">
+          <div className="flex-1 mr-3">
+            <div className="text-sm font-medium">Show Activity Status</div>
+            <div className="text-[10px] text-arena-text-muted leading-relaxed">Let others see when you are online</div>
+          </div>
+          <button onClick={() => { setShowActivity(!showActivity); toggleSetting('aa-privacy-activity', !showActivity); }}
+            className={cn('relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0', showActivity ? 'bg-arena-accent' : 'bg-arena-border')}>
+            <div className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200', showActivity ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+          </button>
+        </div>
+        {/* Clear Cache */}
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-arena-surface/50 transition-colors duration-150">
+          <div className="flex-1 mr-3">
+            <div className="text-sm font-medium">Clear Local Cache</div>
+            <div className="text-[10px] text-arena-text-muted leading-relaxed">Clear temporary data and cached images. Your settings will be preserved.</div>
+          </div>
+          <button onClick={clearCache} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200 flex-shrink-0">
+            Clear
+          </button>
+        </div>
       </div>
     </section>
   );

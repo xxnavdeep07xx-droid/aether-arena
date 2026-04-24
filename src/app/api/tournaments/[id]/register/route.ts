@@ -137,7 +137,7 @@ export async function POST(
       return reg
     })
 
-    // Create notification
+    // Create notification for user
     await db.notification.create({
       data: {
         userId: auth.userId,
@@ -151,6 +151,24 @@ export async function POST(
         link: `/tournaments/${tournamentId}`,
       },
     })
+
+    // Notify all admins about the new registration
+    const admins = await db.profile.findMany({
+      where: { isAdmin: true },
+      select: { id: true },
+    });
+    if (admins.length > 0) {
+      await db.notification.createMany({
+        data: admins.map(admin => ({
+          userId: admin.id,
+          title: 'New Tournament Registration',
+          message: `${registration.player.username || 'A player'} registered for "${registration.tournament.title}". Entry: ${tournament.entryFee === 0 ? 'FREE' : `₹${(tournament.entryFee / 100).toFixed(2)}`}. Status: ${paymentStatus}.`,
+          type: 'admin_registration',
+          link: `/admin-registrations`,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
     return NextResponse.json({
       registration: {

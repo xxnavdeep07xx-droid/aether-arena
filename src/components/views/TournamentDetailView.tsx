@@ -5,8 +5,9 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star, CircleDot, Calendar, MonitorPlay, Gamepad2,
-  Shield, Copy, X, Loader2
+  Shield, Copy, Loader2, CheckCircle2
 } from 'lucide-react';
+import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Skeleton } from './Skeletons';
@@ -201,17 +202,13 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
 
   if (tournament.entryFee === 0) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-        <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-sm animate-fade-in-up" onClick={e => e.stopPropagation()}>
-          <h3 className="text-lg font-bold mb-2">Confirm Registration</h3>
-          <p className="text-sm text-arena-text-secondary mb-1">{tournament.title}</p>
-          <p className="text-lg font-bold text-arena-success mb-4">FREE Entry</p>
-          <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
-            <button onClick={() => onRegister({})} className="flex-1 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white rounded-xl text-sm font-semibold transition-all duration-200">Confirm</button>
-          </div>
+      <ArenaModal open={true} onClose={onClose} title="Confirm Registration" description={tournament.title} icon={<CheckCircle2 className="w-5 h-5" />} size="sm">
+        <p className="text-lg font-bold text-arena-success mb-4">FREE Entry</p>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
+          <button onClick={() => onRegister({})} className="flex-1 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white rounded-xl text-sm font-semibold transition-all duration-200">Confirm</button>
         </div>
-      </div>
+      </ArenaModal>
     );
   }
 
@@ -276,34 +273,31 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-md animate-fade-in-up max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">Complete Payment</h3>
-          <button onClick={onClose} aria-label="Close" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
-        </div>
-        <div className="bg-arena-surface rounded-xl p-4 mb-4">
-          <p className="text-sm text-arena-text-secondary mb-1">{tournament.title}</p>
-          <p className="text-2xl font-bold text-arena-accent">{paiseToRupee(tournament.entryFee)}</p>
-        </div>
-        <div className="mb-4 flex items-center gap-2 bg-arena-dark rounded-xl p-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.894 5.575C5.589 22.753 8.664 24 12.199 24c2.676 0 4.863-.624 6.462-1.855 1.687-1.297 2.555-3.162 2.555-5.584 0-4.163-2.525-5.897-7.24-7.411z"/></svg>
-          </div>
-          <div>
-            <p className="text-sm font-medium">Secure Payment by Razorpay</p>
-            <p className="text-xs text-arena-text-muted">Pay securely with UPI, Cards, or Wallets</p>
-          </div>
-        </div>
-        <button onClick={handleRazorpayPayment} disabled={loading}
-          className="w-full py-2.5 h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 flex items-center justify-center gap-2">
-          {loading ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
-          ) : (
-            <>Pay {paiseToRupee(tournament.entryFee)}</>
-          )}
-        </button>
+    <ArenaModal open={true} onClose={onClose} title="Complete Payment" description={tournament.title} icon={
+      <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+        <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.894 5.575C5.589 22.753 8.664 24 12.199 24c2.676 0 4.863-.624 6.462-1.855 1.687-1.297 2.555-3.162 2.555-5.584 0-4.163-2.525-5.897-7.24-7.411z"/></svg>
       </div>
-    </div>
+    } size="md">
+      <div className="bg-arena-surface rounded-xl p-4 mb-4">
+        <p className="text-2xl font-bold text-arena-accent">{paiseToRupee(tournament.entryFee)}</p>
+      </div>
+      <div className="mb-4 flex items-center gap-2 bg-arena-dark rounded-xl p-3">
+        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+          <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.894 5.575C5.589 22.753 8.664 24 12.199 24c2.676 0 4.863-.624 6.462-1.855 1.687-1.297 2.555-3.162 2.555-5.584 0-4.163-2.525-5.897-7.24-7.411z"/></svg>
+        </div>
+        <div>
+          <p className="text-sm font-medium">Secure Payment by Razorpay</p>
+          <p className="text-xs text-arena-text-muted">Pay securely with UPI, Cards, or Wallets</p>
+        </div>
+      </div>
+      <button onClick={handleRazorpayPayment} disabled={loading}
+        className="w-full py-2.5 h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+        {loading ? (
+          <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+        ) : (
+          <>Pay {paiseToRupee(tournament.entryFee)}</>
+        )}
+      </button>
+    </ArenaModal>
   );
 }

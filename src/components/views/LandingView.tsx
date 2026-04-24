@@ -5,8 +5,9 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Trophy, Gamepad2, Users, Coins, ChevronRight,
-  CircleDot, Search, User, X
+  CircleDot, Search, User
 } from 'lucide-react';
+import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -82,8 +83,8 @@ export function LandingView() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (signupForm.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (signupForm.password.length < 8 || !/[A-Z]/.test(signupForm.password) || !/[a-z]/.test(signupForm.password) || !/[0-9]/.test(signupForm.password)) {
+      toast.error('Password must be at least 8 characters with uppercase, lowercase, and a number');
       return;
     }
     setLoading(true);
@@ -209,7 +210,7 @@ export function LandingView() {
         <div className="grid md:grid-cols-3 gap-8">
           {[
             { step: '01', title: 'Find a Tournament', desc: 'Browse upcoming tournaments for your favorite games. Filter by game, format, or entry fee.', icon: Search },
-            { step: '02', title: 'Register & Pay', desc: 'Sign up instantly. Free tournaments need no payment. Paid ones use simple UPI transfer.', icon: User },
+            { step: '02', title: 'Register & Pay', desc: 'Sign up instantly. Free tournaments need no payment. Paid ones use secure Razorpay checkout.', icon: User },
             { step: '03', title: 'Compete & Win', desc: 'Join the match room, compete against players, and win real prize money!', icon: Trophy },
           ].map((item) => (
             <div key={item.step} className="bg-arena-card border border-arena-border rounded-2xl p-6 hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5">
@@ -330,92 +331,76 @@ export function LandingView() {
       </footer>
 
       {/* Login Modal */}
-      {showLogin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-8 w-full max-w-md animate-fade-in-up">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Welcome Back</h2>
-              <button onClick={() => setShowLogin(false)} aria-label="Close" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
-            </div>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="text-sm text-arena-text-secondary mb-1 block">Email</label>
-                <input type="email" required value={loginForm.email} onChange={e => setLoginForm({ ...loginForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="your@email.com" />
-              </div>
-              <div>
-                <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
-                <input type="password" required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="••••••••" />
-              </div>
-              <button type="submit" disabled={loading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
-                {loading ? 'Logging in...' : 'Log In'}
-              </button>
-              {/* Discord OAuth */}
-              <div className="relative flex items-center gap-3 my-2">
-                <div className="flex-1 h-px bg-arena-border" />
-                <span className="text-xs text-arena-text-muted">or continue with</span>
-                <div className="flex-1 h-px bg-arena-border" />
-              </div>
-              <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
-                className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
-                <DiscordIcon />
-                Discord
-              </button>
-              <p className="text-center text-sm text-arena-text-muted">
-                Don&apos;t have an account?{' '}
-                <button type="button" onClick={() => { setShowLogin(false); setShowSignup(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Sign Up</button>
-              </p>
-            </form>
+      <ArenaModal open={showLogin} onClose={() => setShowLogin(false)} title="Welcome Back" description="Sign in to your Aether Arena account" icon={<User className="w-5 h-5" />}>
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Email</label>
+            <input type="email" required value={loginForm.email} onChange={e => setLoginForm({ ...loginForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="your@email.com" />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
+            <input type="password" required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="••••••••" />
+          </div>
+          <button type="submit" disabled={loading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
+            {loading ? 'Logging in...' : 'Log In'}
+          </button>
+          {/* Discord OAuth */}
+          <div className="relative flex items-center gap-3 my-2">
+            <div className="flex-1 h-px bg-arena-border" />
+            <span className="text-xs text-arena-text-muted">or continue with</span>
+            <div className="flex-1 h-px bg-arena-border" />
+          </div>
+          <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
+            className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
+            <DiscordIcon />
+            Discord
+          </button>
+          <p className="text-center text-sm text-arena-text-muted">
+            Don&apos;t have an account?{' '}
+            <button type="button" onClick={() => { setShowLogin(false); setShowSignup(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Sign Up</button>
+          </p>
+        </form>
+      </ArenaModal>
 
       {/* Signup Modal */}
-      {showSignup && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-8 w-full max-w-md animate-fade-in-up">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Create Account</h2>
-              <button onClick={() => setShowSignup(false)} aria-label="Close" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
-            </div>
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div>
-                <label className="text-sm text-arena-text-secondary mb-1 block">Email</label>
-                <input type="email" required value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="your@email.com" />
-              </div>
-              <div>
-                <label className="text-sm text-arena-text-secondary mb-1 block">Username</label>
-                <input type="text" required value={signupForm.username} onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="gamer_tag" />
-              </div>
-              <div>
-                <label className="text-sm text-arena-text-secondary mb-1 block">Display Name</label>
-                <input type="text" value={signupForm.displayName} onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="Your Name (optional)" />
-              </div>
-              <div>
-                <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
-                <input type="password" required minLength={6} value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="Min 6 characters" />
-              </div>
-              <button type="submit" disabled={loading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </button>
-              {/* Discord OAuth */}
-              <div className="relative flex items-center gap-3 my-2">
-                <div className="flex-1 h-px bg-arena-border" />
-                <span className="text-xs text-arena-text-muted">or sign up with</span>
-                <div className="flex-1 h-px bg-arena-border" />
-              </div>
-              <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
-                className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
-                <DiscordIcon />
-                Continue with Discord
-              </button>
-              <p className="text-center text-sm text-arena-text-muted">
-                Already have an account?{' '}
-                <button type="button" onClick={() => { setShowSignup(false); setShowLogin(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Log In</button>
-              </p>
-            </form>
+      <ArenaModal open={showSignup} onClose={() => setShowSignup(false)} title="Create Account" description="Join Aether Arena and start competing" icon={<User className="w-5 h-5" />}>
+        <form onSubmit={handleSignup} className="space-y-4">
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Email</label>
+            <input type="email" required value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="your@email.com" />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Username</label>
+            <input type="text" required value={signupForm.username} onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="gamer_tag" />
+          </div>
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Display Name</label>
+            <input type="text" value={signupForm.displayName} onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="Your Name (optional)" />
+          </div>
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
+            <input type="password" required minLength={8} value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="Min 8 chars, upper+lower+digit" />
+          </div>
+          <button type="submit" disabled={loading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
+            {loading ? 'Creating Account...' : 'Create Account'}
+          </button>
+          {/* Discord OAuth */}
+          <div className="relative flex items-center gap-3 my-2">
+            <div className="flex-1 h-px bg-arena-border" />
+            <span className="text-xs text-arena-text-muted">or sign up with</span>
+            <div className="flex-1 h-px bg-arena-border" />
+          </div>
+          <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
+            className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
+            <DiscordIcon />
+            Continue with Discord
+          </button>
+          <p className="text-center text-sm text-arena-text-muted">
+            Already have an account?{' '}
+            <button type="button" onClick={() => { setShowSignup(false); setShowLogin(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Log In</button>
+          </p>
+        </form>
+      </ArenaModal>
     </div>
   );
 }
