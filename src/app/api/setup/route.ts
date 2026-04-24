@@ -39,12 +39,13 @@ async function safeAddColumn(table: string, column: string, type: string, nullab
 }
 
 export async function GET(request: Request) {
-  // Verify setup secret if configured
-  if (SETUP_SECRET) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${SETUP_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  // Always require setup secret
+  if (!SETUP_SECRET) {
+    return NextResponse.json({ error: 'Setup secret not configured. Set SETUP_SECRET env variable.' }, { status: 401 });
+  }
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${SETUP_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -612,11 +613,13 @@ export async function GET(request: Request) {
 // DELETE /api/setup — Clear ALL seed/demo data from every data table.
 // Keeps only the first admin user profile (real user) and their credentials.
 export async function DELETE(request: Request) {
-  if (SETUP_SECRET) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${SETUP_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  // Always require setup secret
+  if (!SETUP_SECRET) {
+    return NextResponse.json({ error: 'Setup secret not configured. Set SETUP_SECRET env variable.' }, { status: 401 });
+  }
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${SETUP_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {

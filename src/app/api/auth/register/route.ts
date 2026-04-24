@@ -2,8 +2,19 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
+import { authLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = authLimiter(`register:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json(
+      { error: 'Too many registration attempts. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   // Parse body ONCE before any try/catch
   let body: { email?: string; password?: string; username?: string; displayName?: string; ref?: string }
   try {
@@ -35,9 +46,16 @@ export async function POST(request: Request) {
   }
 
   // Validate password length
-  if (password.length < 6) {
+  if (password.length < 8) {
     return NextResponse.json(
-      { error: 'Password must be at least 6 characters' },
+      { error: 'Password must be at least 8 characters' },
+      { status: 400 }
+    )
+  }
+
+  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+    return NextResponse.json(
+      { error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' },
       { status: 400 }
     )
   }

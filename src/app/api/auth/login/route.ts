@@ -2,8 +2,19 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
+import { authLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk, remaining } = authLimiter(`login:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json(
+      { error: 'Too many login attempts. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   // Parse body ONCE before any try/catch
   let body: { email?: string; password?: string }
   try {

@@ -22,7 +22,7 @@ export default function Error({
           {error.message || 'An unexpected error occurred'}
         </p>
         <button
-          onClick={reset}
+          onClick={() => window.location.reload()}
           className="px-6 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200"
         >
           Try Again

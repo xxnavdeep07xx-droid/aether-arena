@@ -12,12 +12,9 @@ export async function GET() {
 
   // 1. Check if DATABASE_URL is configured
   if (process.env.DATABASE_URL) {
-    const url = process.env.DATABASE_URL
     results.database_url_set = 'yes'
-    // Redact password for display
-    results.database_url_masked = url.replace(/:([^@]+)@/, ':****@')
-    results.database_host = url.match(/@([^:\/]+)/)?.[1] || 'unknown'
-    results.has_sslmode = url.includes('sslmode') ? 'yes' : 'NO — this may cause connection issues!'
+    results.database_host = process.env.DATABASE_URL.match(/@([^:\/]+)/)?.[1] || 'configured'
+    results.has_sslmode = process.env.DATABASE_URL.includes('sslmode') ? 'yes' : 'NO'
   } else {
     results.database_url_set = 'NO — DATABASE_URL environment variable is missing!'
   }

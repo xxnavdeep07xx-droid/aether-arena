@@ -47,6 +47,7 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0f0f1a" />
         <link rel="manifest" href="/manifest.json" />
+        <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
         <script
           dangerouslySetInnerHTML={{
             __html: `

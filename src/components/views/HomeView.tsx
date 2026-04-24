@@ -1,6 +1,6 @@
 'use client';
 
-import { useAppStore } from '@/lib/store';
+import { useAppStore, useAuthStore } from '@/lib/store';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -9,6 +9,7 @@ import {
   ChevronLeft, Play, Eye, Timer
 } from 'lucide-react';
 import { cn, paiseToRupee, formatDate, getCountdown, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export function HomeView() {
   return (
@@ -502,6 +503,28 @@ export function TournamentCard({ tournament: t, onClick }: { tournament: any; on
         <div className="w-full bg-arena-dark rounded-full h-1.5">
           <div className="bg-arena-accent rounded-full h-1.5 transition-all duration-300" style={{ width: `${Math.min(100, ((t.registeredPlayers || 0) / t.maxPlayers) * 100)}%` }} />
         </div>
+        {t.status === 'registration_open' && (
+          <div className="mt-3 pt-3 border-t border-arena-border">
+            {t.isRegistered ? (
+              <span className="block w-full text-center text-xs font-medium text-arena-success bg-arena-success/10 py-2 rounded-lg">Registered</span>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!useAuthStore.getState().isAuthenticated) {
+                    toast.error('Please log in to register');
+                    useAppStore.getState().navigate('landing');
+                    return;
+                  }
+                  useAppStore.getState().navigate('tournament-detail', { id: t.id });
+                }}
+                className="w-full py-2 bg-arena-accent hover:bg-arena-accent-light text-white text-xs font-semibold rounded-lg transition-all duration-200"
+              >
+                Register Now
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

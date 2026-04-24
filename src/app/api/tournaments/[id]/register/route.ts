@@ -85,7 +85,7 @@ export async function POST(
     }
 
     // Determine payment status
-    const paymentStatus = tournament.entryFee === 0 ? 'verified' : 'pending'
+    const paymentStatus = tournament.entryFee === 0 ? 'verified' : (paymentMethod === 'razorpay' ? 'verified' : 'pending')
 
     // Create registration and update tournament count in transaction
     // The capacity check is inside the transaction to prevent race conditions

@@ -177,7 +177,7 @@ export function AdminTournamentCreateView() {
   const editId = viewParams?.id;
   const { data: games } = useQuery({ queryKey: ['admin-games'], queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d || []) });
 
-  const [form, setForm] = useState({ title: '', description: '', gameId: '', format: 'solo', entryFee: '0', prizePool: '0', maxPlayers: '100', startTime: '', customRules: '', isFeatured: false, roomId: '', roomPassword: '', map: '', matchMode: '', bannerImageUrl: '' });
+  const [form, setForm] = useState({ title: '', description: '', gameId: '', format: 'solo', entryFee: '0', prizePool: '0', maxPlayers: '100', startTime: '', customRules: '', isFeatured: false, roomId: '', roomPassword: '', map: '', matchMode: '', bannerImageUrl: '', status: 'upcoming' });
   const [saving, setSaving] = useState(false);
 
   // Fetch existing tournament data for editing
@@ -207,6 +207,7 @@ export function AdminTournamentCreateView() {
       map: t.map || '',
       matchMode: t.matchMode || '',
       bannerImageUrl: t.bannerImageUrl || '',
+      status: t.status || 'upcoming',
     });
     hasPopulated[1](true);
   }
@@ -255,6 +256,15 @@ export function AdminTournamentCreateView() {
           <div><label className={labelClass}>Prize Pool (₹)</label><input type="number" min="0" value={form.prizePool} onChange={e => setForm({ ...form, prizePool: e.target.value })} className={inputClass} /></div>
           <div><label className={labelClass}>Max Players *</label><input type="number" required min="2" value={form.maxPlayers} onChange={e => setForm({ ...form, maxPlayers: e.target.value })} className={inputClass} /></div>
         </div>
+        <div><label className={labelClass}>Status</label>
+            <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inputClass}>
+              <option value="upcoming">Upcoming</option>
+              <option value="registration_open">Open for Registration (Now)</option>
+              <option value="in_progress">In Progress (Live)</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
         <div className="grid grid-cols-2 gap-4">
           <div><label className={labelClass}>Start Time</label><input type="datetime-local" value={form.startTime} onChange={e => setForm({ ...form, startTime: e.target.value })} className={inputClass} /></div>
           <div><label className={labelClass}>Map</label><input type="text" value={form.map} onChange={e => setForm({ ...form, map: e.target.value })} className={inputClass} /></div>
@@ -724,7 +734,52 @@ export function AdminSettingsView() {
   const [localSettings, setLocalSettings] = useState<Record<string, string> | null>(null);
   const settings = localSettings !== null ? localSettings : ((fetchedSettings || {}) as Record<string, string>);
 
-  const handleSave = async () => {
+  // Razorpay specific state
+  const [rzpKeyId, setRzpKeyId] = useState('');
+  const [rzpKeySecret, setRzpKeySecret] = useState('');
+  const [rzpWebhookSecret, setRzpWebhookSecret] = useState('');
+  const [showSecret, setShowSecret] = useState(false);
+  const [rzpConfirmStep, setRzpConfirmStep] = useState(0); // 0=none, 1=first confirm, 2=ready to save
+  const [rzpSaving, setRzpSaving] = useState(false);
+
+  // Sync razorpay fields from settings
+  useState(() => {
+    if (fetchedSettings && !localSettings) {
+      setRzpKeyId(fetchedSettings.razorpay_key_id || '');
+      setRzpKeySecret(fetchedSettings.razorpay_key_secret || '');
+      setRzpWebhookSecret(fetchedSettings.razorpay_webhook_secret || '');
+    }
+  });
+
+  const handleRzpSave = async () => {
+    if (rzpConfirmStep === 0) {
+      setRzpConfirmStep(1);
+      return;
+    }
+    if (rzpConfirmStep === 1) {
+      setRzpConfirmStep(2);
+      return;
+    }
+    // Step 2: actually save
+    setRzpSaving(true);
+    try {
+      const newSettings: Record<string, string> = { ...settings };
+      newSettings.razorpay_key_id = rzpKeyId.trim();
+      newSettings.razorpay_key_secret = rzpKeySecret.trim();
+      newSettings.razorpay_webhook_secret = rzpWebhookSecret.trim();
+      await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings),
+      });
+      setLocalSettings(newSettings);
+      toast.success('Razorpay credentials saved!');
+      setRzpConfirmStep(0);
+    } catch { toast.error('Failed to save Razorpay settings'); }
+    setRzpSaving(false);
+  };
+
+  const handleGenericSave = async () => {
     setSaving(true);
     try {
       await fetch('/api/admin/settings', {
@@ -737,6 +792,9 @@ export function AdminSettingsView() {
     setSaving(false);
   };
 
+  const rzpConfigured = !!(settings.razorpay_key_id && settings.razorpay_key_secret);
+  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150";
+
   return (
     <div>
       {isLoading ? (
@@ -744,17 +802,89 @@ export function AdminSettingsView() {
           {[1,2,3,4,5].map(i => <div key={i} className="bg-arena-card border border-arena-border rounded-xl h-12" />)}
         </div>
       ) : (
-        <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4 max-w-xl">
-          {Object.entries(settings).map(([key, value]) => (
-            <div key={key}>
-              <label className="text-xs text-arena-text-secondary mb-1 block">{key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
-              <input type="text" value={value} onChange={e => setLocalSettings({ ...settings, [key]: e.target.value })}
-                className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" />
+        <div className="space-y-6 max-w-xl">
+          {/* Razorpay Payment Gateway Section */}
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', rzpConfigured ? 'bg-arena-success/10' : 'bg-arena-warning/10')}>
+                <span className={cn('text-lg', rzpConfigured ? 'text-arena-success' : 'text-arena-warning')}>{rzpConfigured ? '✓' : '!'}</span>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  Razorpay Payment Gateway
+                  {rzpConfigured && <span className="text-[10px] bg-arena-success/20 text-arena-success font-medium px-2 py-0.5 rounded-full">Connected</span>}
+                </h2>
+                <p className="text-xs text-arena-text-muted">Configure Razorpay to accept online payments for tournaments</p>
+              </div>
             </div>
-          ))}
-          <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save Settings'}
-          </button>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Razorpay Key ID</label>
+                <input type="text" value={rzpKeyId} onChange={e => { setRzpKeyId(e.target.value); setRzpConfirmStep(0); }}
+                  placeholder="rzp_live_xxxxxxxxxxxxxxx" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Razorpay Key Secret</label>
+                <div className="relative">
+                  <input type={showSecret ? 'text' : 'password'} value={rzpKeySecret} onChange={e => { setRzpKeySecret(e.target.value); setRzpConfirmStep(0); }}
+                    placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className={inputClass} />
+                  <button type="button" onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-arena-text-muted hover:text-white">
+                    {showSecret ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Webhook Secret (Optional)</label>
+                <input type="text" value={rzpWebhookSecret} onChange={e => { setRzpWebhookSecret(e.target.value); setRzpConfirmStep(0); }}
+                  placeholder="whsec_xxxxxxxxxxxxxxxx" className={inputClass} />
+              </div>
+
+              {/* Double Confirmation UI */}
+              {rzpConfirmStep > 0 && (
+                <div className={cn('rounded-xl p-3 text-sm', rzpConfirmStep === 1 ? 'bg-arena-warning/10 border border-arena-warning/30' : 'bg-arena-success/10 border border-arena-success/30')}>
+                  {rzpConfirmStep === 1 ? (
+                    <>
+                      <p className="font-medium text-arena-warning mb-1">Step 1: Confirm Changes</p>
+                      <p className="text-xs text-arena-text-secondary">You are about to update Razorpay credentials. This affects all payment processing. Click save again to confirm.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-arena-success mb-1">Step 2: Final Confirmation</p>
+                      <p className="text-xs text-arena-text-secondary">Last chance! Click save one more time to apply changes permanently.</p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <button onClick={handleRzpSave} disabled={rzpSaving || (!rzpKeyId.trim() && !rzpKeySecret.trim())}
+                className={cn('w-full py-2.5 h-11 font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 flex items-center justify-center gap-2',
+                  rzpConfirmStep === 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' :
+                  rzpConfirmStep === 1 ? 'bg-arena-warning hover:bg-arena-warning/80 text-white' :
+                  'bg-arena-success hover:bg-arena-success/80 text-white')}>
+                {rzpSaving ? 'Saving...' : rzpConfirmStep === 0 ? 'Save Razorpay Credentials' : rzpConfirmStep === 1 ? 'Click Again to Confirm' : 'Final Click to Apply'}
+              </button>
+            </div>
+          </div>
+
+          {/* Other Settings */}
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+            <h2 className="text-lg font-bold">Other Settings</h2>
+            {Object.entries(settings)
+              .filter(([key]) => !key.startsWith('razorpay_'))
+              .map(([key, value]) => (
+                <div key={key}>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">{key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
+                  <input type="text" value={value} onChange={e => setLocalSettings({ ...settings, [key]: e.target.value })}
+                    className={inputClass} />
+                </div>
+              ))}
+            {Object.keys(settings).filter(k => !k.startsWith('razorpay_')).length > 0 && (
+              <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+                {saving ? 'Saving...' : 'Save Settings'}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

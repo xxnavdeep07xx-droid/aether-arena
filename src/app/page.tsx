@@ -212,11 +212,6 @@ export default function Page() {
     }
   }, [isAuthenticated, currentView, navigate]);
 
-  // Auto-setup: ensure DB tables exist on first load
-  useEffect(() => {
-    fetch('/api/setup').catch(() => {});
-  }, []);
-
   // Daily checkin: call once on mount when authenticated
   const checkinDone = useState(false);
   useEffect(() => {

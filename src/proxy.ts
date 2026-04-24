@@ -7,7 +7,7 @@ export function proxy(request: NextRequest) {
   // Protect admin API routes
   if (pathname.startsWith('/api/admin')) {
     const sessionCookie = request.cookies.get('aether_session')
-    if (!sessionCookie?.value) {
+    if (!sessionCookie?.value || sessionCookie.value.length < 10) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }

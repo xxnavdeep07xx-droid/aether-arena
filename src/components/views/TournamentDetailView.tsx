@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star, CircleDot, Calendar, MonitorPlay, Gamepad2,
-  Shield, Copy, X
+  Shield, Copy, X, Loader2
 } from 'lucide-react';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -196,13 +196,8 @@ export function TournamentDetailView() {
 }
 
 function RegistrationModal({ tournament, onRegister, onClose }: { tournament: any; onRegister: (data: any) => void; onClose: () => void }) {
-  const [transactionId, setTransactionId] = useState('');
-  const { data: settings } = useQuery({
-    queryKey: ['platform-settings'],
-    queryFn: () => fetch('/api/admin/settings').then(r => r.json()).then(d => d.settings || d || []),
-  });
-
-  const upiId = settings?.find((s: any) => s.key === 'upi_id')?.value || 'aetherarena@upi';
+  const [loading, setLoading] = useState(false);
+  const { isAuthenticated } = useAuthStore();
 
   if (tournament.entryFee === 0) {
     return (
@@ -212,13 +207,73 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
           <p className="text-sm text-arena-text-secondary mb-1">{tournament.title}</p>
           <p className="text-lg font-bold text-arena-success mb-4">FREE Entry</p>
           <div className="flex gap-3">
-            <button onClick={() => onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
+            <button onClick={onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
             <button onClick={() => onRegister({})} className="flex-1 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white rounded-xl text-sm font-semibold transition-all duration-200">Confirm</button>
           </div>
         </div>
       </div>
     );
   }
+
+  const handleRazorpayPayment = async () => {
+    setLoading(true);
+    try {
+      const amount = tournament.entryFee; // already in paise
+      const res = await fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          tournamentId: tournament.id,
+          currency: 'INR',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Payment initialization failed');
+        setLoading(false);
+        return;
+      }
+      // Razorpay checkout
+      const options: any = {
+        key: data.razorpayKey || '',
+        amount: data.amount,
+        currency: data.currency || 'INR',
+        name: 'Aether Arena',
+        description: `Entry: ${tournament.title}`,
+        order_id: data.orderId,
+        handler: function (response: any) {
+          onRegister({
+            paymentMethod: 'razorpay',
+            paymentReference: response.razorpay_payment_id,
+            razorpayOrderId: response.razorpay_order_id,
+            razorpaySignature: response.razorpay_signature,
+          });
+        },
+        prefill: {
+          name: '',
+          email: '',
+        },
+        theme: {
+          color: '#FF4B5C',
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+          },
+        },
+      };
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        toast.error('Payment failed: ' + (response.error.description || 'Unknown error'));
+        setLoading(false);
+      });
+      rzp.open();
+    } catch (err) {
+      toast.error('Failed to initialize payment');
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
@@ -231,21 +286,22 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
           <p className="text-sm text-arena-text-secondary mb-1">{tournament.title}</p>
           <p className="text-2xl font-bold text-arena-accent">{paiseToRupee(tournament.entryFee)}</p>
         </div>
-        <div className="mb-4">
-          <p className="text-sm font-medium mb-2">Pay using any UPI app:</p>
-          <div className="bg-arena-dark rounded-xl p-3 flex items-center justify-between">
-            <span className="font-mono text-sm">{upiId}</span>
-            <Copy className="w-4 h-4 text-arena-text-muted cursor-pointer hover:text-white" onClick={() => { navigator.clipboard.writeText(upiId); toast.success('UPI ID copied!'); }} />
+        <div className="mb-4 flex items-center gap-2 bg-arena-dark rounded-xl p-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.894 5.575C5.589 22.753 8.664 24 12.199 24c2.676 0 4.863-.624 6.462-1.855 1.687-1.297 2.555-3.162 2.555-5.584 0-4.163-2.525-5.897-7.24-7.411z"/></svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium">Secure Payment by Razorpay</p>
+            <p className="text-xs text-arena-text-muted">Pay securely with UPI, Cards, or Wallets</p>
           </div>
         </div>
-        <div className="mb-4">
-          <label className="text-xs text-arena-text-secondary mb-1 block">UPI Transaction ID *</label>
-          <input type="text" placeholder="Enter UPI Transaction ID" value={transactionId} onChange={e => setTransactionId(e.target.value)}
-            className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" />
-        </div>
-        <button onClick={() => { if (!transactionId) { toast.error('Please enter transaction ID'); return; } onRegister({ paymentMethod: 'upi_id', paymentReference: transactionId }); }}
-          className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm">
-          Submit Payment
+        <button onClick={handleRazorpayPayment} disabled={loading}
+          className="w-full py-2.5 h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+          {loading ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+          ) : (
+            <>Pay {paiseToRupee(tournament.entryFee)}</>
+          )}
         </button>
       </div>
     </div>
