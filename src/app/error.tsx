@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 export default function Error({
   error,
@@ -10,18 +10,14 @@ export default function Error({
   reset: () => void;
 }) {
   const handleReset = () => {
-    // Try the Next.js reset first
+    // Clear any cached error data from React Query by reloading
+    // This ensures stale error responses don't persist
     try {
       reset();
     } catch {
       // If reset fails, force a full page reload
       window.location.reload();
     }
-  };
-
-  const handleGoHome = () => {
-    // Navigate to landing page to reset state
-    window.location.href = '/';
   };
 
   return (
@@ -49,13 +45,6 @@ export default function Error({
           >
             <RefreshCw className="w-4 h-4" />
             Try Again
-          </button>
-          <button
-            onClick={handleGoHome}
-            className="flex items-center gap-2 px-5 py-2.5 bg-arena-card border border-arena-border text-arena-text-primary font-medium rounded-xl hover:border-arena-accent/30 transition-all duration-200"
-          >
-            <Home className="w-4 h-4" />
-            Go Home
           </button>
         </div>
       </div>

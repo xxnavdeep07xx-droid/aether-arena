@@ -159,7 +159,7 @@ export function AdminTournamentsView() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-medium text-sm truncate">{t.title}</h3>
-                <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', getStatusBg(t.status))}>{t.status.replace(/_/g, ' ')}</span>
+                <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', getStatusBg(t?.status))}>{t?.status ? t.status.replace(/_/g, ' ') : ''}</span>
               </div>
               <div className="text-xs text-arena-text-muted">{t.game?.name} • {paiseToRupee(t.entryFee)} • {t.registeredPlayers}/{t.maxPlayers} players</div>
             </div>
@@ -567,7 +567,7 @@ export function AdminStreamsView() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-medium text-sm truncate">{s.title}</h3>
-                <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', s.status === 'live' ? 'bg-arena-accent text-white' : 'bg-arena-info/20 text-arena-info')}>{s.status.toUpperCase()}</span>
+                <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', s.status === 'live' ? 'bg-arena-accent text-white' : 'bg-arena-info/20 text-arena-info')}>{s?.status ? s.status.toUpperCase() : 'UNKNOWN'}</span>
                 {s.isFeatured && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-arena-warning/20 text-arena-warning flex-shrink-0">Featured</span>}
               </div>
               <p className="text-xs text-arena-text-muted">{s.platform} • {formatDateTime(s.scheduledStart)} • {s.peakViewers} peak viewers</p>

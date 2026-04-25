@@ -19,7 +19,7 @@ export function TournamentsView() {
 
   const { data: games } = useQuery({
     queryKey: ['games-filter'],
-    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d || []),
+    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
 
   // Close filter popup on outside click
@@ -50,7 +50,7 @@ export function TournamentsView() {
       if (filters.format) params.set('format', filters.format);
       if (filters.fee) params.set('fee', filters.fee);
       if (searchQuery) params.set('search', searchQuery);
-      return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => d.tournaments || d || []);
+      return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []);
     },
   });
 

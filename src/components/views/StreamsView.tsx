@@ -12,7 +12,7 @@ export function StreamsView() {
 
   const { data: streams, isLoading } = useQuery({
     queryKey: ['all-streams'],
-    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => d.streams || d || []),
+    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
   });
 
   const filteredStreams = useMemo(() => {
@@ -36,7 +36,7 @@ export function StreamsView() {
               <div className="flex items-center justify-between mb-3">
                 <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', s.status === 'live' ? 'bg-arena-accent text-white flex items-center gap-1' : 'bg-arena-info/20 text-arena-info')}>
                   {s.status === 'live' && <CircleDot className="w-3 h-3 animate-pulse" />}
-                  {s.status.toUpperCase()}
+                  {s.status ? s.status.toUpperCase() : 'UNKNOWN'}
                 </span>
                 <span className="text-xs text-arena-text-muted capitalize bg-arena-surface px-2 py-0.5 rounded-full">{s.platform}</span>
               </div>

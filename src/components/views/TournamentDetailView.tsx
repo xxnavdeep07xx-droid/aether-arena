@@ -22,7 +22,14 @@ export function TournamentDetailView() {
 
   const { data: tournament, isLoading } = useQuery({
     queryKey: ['tournament', viewParams.id],
-    queryFn: () => fetch(`/api/tournaments/${viewParams.id}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/tournaments/${viewParams.id}`).then(r => {
+      if (!r.ok) return null;
+      return r.json();
+    }).then(d => {
+      // Only return if it looks like a valid tournament (has a status field)
+      if (!d || d.error || !d.status) return null;
+      return d;
+    }),
     enabled: !!viewParams.id,
   });
 
@@ -81,7 +88,7 @@ export function TournamentDetailView() {
   if (!tournament) return <div className="text-center py-20 text-arena-text-muted">Tournament not found</div>;
 
   const t = tournament;
-  const canRegister = isAuthenticated && t.status === 'registration_open' && (t.registeredPlayers || 0) < t.maxPlayers && !registered;
+  const canRegister = isAuthenticated && t?.status === 'registration_open' && (t.registeredPlayers || 0) < t.maxPlayers && !registered;
 
   return (
     <div>
@@ -91,8 +98,8 @@ export function TournamentDetailView() {
           <Gamepad2 className="w-16 h-16 text-arena-text-muted/30" />
           <div className="absolute top-4 left-4 flex gap-2">
             {t.isFeatured && <span className="bg-arena-gold/20 text-arena-gold text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1"><Star className="w-3 h-3" /> Featured</span>}
-            <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', getStatusBg(t.status))}>
-              {t.status === 'in_progress' ? <span className="flex items-center gap-1"><CircleDot className="w-3 h-3 animate-pulse" /> LIVE</span> : t.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+            <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', getStatusBg(t?.status))}>
+              {t?.status === 'in_progress' ? <span className="flex items-center gap-1"><CircleDot className="w-3 h-3 animate-pulse" /> LIVE</span> : t?.status ? t.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}
             </span>
           </div>
         </div>

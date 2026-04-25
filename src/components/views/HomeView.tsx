@@ -30,7 +30,7 @@ function StreamBannerSection() {
 
   const { data: streams } = useQuery({
     queryKey: ['featured-streams'],
-    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => d.streams || d || []),
+    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
     placeholderData: [],
     staleTime: 5 * 60 * 1000,
   });
@@ -57,6 +57,22 @@ function StreamBannerSection() {
   }
 
   const stream = streams[current];
+
+  // Guard against undefined stream (e.g. index out of bounds or bad data)
+  if (!stream) {
+    return (
+      <div className="relative rounded-2xl overflow-hidden border border-dashed border-arena-border h-48 md:h-56 bg-arena-card/50">
+        <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/5 via-arena-purple/5 to-arena-dark" />
+        <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-arena-accent/10 flex items-center justify-center mb-3">
+            <Play className="w-6 h-6 text-arena-accent/50" />
+          </div>
+          <h2 className="text-lg font-semibold mb-1">No streams right now</h2>
+          <p className="text-xs text-arena-text-muted max-w-sm">Tune in later for live tournament broadcasts, gameplay streams, and community events.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-arena-border h-64 md:h-72 bg-arena-card cursor-pointer group transition-all duration-200 hover:-translate-y-0.5"
@@ -112,7 +128,8 @@ function TopPlayersSection() {
   const { data: entries } = useQuery({
     queryKey: ['top-players'],
     queryFn: () => fetch('/api/leaderboard?period=all_time&limit=50').then(r => r.json()).then(d => {
-      const all = d.leaderboard || d || [];
+      const raw = d.leaderboard || d;
+      const all = Array.isArray(raw) ? raw : [];
       // Deduplicate: keep highest points per player
       const best = new Map<string, any>();
       for (const e of all) {
@@ -201,7 +218,7 @@ function AffiliateCarouselSection() {
 
   const { data: affiliates } = useQuery({
     queryKey: ['affiliates'],
-    queryFn: () => fetch('/api/affiliates').then(r => r.json()).then(d => d.affiliates || d || []),
+    queryFn: () => fetch('/api/affiliates').then(r => r.json()).then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
     placeholderData: [],
     staleTime: 10 * 60 * 1000,
   });
@@ -283,7 +300,7 @@ function TopupCarouselSection() {
 
   const { data: packsData } = useQuery({
     queryKey: ['topup-packs'],
-    queryFn: () => fetch('/api/topup-packs').then(r => r.json()).then(d => d.packs || []),
+    queryFn: () => fetch('/api/topup-packs').then(r => r.json()).then(d => Array.isArray(d.packs) ? d.packs : []),
     placeholderData: { packs: [] },
     staleTime: 10 * 60 * 1000,
   });
@@ -407,7 +424,7 @@ function HomeTournamentsSection() {
       if (filter === 'featured') { params.set('featured', 'true'); }
       else if (filter !== 'all') { params.set('status', filter); }
       params.set('limit', '6');
-      return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => d.tournaments || d || []);
+      return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []);
     },
     placeholderData: [],
   });
@@ -487,13 +504,13 @@ export function TournamentCard({ tournament: t, onClick }: { tournament: any; on
         <Gamepad2 className="w-10 h-10 text-arena-text-muted/50" />
         <div className="absolute top-3 left-3 flex gap-2">
           {t.isFeatured && <span className="bg-arena-gold/20 text-arena-gold text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"><Star className="w-3 h-3" /> Featured</span>}
-          {t.status === 'in_progress' && <span className="bg-arena-accent text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"><CircleDot className="w-3 h-3 animate-pulse" /> LIVE</span>}
+          {t?.status === 'in_progress' && <span className="bg-arena-accent text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"><CircleDot className="w-3 h-3 animate-pulse" /> LIVE</span>}
         </div>
       </div>
       <div className="p-4 md:p-6">
         <div className="flex items-center gap-2 mb-2">
-          <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', getStatusBg(t.status))}>
-            {t.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+          <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', getStatusBg(t?.status))}>
+            {t?.status ? t.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}
           </span>
           <span className="text-[10px] text-arena-text-muted">{getFormatLabel(t.format)}</span>
           <span className="text-[10px] text-arena-text-muted">{t.game?.name}</span>
@@ -507,11 +524,11 @@ export function TournamentCard({ tournament: t, onClick }: { tournament: any; on
           <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{t.startTime ? formatDate(t.startTime) : 'TBD'}</span>
           <span>{t.registeredPlayers || 0}/{t.maxPlayers} Players</span>
         </div>
-        {(t.status === 'upcoming' || t.status === 'registration_open') && t.startTime && <CountdownTimer startTime={t.startTime} />}
+        {(t?.status === 'upcoming' || t?.status === 'registration_open') && t.startTime && <CountdownTimer startTime={t.startTime} />}
         <div className="w-full bg-arena-dark rounded-full h-1.5">
           <div className="bg-arena-accent rounded-full h-1.5 transition-all duration-300" style={{ width: `${Math.min(100, ((t.registeredPlayers || 0) / t.maxPlayers) * 100)}%` }} />
         </div>
-        {t.status === 'registration_open' && (
+        {t?.status === 'registration_open' && (
           <div className="mt-3 pt-3 border-t border-arena-border">
             {t.isRegistered ? (
               <span className="block w-full text-center text-xs font-medium text-arena-success bg-arena-success/10 py-2 rounded-lg">Registered</span>

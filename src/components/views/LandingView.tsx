@@ -46,12 +46,12 @@ export function LandingView() {
 
   const { data: featuredTournaments } = useQuery({
     queryKey: ['featured-tournaments'],
-    queryFn: () => fetch('/api/tournaments?featured=true&limit=4').then(r => r.json()).then(d => d.tournaments || d),
+    queryFn: () => fetch('/api/tournaments?featured=true&limit=4').then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
   });
 
   const { data: games } = useQuery({
     queryKey: ['landing-games'],
-    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d),
+    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
 
   const { data: stats } = useQuery({
@@ -242,7 +242,7 @@ export function LandingView() {
                 </div>
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', getStatusBg(t.status))}>{t.status.replace(/_/g, ' ')}</span>
+                    <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', getStatusBg(t?.status))}>{t?.status ? t.status.replace(/_/g, ' ') : ''}</span>
                     <span className="text-xs text-arena-text-muted">{getFormatLabel(t.format)}</span>
                   </div>
                   <h3 className="font-semibold mb-1">{t.title}</h3>

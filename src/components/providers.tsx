@@ -125,9 +125,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           if (data.user) {
             setUser(data.user);
             // Prefetch common data in background after auth succeeds
-            queryClient.prefetchQuery({ queryKey: ['tournaments', { game: '', status: '', format: '', fee: '' }], queryFn: () => fetch('/api/tournaments?limit=6').then(r => r.json()) }).catch(() => {});
-            queryClient.prefetchQuery({ queryKey: ['featured-streams'], queryFn: () => fetch('/api/streams').then(r => r.json()) }).catch(() => {});
-            queryClient.prefetchQuery({ queryKey: ['games-filter'], queryFn: () => fetch('/api/games').then(r => r.json()) }).catch(() => {});
+            queryClient.prefetchQuery({ queryKey: ['tournaments', { game: '', status: '', format: '', fee: '' }], queryFn: () => fetch('/api/tournaments?limit=6').then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : []) }).catch(() => {});
+            queryClient.prefetchQuery({ queryKey: ['featured-streams'], queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : []) }).catch(() => {});
+            queryClient.prefetchQuery({ queryKey: ['games-filter'], queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : []) }).catch(() => {});
           } else {
             logout();
           }
