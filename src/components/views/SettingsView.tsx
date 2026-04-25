@@ -100,7 +100,7 @@ function ProfileSettingsSection() {
         </div>
         {!editing && (
           <button onClick={startEditing}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200">
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/30 transition-all duration-200">
             Edit
           </button>
         )}
@@ -153,7 +153,7 @@ function ProfileSettingsSection() {
                 {saving ? '' : 'Save Changes'}
               </button>
               <button onClick={() => setEditing(false)}
-                className="px-4 py-2 border border-arena-border text-xs font-medium rounded-xl text-arena-text-secondary hover:text-white hover:border-white/30 transition-all duration-200">
+                className="px-4 py-2 border border-arena-border text-xs font-medium rounded-xl text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-text-primary/30 transition-all duration-200">
                 Cancel
               </button>
             </div>
@@ -417,7 +417,7 @@ function LanguageSection() {
                   lang === l.code
                     ? 'bg-arena-accent/10 text-arena-accent font-medium'
                     : l.available
-                      ? 'text-arena-text-secondary hover:bg-arena-surface hover:text-white'
+                      ? 'text-arena-text-secondary hover:bg-arena-surface hover:text-arena-text-primary'
                       : 'text-arena-text-muted hover:bg-arena-surface cursor-default')}>
                 <div className="flex items-center gap-3">
                   <span className="text-base">{l.flag}</span>
@@ -710,7 +710,7 @@ function PrivacyDataSection() {
             <div className="text-sm font-medium">Clear Local Cache</div>
             <div className="text-[10px] text-arena-text-muted leading-relaxed">Clear temporary data and cached images. Your settings will be preserved.</div>
           </div>
-          <button onClick={clearCache} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200 flex-shrink-0">
+          <button onClick={clearCache} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/30 transition-all duration-200 flex-shrink-0">
             Clear
           </button>
         </div>
@@ -807,7 +807,7 @@ function AccountSection() {
 
         {/* Logout button */}
         <button onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-secondary hover:bg-arena-surface hover:text-white transition-all duration-200">
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-arena-text-secondary hover:bg-arena-surface hover:text-arena-text-primary transition-all duration-200">
           <LogOut className="w-4 h-4" /> Log Out
         </button>
 
@@ -833,7 +833,7 @@ function AccountSection() {
                 </div>
                 <div>
                   <label className="text-xs text-arena-text-muted mb-1.5 block">
-                    Type <span className="font-mono font-bold text-white">&quot;{user.username}&quot;</span> to confirm
+                    Type <span className="font-mono font-bold text-arena-text-primary">&quot;{user.username}&quot;</span> to confirm
                   </label>
                   <input
                     type="text"
@@ -846,7 +846,7 @@ function AccountSection() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={cancelDeleteFlow}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-white/30 transition-all duration-200">
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-text-primary/30 transition-all duration-200">
                     <XCircle className="w-3.5 h-3.5" /> Cancel
                   </button>
                   <button onClick={handleDeleteAccount} disabled={!canProceed || deleting}
@@ -873,12 +873,12 @@ function AccountSection() {
                 <div className="flex items-center gap-2 p-3 bg-arena-surface rounded-lg border border-arena-border">
                   <Trash2 className="w-4 h-4 text-arena-accent flex-shrink-0" />
                   <div className="text-xs text-arena-text-muted">
-                    This action affects <span className="text-white font-medium">{user.username}</span> and cannot be undone after 30 days.
+                    This action affects <span className="text-arena-text-primary font-medium">{user.username}</span> and cannot be undone after 30 days.
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={cancelDeleteFlow}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-white/30 transition-all duration-200">
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-text-primary/30 transition-all duration-200">
                     <XCircle className="w-3.5 h-3.5" /> Cancel
                   </button>
                   <button onClick={handleDeleteAccount} disabled={deleting}

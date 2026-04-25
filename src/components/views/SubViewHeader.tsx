@@ -45,7 +45,7 @@ export function SubViewHeader({ currentView }: { currentView: ViewName }) {
 
   return (
     <div className="flex items-center gap-2.5 flex-1 min-w-0">
-      <button onClick={handleBack} className="w-8 h-8 rounded-lg bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-150 flex-shrink-0">
+      <button onClick={handleBack} className="w-8 h-8 rounded-lg bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/30 transition-all duration-150 flex-shrink-0">
         <ArrowLeft className="w-4 h-4" />
       </button>
       <div className="flex items-center gap-2 min-w-0">

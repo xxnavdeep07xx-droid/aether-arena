@@ -118,7 +118,7 @@ export function LandingView() {
             <Image src="/logo-md.webp" alt="Aether Arena" width={36} height={36} className="w-9 h-9 rounded-xl logo-energy" />
           </div>
           <div className="flex items-center gap-1.5">
-            <button onClick={() => setShowLogin(true)} className="px-3 py-1.5 text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/50 rounded-lg transition-all duration-200">Log In</button>
+            <button onClick={() => setShowLogin(true)} className="px-3 py-1.5 text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/50 rounded-lg transition-all duration-200">Log In</button>
             <button onClick={() => setShowSignup(true)} className="px-3 py-1.5 text-xs font-medium bg-arena-accent hover:bg-arena-accent-light text-white rounded-lg transition-all duration-200">Sign Up</button>
           </div>
         </div>
@@ -146,7 +146,7 @@ export function LandingView() {
                 <button onClick={() => setShowSignup(true)} className="px-8 py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-arena-accent/25 hover:-translate-y-0.5">
                   Get Started Free
                 </button>
-                <button onClick={() => setShowLogin(true)} className="px-8 py-3 border border-arena-border hover:border-arena-accent/50 text-white font-semibold rounded-xl transition-all duration-200">
+                <button onClick={() => setShowLogin(true)} className="px-8 py-3 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-semibold rounded-xl transition-all duration-200">
                   Log In
                 </button>
               </div>

@@ -51,14 +51,14 @@ export function LeaderboardView() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="flex gap-1 bg-arena-card rounded-xl p-1 border border-arena-border overflow-x-auto">
-          <button onClick={() => setGameFilter('all')} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap', gameFilter === 'all' ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>All Games</button>
+          <button onClick={() => setGameFilter('all')} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap', gameFilter === 'all' ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-arena-text-primary')}>All Games</button>
           {games?.map((g: any) => (
-            <button key={g.id} onClick={() => setGameFilter(g.id)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap', gameFilter === g.id ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>{g.name}</button>
+            <button key={g.id} onClick={() => setGameFilter(g.id)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 whitespace-nowrap', gameFilter === g.id ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-arena-text-primary')}>{g.name}</button>
           ))}
         </div>
         <div className="flex gap-1 bg-arena-card rounded-xl p-1 border border-arena-border">
           {['all_time', 'monthly', 'weekly'].map(p => (
-            <button key={p} onClick={() => setPeriod(p)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200', period === p ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-white')}>
+            <button key={p} onClick={() => setPeriod(p)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200', period === p ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:text-arena-text-primary')}>
               {p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
             </button>
           ))}

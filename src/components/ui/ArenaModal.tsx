@@ -48,7 +48,7 @@ export function ArenaModal({ open, onClose, title, description, icon, size = 'md
                   {description && <p className="text-xs text-arena-text-secondary mt-0.5">{description}</p>}
                 </div>
               </div>
-              <button onClick={onClose} className="p-1.5 rounded-lg text-arena-text-muted hover:text-white hover:bg-arena-surface transition-all duration-150" aria-label="Close">
+              <button onClick={onClose} className="p-1.5 rounded-lg text-arena-text-muted hover:text-arena-text-primary hover:bg-arena-surface transition-all duration-150" aria-label="Close">
                 <X className="w-4 h-4" />
               </button>
             </div>

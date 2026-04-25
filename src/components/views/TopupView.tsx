@@ -57,7 +57,7 @@ export function TopupFullView() {
         <div className="flex gap-2 mb-5 overflow-x-auto pb-1 scrollbar-hide">
           <button onClick={() => setFilterGame('all')}
             className={cn('px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0',
-              filterGame === 'all' ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
+              filterGame === 'all' ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/30')}>
             All Games
           </button>
           {gameNames.map((g: string) => {
@@ -65,7 +65,7 @@ export function TopupFullView() {
             return (
               <button key={g} onClick={() => setFilterGame(slug)}
                 className={cn('px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0',
-                  filterGame === slug ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
+                  filterGame === slug ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/30')}>
                 {g}
               </button>
             );
@@ -107,7 +107,7 @@ export function TopupFullView() {
                     )}
                     <div className="flex items-center justify-between pt-3 border-t border-arena-border/50">
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-xl font-bold text-white">{paiseToRupee(pack.price)}</span>
+                        <span className="text-xl font-bold text-arena-text-primary">{paiseToRupee(pack.price)}</span>
                         {pack.originalPrice > pack.price && (
                           <span className="text-xs text-arena-text-muted line-through">{paiseToRupee(pack.originalPrice)}</span>
                         )}
@@ -153,7 +153,7 @@ export function TopupFullView() {
                 )}
                 <div className="flex items-center justify-between pt-3 border-t border-arena-border">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-lg font-bold text-white">{paiseToRupee(pack.price)}</span>
+                    <span className="text-lg font-bold text-arena-text-primary">{paiseToRupee(pack.price)}</span>
                     {pack.originalPrice > pack.price && (
                       <span className="text-[11px] text-arena-text-muted line-through">{paiseToRupee(pack.originalPrice)}</span>
                     )}

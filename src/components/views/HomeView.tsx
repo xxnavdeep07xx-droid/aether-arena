@@ -86,7 +86,7 @@ function StreamBannerSection() {
             <Play className="w-4 h-4" /> Watch Now
           </button>
           {stream.tournamentId && (
-            <button className="flex items-center gap-2 px-5 py-2 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm"
+            <button className="flex items-center gap-2 px-5 py-2 h-10 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-medium rounded-xl transition-all duration-200 text-sm"
               onClick={e => { e.stopPropagation(); navigate('tournament-detail', { id: stream.tournamentId }); }}>
               <Eye className="w-4 h-4" /> View Tournament
             </button>
@@ -343,10 +343,10 @@ function TopupCarouselSection() {
       <div className="relative">
         {filtered.length > itemsPerPage && (
           <>
-            <button onClick={prev} className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
+            <button onClick={prev} className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={next} className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
+            <button onClick={next} className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
               <ChevronRight className="w-4 h-4" />
             </button>
           </>
@@ -373,7 +373,7 @@ function TopupCarouselSection() {
               )}
               <div className="flex items-center justify-between pt-2 border-t border-arena-border">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-base font-bold text-white">{paiseToRupee(pack.price)}</span>
+                  <span className="text-base font-bold text-arena-text-primary">{paiseToRupee(pack.price)}</span>
                   {pack.originalPrice > pack.price && (
                     <span className="text-[11px] text-arena-text-muted line-through">{paiseToRupee(pack.originalPrice)}</span>
                   )}
@@ -426,7 +426,7 @@ function HomeTournamentsSection() {
         {[{ k: 'all', l: 'All' }, { k: 'featured', l: '🔥 Featured' }, { k: 'registration_open', l: 'Open' }, { k: 'in_progress', l: '🔴 Live' }, { k: 'upcoming', l: 'Upcoming' }].map(s => (
           <button key={s.k} onClick={() => setFilter(s.k)}
             className={cn('px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 flex-shrink-0',
-              filter === s.k ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
+              filter === s.k ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-card border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/30')}>
             {s.l}
           </button>
         ))}

@@ -132,7 +132,7 @@ export function RightPanelContent() {
             { label: 'Watch Streams', view: 'streams' as ViewName, icon: Tv },
           ].map(link => (
             <button key={link.view} onClick={() => navigate(link.view)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-arena-text-secondary hover:bg-arena-surface hover:text-white transition-all duration-200">
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-arena-text-secondary hover:bg-arena-surface hover:text-arena-text-primary transition-all duration-200">
               <link.icon className="w-4 h-4" /> {link.label}
             </button>
           ))}

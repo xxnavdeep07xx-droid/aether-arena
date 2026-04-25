@@ -60,7 +60,7 @@ export function SearchBarInput({ onFocus, onBlur }: SearchBarInputProps) {
         onBlur={onBlur}
         className="w-full bg-arena-card border border-arena-border rounded-xl pl-10 pr-9 py-2.5 h-10 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" />
       {localQuery && (
-        <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-white transition-colors">
+        <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
           <X className="w-3.5 h-3.5" />
         </button>
       )}

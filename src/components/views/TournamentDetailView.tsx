@@ -206,7 +206,7 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
       <ArenaModal open={true} onClose={onClose} title="Confirm Registration" description={tournament.title} icon={<CheckCircle2 className="w-5 h-5" />} size="sm">
         <p className="text-lg font-bold text-arena-success mb-4">FREE Entry</p>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
           <button onClick={() => onRegister({})} className="flex-1 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white rounded-xl text-sm font-semibold transition-all duration-200">Confirm</button>
         </div>
       </ArenaModal>

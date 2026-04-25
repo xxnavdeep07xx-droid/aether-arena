@@ -41,7 +41,7 @@ function ConfirmDialog({ state, onClose }: { state: ConfirmDialogState; onClose:
         <h3 className="text-lg font-bold text-center mb-1">{state.title}</h3>
         <p className="text-sm text-arena-text-secondary text-center mb-6">{state.description}</p>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
           <button onClick={() => { state.onConfirm(); onClose(); }} className="flex-1 py-2.5 h-10 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 text-sm">Delete</button>
         </div>
       </div>
@@ -288,7 +288,7 @@ export function AdminTournamentCreateView() {
         </label>
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? (editId ? 'Updating...' : 'Creating...') : editId ? 'Update Tournament' : 'Create Tournament'}</button>
-          <button type="button" onClick={() => navigate('admin-tournaments')} className="px-6 py-2.5 h-11 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors duration-150">Cancel</button>
+          <button type="button" onClick={() => navigate('admin-tournaments')} className="px-6 py-2.5 h-11 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
         </div>
       </form>
     </div>
@@ -497,7 +497,7 @@ export function AdminGamesView() {
             <span className="text-sm text-arena-text-secondary">Active</span>
           </label>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+            <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
             <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
           </div>
         </div>
@@ -600,7 +600,7 @@ export function AdminStreamsView() {
             <span className="text-sm text-arena-text-secondary">Featured</span>
           </label>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+            <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
             <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
           </div>
         </div>
@@ -691,7 +691,7 @@ export function AdminAffiliatesView() {
           <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-fade-in-up">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold">{editing ? 'Edit Affiliate' : 'New Affiliate'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-arena-text-muted hover:text-white" aria-label="Close"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowModal(false)} className="text-arena-text-muted hover:text-arena-text-primary" aria-label="Close"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -717,7 +717,7 @@ export function AdminAffiliatesView() {
                 <div><label className="text-xs text-arena-text-secondary mb-1 block">Sort Order</label><input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className={inputClass} /></div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+                <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
                 <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
               </div>
             </div>
@@ -837,7 +837,7 @@ export function AdminSettingsView() {
                 <div className="relative">
                   <input type={showSecret ? 'text' : 'password'} value={rzpKeySecret} onChange={e => { setRzpKeySecret(e.target.value); setRzpConfirmStep(0); }}
                     placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className={inputClass} />
-                  <button type="button" onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-arena-text-muted hover:text-white">
+                  <button type="button" onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-arena-text-muted hover:text-arena-text-primary">
                     {showSecret ? 'Hide' : 'Show'}
                   </button>
                 </div>
@@ -1251,7 +1251,7 @@ export function AdminTopupView() {
           <div className="bg-arena-card border border-arena-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto animate-fade-in-up">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold">{editingPack ? 'Edit Pack' : 'New Pack'}</h2>
-              <button onClick={() => setShowCreate(false)} className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowCreate(false)} className="text-arena-text-muted hover:text-arena-text-primary"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -1301,7 +1301,7 @@ export function AdminTopupView() {
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-white font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
+                <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
                 <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editingPack ? 'Update' : 'Create'}</button>
               </div>
             </div>
@@ -1651,7 +1651,7 @@ export function AdminRedemptionsView() {
             <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="Optional note..."
               className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors resize-none mb-4" />
             <div className="flex gap-3">
-              <button onClick={() => setNoteDialog({ open: false, redemptionId: '', action: '' })} className="flex-1 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-white transition-colors">Cancel</button>
+              <button onClick={() => setNoteDialog({ open: false, redemptionId: '', action: '' })} className="flex-1 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors">Cancel</button>
               <button onClick={() => handleAction(noteDialog.redemptionId, noteDialog.action)} disabled={processing}
                 className={cn('flex-1 py-2.5 h-10 text-white font-semibold rounded-xl text-sm disabled:opacity-50',
                   noteDialog.action === 'reject' ? 'bg-red-500 hover:bg-red-600' : noteDialog.action === 'mark_paid' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600')}>

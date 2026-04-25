@@ -116,7 +116,7 @@ export function ProfileView() {
               </div>
               <div className="flex gap-2">
                 <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-arena-accent text-white text-xs font-semibold rounded-lg disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
-                <button onClick={() => setEditing(false)} className="px-4 py-2 border border-arena-border text-xs font-medium rounded-lg hover:border-white transition-colors duration-150">Cancel</button>
+                <button onClick={() => setEditing(false)} className="px-4 py-2 border border-arena-border text-xs font-medium rounded-lg hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
               </div>
             </div>
           )}

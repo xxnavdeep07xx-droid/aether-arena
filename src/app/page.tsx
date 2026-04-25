@@ -281,17 +281,17 @@ export default function Page() {
               {sidebarItems.map(item => (
                 <button key={item.view} onClick={() => navigate(item.view)} aria-label={item.label} title={item.label}
                   className={cn('w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 relative group',
-                    currentView === item.view ? 'bg-arena-accent text-white shadow-lg shadow-arena-accent/25' : 'text-arena-text-secondary hover:bg-arena-card hover:text-white')}>
+                    currentView === item.view ? 'bg-arena-accent text-white shadow-lg shadow-arena-accent/25' : 'text-arena-text-secondary hover:bg-arena-card hover:text-arena-text-primary')}>
                   {currentView === item.view && <div className="absolute left-[-14px] w-[3px] h-5 bg-arena-accent rounded-r" />}
                   {item.view === 'aether' ? <AetherIcon size="md" /> : <item.icon className="w-5 h-5" />}
                 </button>
               ))}
             </nav>
             <div className="flex flex-col gap-2 items-center">
-              <button onClick={() => navigate('notifications')} aria-label="Notifications" title="Notifications" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
+              <button onClick={() => navigate('notifications')} aria-label="Notifications" title="Notifications" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-arena-text-primary transition-all duration-200">
                 <BellWithBadge />
               </button>
-              <button onClick={() => navigate('settings')} aria-label="Settings" title="Settings" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-white transition-all duration-200">
+              <button onClick={() => navigate('settings')} aria-label="Settings" title="Settings" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-secondary hover:bg-arena-card hover:text-arena-text-primary transition-all duration-200">
                 <Settings className="w-5 h-5" />
               </button>
               <button onClick={() => navigate('profile')} aria-label="Profile" className="w-9 h-9 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold border-2 border-arena-accent/50 overflow-hidden">
@@ -312,7 +312,7 @@ export default function Page() {
                   <div className="flex items-center gap-2">
                     <Image src="/logo-md.webp" alt="Aether Arena" width={40} height={40} className="w-10 h-10 rounded-xl logo-energy" />
                   </div>
-                  <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
+                  <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-arena-text-muted hover:text-arena-text-primary"><X className="w-5 h-5" /></button>
                 </div>
 
                 {/* User card */}
@@ -333,7 +333,7 @@ export default function Page() {
                   {mobileMenuItems.map(item => (
                     <button key={item.view} onClick={() => navigate(item.view)}
                       className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
-                        currentView === item.view ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:bg-arena-card hover:text-white')}>
+                        currentView === item.view ? 'bg-arena-accent text-white' : 'text-arena-text-secondary hover:bg-arena-card hover:text-arena-text-primary')}>
                       {item.view === 'aether' ? <AetherIcon size="md" /> : <item.icon className="w-5 h-5" />}
                       {item.label}
                     </button>
@@ -346,7 +346,7 @@ export default function Page() {
                     <div className="px-4 py-1 text-[10px] font-semibold text-arena-text-muted uppercase tracking-wider">Legal</div>
                     {mobileMenuLinks.map(item => (
                       <button key={item.view} onClick={() => navigate(item.view)}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs text-arena-text-muted hover:bg-arena-card hover:text-white transition-all duration-200">
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs text-arena-text-muted hover:bg-arena-card hover:text-arena-text-primary transition-all duration-200">
                         <item.icon className="w-4 h-4" />
                         {item.label}
                       </button>
@@ -399,7 +399,7 @@ export default function Page() {
                 {/* Right icons (hidden when search is focused) */}
                 {!searchFocused && (
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-white hover:border-arena-accent/30 transition-all duration-200">
+                    <button onClick={() => navigate('notifications')} aria-label="Notifications" className="w-9 h-9 rounded-xl bg-arena-card border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/30 transition-all duration-200">
                       <BellWithBadge className="w-4 h-4" />
                     </button>
                     <button onClick={() => navigate('profile')} className="w-9 h-9 rounded-xl overflow-hidden border-2 border-arena-accent/50 hover:border-arena-accent transition-colors duration-150 cursor-pointer">

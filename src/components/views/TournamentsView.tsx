@@ -87,7 +87,7 @@ export function TournamentsView() {
               className={cn('flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200',
                 showFilters || activeFilterCount > 0
                   ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20'
-                  : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/30')}>
+                  : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/30')}>
               <SlidersHorizontal className="w-3.5 h-3.5" />
               Filters
               {activeFilterCount > 0 && (
@@ -103,7 +103,7 @@ export function TournamentsView() {
             {showFilters && (
               <div className="absolute right-0 top-full mt-2 w-64 bg-arena-surface border border-arena-border rounded-2xl p-4 shadow-2xl shadow-black/40 z-50 animate-fade-in">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-white">Filters</span>
+                  <span className="text-xs font-semibold text-arena-text-primary">Filters</span>
                   {activeFilterCount > 0 && (
                     <button onClick={clearFilters} className="text-[10px] text-arena-accent hover:text-arena-accent-light font-medium transition-colors">Clear all</button>
                   )}
@@ -126,7 +126,7 @@ export function TournamentsView() {
                     {statusOptions.map(s => (
                       <button key={s.value} onClick={() => setFilters(f => ({ ...f, status: s.value }))}
                         className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-150',
-                          filters.status === s.value ? 'bg-arena-accent text-white' : 'bg-arena-dark border border-arena-border text-arena-text-secondary hover:text-white')}>
+                          filters.status === s.value ? 'bg-arena-accent text-white' : 'bg-arena-dark border border-arena-border text-arena-text-secondary hover:text-arena-text-primary')}>
                         {s.label}
                       </button>
                     ))}
@@ -140,7 +140,7 @@ export function TournamentsView() {
                     {formatOptions.map(f => (
                       <button key={f.value} onClick={() => setFilters(fs => ({ ...fs, format: f.value }))}
                         className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-150',
-                          filters.format === f.value ? 'bg-arena-accent text-white' : 'bg-arena-dark border border-arena-border text-arena-text-secondary hover:text-white')}>
+                          filters.format === f.value ? 'bg-arena-accent text-white' : 'bg-arena-dark border border-arena-border text-arena-text-secondary hover:text-arena-text-primary')}>
                         {f.label}
                       </button>
                     ))}
@@ -154,7 +154,7 @@ export function TournamentsView() {
                     {feeOptions.map(f => (
                       <button key={f.value} onClick={() => setFilters(fs => ({ ...fs, fee: f.value }))}
                         className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-150',
-                          filters.fee === f.value ? 'bg-arena-accent text-white' : 'bg-arena-dark border border-arena-border text-arena-text-secondary hover:text-white')}>
+                          filters.fee === f.value ? 'bg-arena-accent text-white' : 'bg-arena-dark border border-arena-border text-arena-text-secondary hover:text-arena-text-primary')}>
                         {f.label}
                       </button>
                     ))}
