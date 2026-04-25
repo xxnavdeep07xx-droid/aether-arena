@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore, useAuthStore } from '@/lib/store';
 import {
   Settings, Sun, Moon, Monitor, Globe, Bell, BellOff,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -108,7 +109,7 @@ function ProfileSettingsSection() {
           <div className="px-4 py-3 rounded-xl bg-arena-surface border border-arena-border space-y-2">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
-                {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" /> : (user.username || '?')[0].toUpperCase()}
+                {user.avatarUrl ? <Image src={user.avatarUrl} alt="" width={40} height={40} className="w-full h-full object-cover" unoptimized /> : (user.username || '?')[0].toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium truncate">{currentDisplayName || user.username}</div>
@@ -318,17 +319,42 @@ function AppearanceSection() {
 // ==================== LANGUAGE ====================
 
 function LanguageSection() {
+  const { isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
   const [lang, setLang] = useState('en');
   const [expanded, setExpanded] = useState(false);
 
+  const { data: prefs } = useQuery({
+    queryKey: ['user-preferences'],
+    queryFn: () => fetch('/api/profiles/me/preferences').then(r => r.json()),
+    enabled: isAuthenticated,
+  });
+
+  const savePrefs = useMutation({
+    mutationFn: (data: { language?: string; notificationPrefs?: Record<string, unknown>; privacyPrefs?: Record<string, unknown> }) =>
+      fetch('/api/profiles/me/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-preferences'] });
+    },
+  });
+
   useEffect(() => {
-    const saved = localStorage.getItem('aa-language');
-    if (saved) setLang(saved);
-  }, []);
+    // Load language from API first, then fall back to localStorage
+    if (prefs?.language) {
+      setLang(prefs.language);
+    } else {
+      const saved = localStorage.getItem('aa-language');
+      if (saved) setLang(saved);
+    }
+  }, [prefs?.language]);
 
   const languages = [
     { code: 'en', label: 'English', flag: '🇬🇧', available: true },
-    { code: 'hi', label: 'हिन्दी (Hindi)', flag: '🇮🇳', available: false },
+    { code: 'hi', label: 'हिन्दी (Hindi)', flag: '🇮🇳', available: true },
     { code: 'bn', label: 'বাংলা (Bengali)', flag: '🇮🇳', available: false },
     { code: 'ta', label: 'தமிழ் (Tamil)', flag: '🇮🇳', available: false },
     { code: 'te', label: 'తెలుగు (Telugu)', flag: '🇮🇳', available: false },
@@ -348,6 +374,11 @@ function LanguageSection() {
     localStorage.setItem('aa-language', code);
     setExpanded(false);
     toast.success(`Language set to ${l.label}`);
+
+    // Persist to API
+    if (isAuthenticated) {
+      savePrefs.mutate({ language: code });
+    }
   };
 
   return (
@@ -411,26 +442,60 @@ interface NotificationPrefs {
 }
 
 function NotificationSettingsSection() {
-  const [prefs, setPrefs] = useState<NotificationPrefs>({
+  const { isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  const defaultPrefs: NotificationPrefs = {
     pushEnabled: true,
     tournamentAlerts: true,
     resultUpdates: true,
     promoOffers: false,
     communityUpdates: true,
+  };
+
+  const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
+
+  const { data: serverPrefs } = useQuery({
+    queryKey: ['user-preferences'],
+    queryFn: () => fetch('/api/profiles/me/preferences').then(r => r.json()),
+    enabled: isAuthenticated,
   });
 
+  // Sync from server when loaded
   useEffect(() => {
-    const saved = localStorage.getItem('aa-notification-prefs');
-    if (saved) {
-      try { setPrefs(JSON.parse(saved)); } catch { /* use defaults */ }
+    if (serverPrefs?.notificationPrefs) {
+      setPrefs({ ...defaultPrefs, ...serverPrefs.notificationPrefs });
+    } else {
+      // Fall back to localStorage
+      const saved = localStorage.getItem('aa-notification-prefs');
+      if (saved) {
+        try { setPrefs(JSON.parse(saved)); } catch { /* use defaults */ }
+      }
     }
-  }, []);
+  }, [serverPrefs]);
+
+  const savePrefsMutation = useMutation({
+    mutationFn: (newPrefs: NotificationPrefs) =>
+      fetch('/api/profiles/me/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationPrefs: newPrefs }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-preferences'] });
+    },
+  });
 
   const updatePref = (key: keyof NotificationPrefs) => {
     const updated = { ...prefs, [key]: !prefs[key] };
     setPrefs(updated);
     localStorage.setItem('aa-notification-prefs', JSON.stringify(updated));
     toast.success('Notification preferences updated');
+
+    // Persist to API
+    if (isAuthenticated) {
+      savePrefsMutation.mutate(updated);
+    }
   };
 
   const requestPushPermission = async () => {
@@ -503,23 +568,72 @@ function NotificationSettingsSection() {
 
 // ==================== PRIVACY & DATA ====================
 
+interface PrivacyPrefs {
+  profileVisibility: 'public' | 'private';
+  showLeaderboard: boolean;
+  showActivity: boolean;
+}
+
 function PrivacyDataSection() {
+  const { isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  const defaultPrivacy: PrivacyPrefs = {
+    profileVisibility: 'public',
+    showLeaderboard: true,
+    showActivity: true,
+  };
+
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'private'>('public');
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [showActivity, setShowActivity] = useState(true);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('aa-privacy-profile');
-    if (saved) setProfileVisibility(saved as 'public' | 'private');
-    const lb = localStorage.getItem('aa-privacy-leaderboard');
-    if (lb !== null) setShowLeaderboard(lb === 'true');
-    const act = localStorage.getItem('aa-privacy-activity');
-    if (act !== null) setShowActivity(act === 'true');
-  }, []);
+  const { data: serverPrefs } = useQuery({
+    queryKey: ['user-preferences'],
+    queryFn: () => fetch('/api/profiles/me/preferences').then(r => r.json()),
+    enabled: isAuthenticated,
+  });
 
-  const toggleSetting = (key: string, value: boolean) => {
-    localStorage.setItem(key, String(value));
+  // Sync from server when loaded
+  useEffect(() => {
+    if (serverPrefs?.privacyPrefs) {
+      const p = { ...defaultPrivacy, ...serverPrefs.privacyPrefs } as PrivacyPrefs;
+      setProfileVisibility(p.profileVisibility);
+      setShowLeaderboard(p.showLeaderboard);
+      setShowActivity(p.showActivity);
+    } else {
+      // Fall back to localStorage
+      const savedProfile = localStorage.getItem('aa-privacy-profile');
+      if (savedProfile) setProfileVisibility(savedProfile as 'public' | 'private');
+      const lb = localStorage.getItem('aa-privacy-leaderboard');
+      if (lb !== null) setShowLeaderboard(lb === 'true');
+      const act = localStorage.getItem('aa-privacy-activity');
+      if (act !== null) setShowActivity(act === 'true');
+    }
+  }, [serverPrefs]);
+
+  const savePrivacyMutation = useMutation({
+    mutationFn: (newPrefs: PrivacyPrefs) =>
+      fetch('/api/profiles/me/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ privacyPrefs: newPrefs }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-preferences'] });
+    },
+  });
+
+  const persistPrivacy = (newPrefs: PrivacyPrefs) => {
+    localStorage.setItem('aa-privacy-profile', newPrefs.profileVisibility);
+    localStorage.setItem('aa-privacy-leaderboard', String(newPrefs.showLeaderboard));
+    localStorage.setItem('aa-privacy-activity', String(newPrefs.showActivity));
     toast.success('Privacy setting updated');
+
+    // Persist to API
+    if (isAuthenticated) {
+      savePrivacyMutation.mutate(newPrefs);
+    }
   };
 
   const clearCache = () => {
@@ -556,8 +670,7 @@ function PrivacyDataSection() {
             onClick={() => {
               const next = profileVisibility === 'public' ? 'private' : 'public';
               setProfileVisibility(next);
-              localStorage.setItem('aa-privacy-profile', next);
-              toast.success(next === 'public' ? 'Profile set to public' : 'Profile set to private');
+              persistPrivacy({ profileVisibility: next, showLeaderboard, showActivity });
             }}
             className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex-shrink-0',
               profileVisibility === 'public' ? 'bg-arena-accent/10 text-arena-accent border border-arena-accent/30' : 'bg-arena-surface text-arena-text-muted border border-arena-border')}>
@@ -570,7 +683,7 @@ function PrivacyDataSection() {
             <div className="text-sm font-medium">Show on Leaderboard</div>
             <div className="text-[10px] text-arena-text-muted leading-relaxed">Display your ranking on public leaderboards</div>
           </div>
-          <button onClick={() => { setShowLeaderboard(!showLeaderboard); toggleSetting('aa-privacy-leaderboard', !showLeaderboard); }}
+          <button onClick={() => { setShowLeaderboard(!showLeaderboard); persistPrivacy({ profileVisibility, showLeaderboard: !showLeaderboard, showActivity }); }}
             className={cn('relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0', showLeaderboard ? 'bg-arena-accent' : 'bg-arena-border')}>
             <div className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200', showLeaderboard ? 'translate-x-[22px]' : 'translate-x-0.5')} />
           </button>
@@ -581,7 +694,7 @@ function PrivacyDataSection() {
             <div className="text-sm font-medium">Show Activity Status</div>
             <div className="text-[10px] text-arena-text-muted leading-relaxed">Let others see when you are online</div>
           </div>
-          <button onClick={() => { setShowActivity(!showActivity); toggleSetting('aa-privacy-activity', !showActivity); }}
+          <button onClick={() => { setShowActivity(!showActivity); persistPrivacy({ profileVisibility, showLeaderboard, showActivity: !showActivity }); }}
             className={cn('relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0', showActivity ? 'bg-arena-accent' : 'bg-arena-border')}>
             <div className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200', showActivity ? 'translate-x-[22px]' : 'translate-x-0.5')} />
           </button>
@@ -673,7 +786,7 @@ function AccountSection() {
         <div className="px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
-              {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" /> : (user.username || '?')[0].toUpperCase()}
+              {user.avatarUrl ? <Image src={user.avatarUrl} alt="" width={40} height={40} className="w-full h-full object-cover" unoptimized /> : (user.username || '?')[0].toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium truncate">{user.displayName || user.username}</div>
@@ -765,7 +878,7 @@ function AccountSection() {
                   </button>
                   <button onClick={handleDeleteAccount} disabled={deleting}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium bg-red-600 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-500 transition-all duration-200">
-                    <Trash2 className="w-3.5 h-3.5" /> {deleting ? 'Please wait...' : 'Yes, Delete My Account'}
+                    <Trash2 className="w-3 h-3" /> {deleting ? 'Please wait...' : 'Yes, Delete My Account'}
                   </button>
                 </div>
               </>

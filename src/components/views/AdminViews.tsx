@@ -7,7 +7,8 @@ import {
   Users, Trophy, Clock, DollarSign, CheckCircle2, XCircle, Plus,
   Eye, Trash2, Gamepad2, Pencil, X, Tv, ExternalLink, Link2,
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
-  ChevronRight, AlertTriangle, Wallet, Loader2
+  ChevronRight, AlertTriangle, Wallet, Loader2,
+  Share2, Calendar, Globe, Gift, Bell
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { AetherIcon } from '@/components/ui/aether-icon';
@@ -17,7 +18,9 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Area, AreaChart
 } from 'recharts';
-import { Skeleton } from './Skeletons';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+import Image from 'next/image';
 
 // ==================== REUSABLE CONFIRM DIALOG ====================
 
@@ -350,7 +353,7 @@ export function AdminRegistrationsView() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
-                    {r.player?.avatarUrl ? <img src={r.player.avatarUrl} alt="" className="w-full h-full object-cover" /> : (r.player?.username || '?')[0].toUpperCase()}
+                    {r.player?.avatarUrl ? <Image src={r.player.avatarUrl} alt="" width={32} height={32} className="w-full h-full object-cover" unoptimized loading="lazy" /> : (r.player?.username || '?')[0].toUpperCase()}
                   </div>
                   <div>
                     <div className="font-medium text-sm">{r.player?.displayName || r.player?.username || 'Unknown'}</div>
@@ -457,7 +460,7 @@ export function AdminGamesView() {
         {games?.map((g: any) => (
           <div key={g.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center gap-4 hover:border-arena-accent/30 transition-all duration-200">
             <div className="w-12 h-12 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
-              {g.iconUrl ? <img src={g.iconUrl} alt={g.name} className="w-8 h-8 object-contain rounded-lg" /> : <Gamepad2 className="w-6 h-6 text-arena-accent" />}
+              {g.iconUrl ? <Image src={g.iconUrl} alt={g.name} width={32} height={32} className="w-8 h-8 object-contain rounded-lg" unoptimized /> : <Gamepad2 className="w-6 h-6 text-arena-accent" />}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -665,7 +668,7 @@ export function AdminAffiliatesView() {
         {affiliates?.map((a: any) => (
           <div key={a.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between hover:border-arena-accent/30 transition-all duration-200">
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              {a.imageUrl ? <img src={a.imageUrl} alt={a.name} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0"><ShoppingBag className="w-5 h-5 text-arena-accent" /></div>}
+              {a.imageUrl ? <Image src={a.imageUrl} alt={a.name} width={40} height={40} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" unoptimized loading="lazy" /> : <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0"><ShoppingBag className="w-5 h-5 text-arena-accent" /></div>}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-sm truncate">{a.name}</h3>
@@ -950,6 +953,218 @@ export function AdminSettingsView() {
             <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
               {saving ? 'Saving...' : 'Save Platform Settings'}
             </button>
+          </div>
+
+          {/* Social Links Section */}
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                <Share2 className="w-5 h-5 text-arena-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Social Links</h2>
+                <p className="text-xs text-arena-text-muted">Connect your social media profiles</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Instagram URL</label>
+                <input type="url" value={settings.social_instagram || ''} onChange={e => setLocalSettings({ ...settings, social_instagram: e.target.value })}
+                  placeholder="https://instagram.com/aetherarena" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Twitter / X URL</label>
+                <input type="url" value={settings.social_twitter || ''} onChange={e => setLocalSettings({ ...settings, social_twitter: e.target.value })}
+                  placeholder="https://x.com/aetherarena" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">YouTube URL</label>
+                <input type="url" value={settings.social_youtube || ''} onChange={e => setLocalSettings({ ...settings, social_youtube: e.target.value })}
+                  placeholder="https://youtube.com/@aetherarena" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Telegram URL</label>
+                <input type="url" value={settings.social_telegram || ''} onChange={e => setLocalSettings({ ...settings, social_telegram: e.target.value })}
+                  placeholder="https://t.me/aetherarena" className={inputClass} />
+              </div>
+            </div>
+            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save Social Links'}
+            </button>
+          </div>
+
+          {/* Tournament Defaults Section */}
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-arena-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Tournament Defaults</h2>
+                <p className="text-xs text-arena-text-muted">Configure default tournament creation settings</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Default Registration Period (hours)</label>
+                <input type="number" min="1" max="720" value={settings.tournament_default_reg_hours || '24'} onChange={e => setLocalSettings({ ...settings, tournament_default_reg_hours: e.target.value })}
+                  className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Max Concurrent Tournaments per User</label>
+                <input type="number" min="1" max="100" value={settings.tournament_max_per_user || '5'} onChange={e => setLocalSettings({ ...settings, tournament_max_per_user: e.target.value })}
+                  className={inputClass} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
+              <div>
+                <div className="text-sm font-medium">Auto-start Tournaments</div>
+                <div className="text-[10px] text-arena-text-muted">Automatically start tournaments when start time is reached</div>
+              </div>
+              <button
+                onClick={() => {
+                  const newVal = settings.tournament_auto_start === 'true' ? 'false' : 'true';
+                  setLocalSettings({ ...settings, tournament_auto_start: newVal });
+                  fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...settings, tournament_auto_start: newVal }),
+                  }).then(() => toast.success(newVal === 'true' ? 'Auto-start enabled' : 'Auto-start disabled')).catch(() => toast.error('Failed'));
+                }}
+                className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
+                  settings.tournament_auto_start === 'true' ? 'bg-arena-accent' : 'bg-arena-border')}>
+                <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
+                  settings.tournament_auto_start === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
+              </button>
+            </div>
+            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save Tournament Defaults'}
+            </button>
+          </div>
+
+          {/* SEO & Branding Section */}
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                <Globe className="w-5 h-5 text-arena-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">SEO & Branding</h2>
+                <p className="text-xs text-arena-text-muted">Configure meta tags and brand assets</p>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-arena-text-secondary mb-1 block">Site Description</label>
+              <textarea rows={3} value={settings.seo_description || ''} onChange={e => setLocalSettings({ ...settings, seo_description: e.target.value })}
+                placeholder="India's fastest-growing mobile esports tournament platform..." className={cn(inputClass, 'resize-none')} maxLength={300} />
+              <div className="text-[10px] text-arena-text-muted mt-1 text-right">{(settings.seo_description || '').length}/300</div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">OG Image URL</label>
+                <input type="url" value={settings.seo_og_image || ''} onChange={e => setLocalSettings({ ...settings, seo_og_image: e.target.value })}
+                  placeholder="https://example.com/og-image.png" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Custom Favicon URL</label>
+                <input type="url" value={settings.branding_favicon || ''} onChange={e => setLocalSettings({ ...settings, branding_favicon: e.target.value })}
+                  placeholder="https://example.com/favicon.ico" className={inputClass} />
+              </div>
+            </div>
+            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save SEO & Branding'}
+            </button>
+          </div>
+
+          {/* Referral System Section */}
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                <Gift className="w-5 h-5 text-arena-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Referral System</h2>
+                <p className="text-xs text-arena-text-muted">Configure the referral reward program</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
+              <div>
+                <div className="text-sm font-medium">Referral Program Enabled</div>
+                <div className="text-[10px] text-arena-text-muted">Allow users to earn rewards by referring friends</div>
+              </div>
+              <button
+                onClick={() => {
+                  const newVal = settings.referral_enabled === 'true' ? 'false' : 'true';
+                  setLocalSettings({ ...settings, referral_enabled: newVal });
+                  fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...settings, referral_enabled: newVal }),
+                  }).then(() => toast.success(newVal === 'true' ? 'Referral program enabled' : 'Referral program disabled')).catch(() => toast.error('Failed'));
+                }}
+                className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
+                  settings.referral_enabled === 'true' ? 'bg-arena-accent' : 'bg-arena-border')}>
+                <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
+                  settings.referral_enabled === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Referral Bonus (Aether Coins)</label>
+                <input type="number" min="0" value={settings.referral_bonus || '50'} onChange={e => setLocalSettings({ ...settings, referral_bonus: e.target.value })}
+                  className={inputClass} />
+              </div>
+              <div>
+                <label className="text-xs text-arena-text-secondary mb-1 block">Max Referrals per User</label>
+                <input type="number" min="0" value={settings.referral_max_per_user || '0'} onChange={e => setLocalSettings({ ...settings, referral_max_per_user: e.target.value })}
+                  placeholder="0 = unlimited" className={inputClass} />
+              </div>
+            </div>
+            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save Referral Settings'}
+            </button>
+          </div>
+
+          {/* Notification Settings Section */}
+          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                <Bell className="w-5 h-5 text-arena-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Notification Settings</h2>
+                <p className="text-xs text-arena-text-muted">Configure platform-wide notification preferences</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {[
+                { key: 'notify_email_enabled', label: 'Email Notifications', desc: 'Send email notifications to users' },
+                { key: 'notify_registration', label: 'Registration Alerts', desc: 'Notify users about tournament registration events' },
+                { key: 'notify_results', label: 'Result Announcements', desc: 'Send results when tournaments conclude' },
+              ].map(item => (
+                <div key={item.key} className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
+                  <div>
+                    <div className="text-sm font-medium">{item.label}</div>
+                    <div className="text-[10px] text-arena-text-muted">{item.desc}</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newVal = settings[item.key] === 'true' ? 'false' : 'true';
+                      setLocalSettings({ ...settings, [item.key]: newVal });
+                      fetch('/api/admin/settings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...settings, [item.key]: newVal }),
+                      }).then(() => toast.success(`${item.label} ${newVal === 'true' ? 'enabled' : 'disabled'}`)).catch(() => toast.error('Failed'));
+                    }}
+                    className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
+                      settings[item.key] === 'true' ? 'bg-arena-accent' : 'bg-arena-border')}>
+                    <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
+                      settings[item.key] === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

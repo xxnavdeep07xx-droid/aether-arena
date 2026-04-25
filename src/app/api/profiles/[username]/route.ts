@@ -24,6 +24,7 @@ export async function GET(
         totalDeaths: true,
         totalPrizeWon: true,
         createdAt: true,
+        privacyPrefs: true,
       },
     })
 
@@ -32,6 +33,23 @@ export async function GET(
         { error: 'Profile not found' },
         { status: 404 }
       )
+    }
+
+    // Privacy: if profile is private, return limited data
+    const privacyPrefs = typeof profile.privacyPrefs === 'string'
+      ? JSON.parse(profile.privacyPrefs)
+      : profile.privacyPrefs || { profileVisibility: 'public', showLeaderboard: true, showActivity: true }
+
+    if (privacyPrefs.profileVisibility === 'private') {
+      return NextResponse.json({
+        id: profile.id,
+        username: profile.username,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        league: profile.league,
+        createdAt: profile.createdAt,
+        isPrivate: true,
+      })
     }
 
     // Calculate derived stats
@@ -47,6 +65,7 @@ export async function GET(
 
     return NextResponse.json({
       ...profile,
+      privacyPrefs: undefined,
       kdRatio,
       winRate,
       totalPrizeWonDisplay: (profile.totalPrizeWon / 100).toFixed(2),

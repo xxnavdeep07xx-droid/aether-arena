@@ -10,7 +10,8 @@ import {
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Skeleton } from './Skeletons';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 export function TournamentDetailView() {
   const { viewParams, navigate } = useAppStore();

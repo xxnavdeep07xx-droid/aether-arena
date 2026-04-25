@@ -7,6 +7,7 @@ const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -45,7 +46,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#0f0f1a" />
+        <meta name="theme-color" content="#0f0f14" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)" />
         <link rel="manifest" href="/manifest.json" />
         <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
         <script

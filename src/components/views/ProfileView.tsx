@@ -3,6 +3,7 @@
 import { useAppStore, useAuthStore } from '@/lib/store';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import { Pencil, Trophy, Crown, Target, Coins, LogOut, Wallet, ChevronRight } from 'lucide-react';
 import { cn, paiseToRupee, formatDate, LEAGUE_CONFIG } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -82,7 +83,7 @@ export function ProfileView() {
         <div className="px-6 pb-6 -mt-10">
           <div className="flex items-end gap-4 mb-4">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 border-4 border-arena-card flex items-center justify-center text-2xl font-bold overflow-hidden">
-              {p?.avatarUrl ? <img src={p.avatarUrl} alt={`${p.username}'s avatar`} className="w-full h-full object-cover" /> : (p?.username || '?')[0].toUpperCase()}
+              {p?.avatarUrl ? <Image src={p.avatarUrl} alt={`${p.username}'s avatar`} width={80} height={80} className="w-full h-full object-cover" unoptimized /> : (p?.username || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">

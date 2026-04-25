@@ -88,6 +88,9 @@ model Profile {
   userStreak                UserStreak?
   redemptionRequests        RedemptionRequest[]
   aetherTaskProgress        AetherTaskProgress[]
+  notificationPrefs        Json                @default("{\"pushEnabled\":true,\"tournamentAlerts\":true,\"resultUpdates\":true,\"promoOffers\":false,\"communityUpdates\":true}") @map("notification_prefs")
+  privacyPrefs             Json                @default("{\"profileVisibility\":\"public\",\"showLeaderboard\":true,\"showActivity\":true}") @map("privacy_prefs")
+  language                 String              @default("en")
   referredByCode            String?
 
   @@index([league])

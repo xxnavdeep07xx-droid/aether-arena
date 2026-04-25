@@ -2,6 +2,7 @@
 
 import { useAppStore, useAuthStore, ViewName } from '@/lib/store';
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import { Trophy, BarChart3, Tv } from 'lucide-react';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn, LEAGUE_CONFIG } from '@/lib/utils';
@@ -99,7 +100,7 @@ export function RightPanelContent() {
           <h3 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Your Profile</h3>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden">
-              {user.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
+              {user.avatarUrl ? <Image src={user.avatarUrl} alt={`${user.username}'s avatar`} width={40} height={40} className="w-full h-full object-cover" unoptimized loading="lazy" /> : (user?.username || '?')[0].toUpperCase()}
             </div>
             <div>
               <div className="text-sm font-medium">{user.displayName || user.username}</div>

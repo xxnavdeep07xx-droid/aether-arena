@@ -34,6 +34,7 @@ export async function GET(request: Request) {
               avatarUrl: true,
               league: true,
               leaguePoints: true,
+              privacyPrefs: true,
             },
             ...(playerFilterWhere ? { where: playerFilterWhere } : {}),
           },
@@ -64,6 +65,9 @@ export async function GET(request: Request) {
 
       for (const entry of entries) {
         const pid = entry.playerId
+        // Privacy: skip users who opted out of leaderboard
+        const pp = entry.player.privacyPrefs as Record<string, unknown> | null
+        if (pp && pp.showLeaderboard === false) continue
         const existing = playerMap.get(pid)
         if (existing) {
           existing.totalPoints += entry.totalPoints || 0
@@ -100,7 +104,7 @@ export async function GET(request: Request) {
         id: `${e.playerId}-${idx}`,
         playerId: e.playerId,
         rank: idx + 1,
-        player: e.player,
+        player: { ...e.player, privacyPrefs: undefined },
         game: null,
         totalPoints: e.totalPoints,
         totalWins: e.totalWins,
@@ -140,6 +144,7 @@ export async function GET(request: Request) {
             avatarUrl: true,
             league: true,
             leaguePoints: true,
+            privacyPrefs: true,
           },
           ...(playerFilterWhere ? { where: playerFilterWhere } : {}),
         },
@@ -156,7 +161,16 @@ export async function GET(request: Request) {
       take: 100,
     })
 
-    return NextResponse.json({ leaderboard })
+    // Filter out users who opted out of leaderboard (privacy)
+    const filteredLeaderboard = leaderboard.filter(entry => {
+      const pp = entry.player.privacyPrefs as Record<string, unknown> | null
+      return !(pp && pp.showLeaderboard === false)
+    }).map(entry => ({
+      ...entry,
+      player: { ...entry.player, privacyPrefs: undefined },
+    }))
+
+    return NextResponse.json({ leaderboard: filteredLeaderboard })
   } catch {
     return NextResponse.json(
       { error: 'Internal server error' },

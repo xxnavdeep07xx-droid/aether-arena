@@ -1,45 +1,60 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+import { useTheme } from '@/lib/i18n';
+import Image from 'next/image';
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse bg-arena-card rounded-xl', className)} />;
+function useSkeletonTheme() {
+  const theme = useTheme();
+  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  return {
+    baseColor: isDark ? '#1a1d27' : '#e5e7eb',
+    highlightColor: isDark ? '#2a2d3a' : '#f3f4f6',
+  };
 }
+
+function ThemedSkeleton(props: React.ComponentProps<typeof Skeleton>) {
+  const skeletonTheme = useSkeletonTheme();
+  return <Skeleton {...skeletonTheme} {...props} />;
+}
+
+export { ThemedSkeleton };
 
 export function HomeSkeleton() {
   return (
     <div className="space-y-6 py-2">
       {/* Stream banner */}
-      <Skeleton className="h-64 md:h-72 w-full rounded-2xl" />
+      <ThemedSkeleton className="h-64 md:h-72 w-full rounded-2xl" />
       {/* Top players */}
       <div>
-        <Skeleton className="h-6 w-36 mb-4" />
+        <ThemedSkeleton className="h-6 w-36 mb-4" />
         <div className="flex gap-3 overflow-hidden">
-          {[1,2,3,4].map(i => <Skeleton key={i} className="w-44 h-20 rounded-xl flex-shrink-0" />)}
+          {[1,2,3,4].map(i => <ThemedSkeleton key={i} className="w-44 h-20 rounded-xl flex-shrink-0" />)}
         </div>
       </div>
       {/* Affiliate */}
       <div>
-        <Skeleton className="h-6 w-40 mb-4" />
+        <ThemedSkeleton className="h-6 w-40 mb-4" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[1,2,3].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          {[1,2,3].map(i => <ThemedSkeleton key={i} className="h-24 rounded-xl" />)}
         </div>
       </div>
       {/* Tournaments */}
       <div>
-        <Skeleton className="h-6 w-32 mb-4" />
+        <ThemedSkeleton className="h-6 w-32 mb-4" />
         <div className="flex gap-2 mb-4">
-          {[1,2,3,4].map(i => <Skeleton key={i} className="h-8 w-20 rounded-lg" />)}
+          {[1,2,3,4].map(i => <ThemedSkeleton key={i} className="h-8 w-20 rounded-lg" />)}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[1,2,3,4].map(i => (
             <div key={i} className="rounded-xl overflow-hidden border border-arena-border/30">
-              <Skeleton className="h-28 w-full rounded-none" />
+              <ThemedSkeleton className="h-28 w-full rounded-none" />
               <div className="p-4 space-y-2">
-                <Skeleton className="h-3 w-16 rounded-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/3" />
-                <Skeleton className="h-1.5 w-full rounded-full mt-3" />
+                <ThemedSkeleton className="h-3 w-16 rounded-full" />
+                <ThemedSkeleton className="h-4 w-3/4" />
+                <ThemedSkeleton className="h-3 w-1/3" />
+                <ThemedSkeleton className="h-1.5 w-full rounded-full mt-3" />
               </div>
             </div>
           ))}
@@ -52,22 +67,22 @@ export function HomeSkeleton() {
 export function TournamentsSkeleton() {
   return (
     <div className="py-2">
-      <Skeleton className="h-8 w-40 mb-6" />
+      <ThemedSkeleton className="h-8 w-40 mb-6" />
       <div className="flex flex-wrap gap-2 mb-6">
-        {[1,2,3,4,5,6,7].map(i => <Skeleton key={i} className="h-8 w-24 rounded-lg" />)}
+        {[1,2,3,4,5,6,7].map(i => <ThemedSkeleton key={i} className="h-8 w-24 rounded-lg" />)}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1,2,3,4,5,6].map(i => (
           <div key={i} className="rounded-xl overflow-hidden border border-arena-border/30">
-            <Skeleton className="h-28 w-full rounded-none" />
+            <ThemedSkeleton className="h-28 w-full rounded-none" />
             <div className="p-4 space-y-2">
-              <Skeleton className="h-3 w-20 rounded-full" />
-              <Skeleton className="h-4 w-3/4" />
+              <ThemedSkeleton className="h-3 w-20 rounded-full" />
+              <ThemedSkeleton className="h-4 w-3/4" />
               <div className="flex justify-between">
-                <Skeleton className="h-3 w-12" />
-                <Skeleton className="h-3 w-20" />
+                <ThemedSkeleton className="h-3 w-12" />
+                <ThemedSkeleton className="h-3 w-20" />
               </div>
-              <Skeleton className="h-1.5 w-full rounded-full mt-2" />
+              <ThemedSkeleton className="h-1.5 w-full rounded-full mt-2" />
             </div>
           </div>
         ))}
@@ -79,21 +94,21 @@ export function TournamentsSkeleton() {
 export function LeaderboardSkeleton() {
   return (
     <div className="py-2">
-      <Skeleton className="h-8 w-40 mb-6" />
+      <ThemedSkeleton className="h-8 w-40 mb-6" />
       <div className="flex flex-wrap gap-4 mb-6">
-        <Skeleton className="h-10 w-64 rounded-xl" />
-        <Skeleton className="h-10 w-48 rounded-xl" />
+        <ThemedSkeleton className="h-10 w-64 rounded-xl" />
+        <ThemedSkeleton className="h-10 w-48 rounded-xl" />
       </div>
       <div className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden">
         {[1,2,3,4,5,6,7,8].map(i => (
           <div key={i} className="flex items-center px-4 py-3 border-b border-arena-border/30">
-            <Skeleton className="h-5 w-8 mr-4" />
-            <Skeleton className="h-8 w-8 rounded-lg mr-3" />
+            <ThemedSkeleton className="h-5 w-8 mr-4" />
+            <ThemedSkeleton className="h-8 w-8 rounded-lg mr-3" />
             <div className="flex-1">
-              <Skeleton className="h-4 w-28 mb-1" />
-              <Skeleton className="h-3 w-16 rounded-full" />
+              <ThemedSkeleton className="h-4 w-28 mb-1" />
+              <ThemedSkeleton className="h-3 w-16 rounded-full" />
             </div>
-            <Skeleton className="h-4 w-8" />
+            <ThemedSkeleton className="h-4 w-8" />
           </div>
         ))}
       </div>
@@ -104,10 +119,10 @@ export function LeaderboardSkeleton() {
 export function StreamsSkeleton() {
   return (
     <div className="py-2">
-      <Skeleton className="h-8 w-40 mb-6" />
+      <ThemedSkeleton className="h-8 w-40 mb-6" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[1,2,3,4].map(i => (
-          <Skeleton key={i} className="h-40 rounded-xl" />
+          <ThemedSkeleton key={i} className="h-40 rounded-xl" />
         ))}
       </div>
     </div>
@@ -118,22 +133,22 @@ export function ProfileSkeleton() {
   return (
     <div className="py-2">
       <div className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden mb-6">
-        <Skeleton className="h-28 w-full rounded-none" />
+        <ThemedSkeleton className="h-28 w-full rounded-none" />
         <div className="px-6 pb-6 -mt-10">
           <div className="flex items-end gap-4 mb-4">
-            <Skeleton className="w-20 h-20 rounded-2xl flex-shrink-0" />
+            <ThemedSkeleton className="w-20 h-20 rounded-2xl flex-shrink-0" />
             <div className="flex-1 pt-10">
-              <Skeleton className="h-6 w-36 mb-2" />
-              <Skeleton className="h-4 w-24 rounded-full" />
+              <ThemedSkeleton className="h-6 w-36 mb-2" />
+              <ThemedSkeleton className="h-4 w-24 rounded-full" />
             </div>
           </div>
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-2/3" />
+          <ThemedSkeleton className="h-4 w-full mb-2" />
+          <ThemedSkeleton className="h-4 w-2/3" />
         </div>
       </div>
-      <Skeleton className="h-10 w-full rounded-xl mb-4" />
+      <ThemedSkeleton className="h-10 w-full rounded-xl mb-4" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {[1,2,3,4].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        {[1,2,3,4].map(i => <ThemedSkeleton key={i} className="h-20 rounded-xl" />)}
       </div>
     </div>
   );
@@ -142,14 +157,14 @@ export function ProfileSkeleton() {
 export function NotificationsSkeleton() {
   return (
     <div className="py-2">
-      <Skeleton className="h-8 w-48 mb-6" />
+      <ThemedSkeleton className="h-8 w-48 mb-6" />
       <div className="space-y-2">
         {[1,2,3,4,5].map(i => (
           <div key={i} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-start gap-3">
-            <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+            <ThemedSkeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
             <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
+              <ThemedSkeleton className="h-4 w-3/4" />
+              <ThemedSkeleton className="h-3 w-1/2" />
             </div>
           </div>
         ))}
@@ -191,10 +206,13 @@ export function LandingSkeleton() {
           <div className="energy-ring energy-ring-1" />
           <div className="energy-ring energy-ring-2" />
           <div className="energy-ring energy-ring-3" />
-          <img
+          <Image
             src="/logo-hero.webp"
             alt="Aether Arena"
+            width={192}
+            height={192}
             className="relative z-10 w-full h-full object-contain splash-logo logo-hero-energy rounded-3xl"
+            priority
           />
         </div>
       </div>

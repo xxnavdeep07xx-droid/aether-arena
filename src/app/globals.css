@@ -676,28 +676,59 @@
 /* ===== LIGHT THEME OVERRIDES ===== */
 
 :root[data-theme="light"] {
+  /* Arena custom colors */
   --color-arena-dark: #f5f6f8;
   --color-arena-darker: #ebedf0;
   --color-arena-card: #ffffff;
   --color-arena-card-hover: #f0f1f3;
   --color-arena-surface: #fafbfc;
+  --color-arena-accent: #e63950;
+  --color-arena-accent-glow: rgba(230, 57, 80, 0.2);
+  --color-arena-accent-light: #f05a6e;
   --color-arena-text-primary: #1a1a2e;
   --color-arena-text-secondary: #5a5a72;
   --color-arena-text-muted: #9a9ab0;
   --color-arena-border: #e2e4e8;
-  --color-arena-success: #22c55e;
-  --color-arena-warning: #f59e0b;
-  --color-arena-info: #3b82f6;
+  --color-arena-success: #16a34a;
+  --color-arena-warning: #d97706;
+  --color-arena-info: #2563eb;
+  --color-arena-purple: #7c3aed;
+  --color-arena-gold: #d4a017;
+  --color-arena-silver: #a8a8a8;
+  --color-arena-bronze: #b06c25;
+
+  /* shadcn/ui tokens */
   --background: #f5f6f8;
   --foreground: #1a1a2e;
   --card: #ffffff;
   --card-foreground: #1a1a2e;
   --popover: #ffffff;
   --popover-foreground: #1a1a2e;
+  --primary: #e63950;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f1f3;
+  --secondary-foreground: #1a1a2e;
   --muted: #f0f1f3;
   --muted-foreground: #5a5a72;
+  --accent: #e63950;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
   --border: #e2e4e8;
   --input: #e2e4e8;
+  --ring: #e63950;
+  --chart-1: #e63950;
+  --chart-2: #16a34a;
+  --chart-3: #d97706;
+  --chart-4: #2563eb;
+  --chart-5: #7c3aed;
+  --sidebar: #f0f1f3;
+  --sidebar-foreground: #1a1a2e;
+  --sidebar-primary: #e63950;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8e9ec;
+  --sidebar-accent-foreground: #1a1a2e;
+  --sidebar-border: #e2e4e8;
+  --sidebar-ring: #e63950;
 }
 
 :root[data-theme="light"] body {
@@ -706,8 +737,14 @@
 }
 
 :root[data-theme="light"] ::selection {
-  background: rgba(255, 75, 92, 0.2);
+  background: rgba(230, 57, 80, 0.15);
   color: #1a1a2e;
+}
+
+:root[data-theme="light"] *:focus-visible {
+  outline: 2px solid var(--arena-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 :root[data-theme="light"] ::-webkit-scrollbar-track {
@@ -721,6 +758,89 @@
 
 :root[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+/* Light mode shadow adjustments */
+:root[data-theme="light"] .bg-arena-card,
+:root[data-theme="light"] .border-arena-border {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Light mode energy glow adjustments */
+:root[data-theme="light"] .logo-energy {
+  animation: light-energy-pulse 3s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(230, 57, 80, 0.2);
+}
+
+:root[data-theme="light"] .logo-hero-energy {
+  animation: crystal-pulse 2.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(230, 57, 80, 0.3)) brightness(0.95);
+}
+
+@keyframes light-energy-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(230, 57, 80, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(230, 57, 80, 0.35); }
+}
+
+/* Light mode splash screen */
+:root[data-theme="light"] .splash-bg-glow {
+  background: radial-gradient(circle, rgba(230, 57, 80, 0.08) 0%, rgba(230, 57, 80, 0.02) 50%, transparent 70%);
+}
+
+:root[data-theme="light"] .energy-aura {
+  background: radial-gradient(circle, rgba(230, 57, 80, 0.05) 0%, rgba(230, 57, 80, 0.01) 40%, transparent 70%);
+}
+
+:root[data-theme="light"] .energy-swirl {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    rgba(230, 57, 80, 0.06) 10%,
+    transparent 20%,
+    rgba(230, 57, 80, 0.03) 35%,
+    transparent 45%,
+    rgba(230, 57, 80, 0.05) 55%,
+    transparent 65%,
+    rgba(230, 57, 80, 0.03) 80%,
+    transparent 90%,
+    rgba(230, 90, 110, 0.02) 95%,
+    transparent 100%
+  );
+}
+
+:root[data-theme="light"] .splash-ring {
+  border-color: rgba(230, 57, 80, 0.3);
+}
+
+:root[data-theme="light"] .splash-ring-2 {
+  border-color: rgba(230, 90, 110, 0.15);
+}
+
+/* Light mode aether coin adjustments */
+:root[data-theme="light"] .aether-icon-animated {
+  filter:
+    drop-shadow(0 0 4px rgba(230, 57, 80, 0.3))
+    drop-shadow(0 0 8px rgba(230, 57, 80, 0.15));
+}
+
+:root[data-theme="light"] .aether-icon-hover {
+  filter:
+    drop-shadow(0 0 6px rgba(230, 57, 80, 0.5))
+    drop-shadow(0 0 12px rgba(230, 57, 80, 0.3));
+}
+
+/* Light mode backdrop/overlay adjustments */
+:root[data-theme="light"] .bg-black\/60 {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="light"] .bg-black\/70 {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Light mode topbar/backdrop */
+:root[data-theme="light"] .bg-arena-dark\/80 {
+  background: rgba(245, 246, 248, 0.85);
 }
 
 /* ===== AETHER COIN ANIMATIONS ===== */

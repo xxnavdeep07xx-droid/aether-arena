@@ -12,9 +12,11 @@ import {
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn } from '@/lib/utils';
 import { AETHER_SYMBOL } from '@/lib/aether';
+import { useTranslation } from '@/lib/i18n';
 
 // Skeleton fallbacks
 import { LandingSkeleton, HomeSkeleton, TournamentsSkeleton, LeaderboardSkeleton, StreamsSkeleton, ProfileSkeleton, NotificationsSkeleton } from '@/components/views/Skeletons';
+import Image from 'next/image';
 
 // Keep LandingView static for instant load
 import { LandingView } from '@/components/views/LandingView';
@@ -206,31 +208,32 @@ export default function Page() {
   };
 
   // Desktop sidebar items — main navigation
+  const { t } = useTranslation();
   const sidebarItems = [
-    { view: 'home' as ViewName, icon: Home, label: 'Home' },
-    { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tournaments' },
-    { view: 'leaderboard' as ViewName, icon: BarChart3, label: 'Leaderboard' },
-    { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
-    { view: 'aether' as ViewName, icon: Wallet, label: 'Aether' },
-    { view: 'profile' as ViewName, icon: User, label: 'Profile' },
-    ...(isAdmin ? [{ view: 'admin-dashboard' as ViewName, icon: Shield, label: 'Admin' }] : []),
+    { view: 'home' as ViewName, icon: Home, label: t('nav.home') },
+    { view: 'tournaments' as ViewName, icon: Trophy, label: t('nav.tournaments') },
+    { view: 'leaderboard' as ViewName, icon: BarChart3, label: t('nav.leaderboard') },
+    { view: 'streams' as ViewName, icon: Tv, label: t('nav.streams') },
+    { view: 'aether' as ViewName, icon: Wallet, label: t('nav.aether') },
+    { view: 'profile' as ViewName, icon: User, label: t('nav.profile') },
+    ...(isAdmin ? [{ view: 'admin-dashboard' as ViewName, icon: Shield, label: t('nav.admin') }] : []),
   ];
 
   // Mobile hamburger menu items — excludes bottom nav items
   const mobileMenuItems = [
-    { view: 'notifications' as ViewName, icon: Bell, label: 'Notifications' },
-    { view: 'settings' as ViewName, icon: Settings, label: 'Settings' },
-    { view: 'aether' as ViewName, icon: Wallet, label: 'Aether' },
-    { view: 'contact' as ViewName, icon: Mail, label: 'Contact Us' },
+    { view: 'notifications' as ViewName, icon: Bell, label: t('nav.notifications') },
+    { view: 'settings' as ViewName, icon: Settings, label: t('nav.settings') },
+    { view: 'aether' as ViewName, icon: Wallet, label: t('nav.aether') },
+    { view: 'contact' as ViewName, icon: Mail, label: t('nav.contact') },
     ...(isAdmin ? [
-      { view: 'admin-dashboard' as ViewName, icon: Shield, label: 'Admin Panel' },
+      { view: 'admin-dashboard' as ViewName, icon: Shield, label: t('nav.admin') },
     ] : []),
   ];
 
   const mobileMenuLinks = [
-    { view: 'privacy-policy' as ViewName, icon: ShieldCheck, label: 'Privacy Policy' },
-    { view: 'terms-conditions' as ViewName, icon: FileText, label: 'Terms & Conditions' },
-    { view: 'refund-policy' as ViewName, icon: HelpCircle, label: 'Refund Policy' },
+    { view: 'privacy-policy' as ViewName, icon: ShieldCheck, label: t('nav.privacyPolicy') },
+    { view: 'terms-conditions' as ViewName, icon: FileText, label: t('nav.termsConditions') },
+    { view: 'refund-policy' as ViewName, icon: HelpCircle, label: t('nav.refundPolicy') },
   ];
 
   // Views that show the main top bar (with hamburger on mobile)
@@ -241,9 +244,9 @@ export default function Page() {
 
   // Section titles for views that are main sections but not in sidebar (shown in top bar)
   const sectionTitles: Record<string, { title: string; icon: typeof Shield }> = {
-    'admin-dashboard': { title: 'Admin Panel', icon: Shield },
-    'contact': { title: 'Contact Us', icon: Mail },
-    'aether': { title: 'Aether', icon: Wallet },
+    'admin-dashboard': { title: t('section.adminPanel'), icon: Shield },
+    'contact': { title: t('section.contactUs'), icon: Mail },
+    'aether': { title: t('nav.aether'), icon: Wallet },
   };
 
   const currentSection = sectionTitles[currentView];
@@ -273,7 +276,7 @@ export default function Page() {
         <div className="flex h-screen overflow-hidden">
           {/* Left Sidebar - Desktop */}
           <aside className="hidden md:flex flex-col items-center w-[72px] h-screen bg-arena-surface border-r border-arena-border flex-shrink-0 py-5 z-50">
-            <img onClick={() => navigate('home')} src="/logo-lg.webp" alt="Aether Arena" className="w-14 h-14 rounded-2xl mb-10 logo-energy hover:opacity-90 transition-opacity cursor-pointer" />
+            <Image onClick={() => navigate('home')} src="/logo-lg.webp" alt="Aether Arena" width={56} height={56} className="w-14 h-14 rounded-2xl mb-10 logo-energy hover:opacity-90 transition-opacity cursor-pointer" />
             <nav className="flex flex-col gap-2 flex-1">
               {sidebarItems.map(item => (
                 <button key={item.view} onClick={() => navigate(item.view)} aria-label={item.label} title={item.label}
@@ -292,7 +295,7 @@ export default function Page() {
                 <Settings className="w-5 h-5" />
               </button>
               <button onClick={() => navigate('profile')} aria-label="Profile" className="w-9 h-9 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold border-2 border-arena-accent/50 overflow-hidden">
-                {user?.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
+                {user?.avatarUrl ? <Image src={user.avatarUrl} alt={`${user.username}'s avatar`} width={36} height={36} className="w-full h-full object-cover" unoptimized /> : (user?.username || '?')[0].toUpperCase()}
               </button>
               <button onClick={handleLogout} aria-label="Logout" title="Logout" className="w-11 h-11 rounded-xl flex items-center justify-center text-arena-text-muted hover:bg-arena-accent/10 hover:text-arena-accent transition-all duration-200">
                 <LogOut className="w-5 h-5" />
@@ -307,7 +310,7 @@ export default function Page() {
               <div className="absolute left-0 top-0 bottom-0 w-72 bg-arena-surface border-r border-arena-border p-5 animate-slide-in-left overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
-                    <img src="/logo-md.webp" alt="Aether Arena" className="w-10 h-10 rounded-xl logo-energy" />
+                    <Image src="/logo-md.webp" alt="Aether Arena" width={40} height={40} className="w-10 h-10 rounded-xl logo-energy" />
                   </div>
                   <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-arena-text-muted hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
@@ -316,7 +319,7 @@ export default function Page() {
                 {user && (
                   <div className="mb-4 flex items-center gap-3 px-3 py-2 bg-arena-card rounded-xl border border-arena-border">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
-                      {user.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (user?.username || '?')[0].toUpperCase()}
+                      {user.avatarUrl ? <Image src={user.avatarUrl} alt={`${user.username}'s avatar`} width={40} height={40} className="w-full h-full object-cover" unoptimized /> : (user?.username || '?')[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-medium truncate">{user.displayName || user.username}</div>
@@ -400,7 +403,7 @@ export default function Page() {
                       <BellWithBadge className="w-4 h-4" />
                     </button>
                     <button onClick={() => navigate('profile')} className="w-9 h-9 rounded-xl overflow-hidden border-2 border-arena-accent/50 hover:border-arena-accent transition-colors duration-150 cursor-pointer">
-                      {user?.avatarUrl ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} className="w-full h-full object-cover" /> : (
+                      {user?.avatarUrl ? <Image src={user.avatarUrl} alt={`${user.username}'s avatar`} width={36} height={36} className="w-full h-full object-cover" unoptimized /> : (
                         <div className="w-full h-full bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-xs font-bold">{(user?.username || '?')[0].toUpperCase()}</div>
                       )}
                     </button>
@@ -453,12 +456,13 @@ export default function Page() {
 function MobileBottomNav() {
   const { currentView, navigate } = useAppStore();
 
+  const { t: tMobile } = useTranslation();
   const tabs = [
-    { view: 'home' as ViewName, icon: Home, label: 'Home' },
-    { view: 'tournaments' as ViewName, icon: Trophy, label: 'Tourneys' },
-    { view: 'leaderboard' as ViewName, icon: BarChart3, label: 'Ranks' },
-    { view: 'streams' as ViewName, icon: Tv, label: 'Streams' },
-    { view: 'profile' as ViewName, icon: User, label: 'Profile' },
+    { view: 'home' as ViewName, icon: Home, label: tMobile('mobile.home') },
+    { view: 'tournaments' as ViewName, icon: Trophy, label: tMobile('mobile.tourneys') },
+    { view: 'leaderboard' as ViewName, icon: BarChart3, label: tMobile('mobile.ranks') },
+    { view: 'streams' as ViewName, icon: Tv, label: tMobile('mobile.streams') },
+    { view: 'profile' as ViewName, icon: User, label: tMobile('mobile.profile') },
   ];
 
   return (

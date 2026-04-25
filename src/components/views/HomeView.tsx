@@ -3,6 +3,7 @@
 import { useAppStore, useAuthStore } from '@/lib/store';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import {
   Crown, ChevronRight, Swords, Star, CircleDot, Clock,
   Gamepad2, Trophy, ShoppingBag, ExternalLink, Zap,
@@ -166,7 +167,7 @@ function TopPlayersSection() {
               <div className="relative">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden">
                   {entry.player?.avatarUrl ? (
-                    <img src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} className="w-full h-full object-cover" />
+                    <Image src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} width={40} height={40} className="w-full h-full object-cover" unoptimized loading="lazy" />
                   ) : (
                     (entry.player?.username || '?')[0].toUpperCase()
                   )}
@@ -314,8 +315,8 @@ function TopupCarouselSection() {
         <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-arena-accent/10 flex items-center justify-center">
           <Zap className="w-5 h-5 text-arena-accent/50" />
         </div>
-        <p className="text-sm font-medium text-arena-text-secondary mb-1">Top-up packs coming soon</p>
-        <p className="text-xs text-arena-text-muted">Get game currency at the best prices. Stay tuned!</p>
+        <p className="text-sm font-medium text-arena-text-secondary mb-1">No top-up packs available</p>
+        <p className="text-xs text-arena-text-muted">Get game currency at the best prices. Check back later!</p>
       </div>
     </div>
   );

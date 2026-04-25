@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Zap, ExternalLink, ChevronRight, Sparkles, Tag, TrendingUp } from 'lucide-react';
+import { Zap, ExternalLink, ChevronRight, Tag, TrendingUp, Sparkles } from 'lucide-react';
 import { cn, paiseToRupee } from '@/lib/utils';
-import { Skeleton } from './Skeletons';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 export function TopupFullView() {
   const [filterGame, setFilterGame] = useState('all');
@@ -177,13 +178,9 @@ function EmptyTopUpState() {
         <Zap className="w-10 h-10 text-arena-accent/40" />
       </div>
       <p className="text-base font-semibold text-arena-text-secondary mb-2">No top-up packs yet</p>
-      <p className="text-xs text-arena-text-muted max-w-sm mx-auto mb-4 leading-relaxed">
+      <p className="text-xs text-arena-text-muted max-w-sm mx-auto leading-relaxed">
         We are curating the best top-up deals for your favorite games. Check back soon for exclusive offers on in-game currency!
       </p>
-      <div className="flex items-center justify-center gap-2 text-xs text-arena-text-muted">
-        <Sparkles className="w-3.5 h-3.5 text-arena-accent/50" />
-        <span>More packs coming soon</span>
-      </div>
     </div>
   );
 }

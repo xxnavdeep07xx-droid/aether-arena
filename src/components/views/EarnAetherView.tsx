@@ -16,7 +16,8 @@ import {
   AETHER_SYMBOL, AETHER_NAME, REDEEM_MINIMUM, CONVERSION_RATE,
   formatAether, aetherToInr, getNextStreakMilestone
 } from '@/lib/aether';
-import { Skeleton } from './Skeletons';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 // ==================== FLOATING AETHER ANIMATION ====================
 

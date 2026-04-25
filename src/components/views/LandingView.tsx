@@ -3,6 +3,7 @@
 import { useAppStore, useAuthStore } from '@/lib/store';
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import {
   Trophy, Gamepad2, Users, Coins, ChevronRight,
   CircleDot, Search, User
@@ -114,7 +115,7 @@ export function LandingView() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-arena-dark/80 backdrop-blur-xl border-b border-arena-border">
         <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <img src="/logo-md.webp" alt="Aether Arena" className="w-9 h-9 rounded-xl logo-energy" />
+            <Image src="/logo-md.webp" alt="Aether Arena" width={36} height={36} className="w-9 h-9 rounded-xl logo-energy" />
           </div>
           <div className="flex items-center gap-1.5">
             <button onClick={() => setShowLogin(true)} className="px-3 py-1.5 text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-white hover:border-arena-accent/50 rounded-lg transition-all duration-200">Log In</button>
@@ -280,7 +281,7 @@ export function LandingView() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-3">
-                <img src="/logo-md.webp" alt="Aether Arena" className="w-8 h-8 rounded-xl" />
+                <Image src="/logo-md.webp" alt="Aether Arena" width={32} height={32} className="w-8 h-8 rounded-xl" />
               </div>
               <p className="text-xs text-arena-text-secondary leading-relaxed max-w-xs">India&apos;s fastest-growing mobile esports tournament platform. Compete, win, and rise through the ranks.</p>
             </div>
@@ -311,7 +312,7 @@ export function LandingView() {
           </div>
           <div className="border-t border-arena-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <img src="/logo-md.webp" alt="Aether Arena" className="w-6 h-6 rounded-lg" />
+              <Image src="/logo-md.webp" alt="Aether Arena" width={24} height={24} className="w-6 h-6 rounded-lg" />
               <span className="text-xs text-arena-text-muted">© {new Date().getFullYear()} Aether Arena. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-4">

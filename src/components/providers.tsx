@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { useAuthStore } from '@/lib/store';
+import Image from 'next/image';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,9 +76,11 @@ function SplashScreen({ onFinish }: { onFinish: () => void }) {
 
         {/* The Logo */}
         <div className={`relative z-10 transition-all duration-700 ${phase === 'enter' ? 'scale-0 opacity-0 blur-lg' : phase === 'hold' ? 'scale-110 opacity-100 blur-0' : 'scale-100 opacity-100 blur-0'}`}>
-          <img
+          <Image
             src="/logo-hero.webp"
             alt="Aether Arena"
+            width={160}
+            height={160}
             className="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-contain"
             style={{ filter: phase === 'hold' ? 'drop-shadow(0 0 20px rgba(255,75,92,0.6)) brightness(1.1)' : 'drop-shadow(0 0 10px rgba(255,75,92,0.3))' }}
           />
