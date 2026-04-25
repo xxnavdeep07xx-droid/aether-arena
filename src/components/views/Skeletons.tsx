@@ -2,21 +2,16 @@
 
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-import { useTheme } from '@/lib/i18n';
 import Image from 'next/image';
 
-function useSkeletonTheme() {
-  const theme = useTheme();
-  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  return {
-    baseColor: isDark ? '#1a1d27' : '#e5e7eb',
-    highlightColor: isDark ? '#2a2d3a' : '#f3f4f6',
-  };
-}
-
 function ThemedSkeleton(props: React.ComponentProps<typeof Skeleton>) {
-  const skeletonTheme = useSkeletonTheme();
-  return <Skeleton {...skeletonTheme} {...props} />;
+  return (
+    <Skeleton
+      baseColor="var(--skeleton-base, #1a1d27)"
+      highlightColor="var(--skeleton-highlight, #2a2d3a)"
+      {...props}
+    />
+  );
 }
 
 export { ThemedSkeleton };

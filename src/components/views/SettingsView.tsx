@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { notifyThemeChange, notifyLanguageChange } from '@/lib/i18n';
 import Image from 'next/image';
 
 type Theme = 'dark' | 'light' | 'system';
@@ -261,6 +262,7 @@ function AppearanceSection() {
       const current = localStorage.getItem('aa-theme');
       if (current === 'system') {
         document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+        notifyThemeChange();
       }
     };
     mediaQuery.addEventListener('change', handler);
@@ -277,6 +279,8 @@ function AppearanceSection() {
     } else {
       document.documentElement.setAttribute('data-theme', t);
     }
+    // Notify all components using useTheme() to re-render
+    notifyThemeChange();
   };
 
   const themes: { value: Theme; label: string; icon: typeof Sun; desc: string }[] = [
@@ -373,6 +377,7 @@ function LanguageSection() {
     setLang(code);
     localStorage.setItem('aa-language', code);
     setExpanded(false);
+    notifyLanguageChange();
     toast.success(`Language set to ${l.label}`);
 
     // Persist to API

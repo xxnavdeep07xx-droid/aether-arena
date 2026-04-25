@@ -60,6 +60,9 @@
   --color-arena-gold: #FFD700;
   --color-arena-silver: #C0C0C0;
   --color-arena-bronze: #CD7F32;
+  /* Skeleton colors */
+  --skeleton-base: #1a1d27;
+  --skeleton-highlight: #2a2d3a;
 }
 
 :root {
@@ -696,6 +699,9 @@
   --color-arena-gold: #d4a017;
   --color-arena-silver: #a8a8a8;
   --color-arena-bronze: #b06c25;
+  /* Skeleton colors */
+  --skeleton-base: #e5e7eb;
+  --skeleton-highlight: #f3f4f6;
 
   /* shadcn/ui tokens */
   --background: #f5f6f8;

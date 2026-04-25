@@ -9,8 +9,11 @@ import Image from 'next/image';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000,
+      staleTime: 2 * 60 * 1000,        // 2 min: serve cache, no refetch
+      gcTime: 10 * 60 * 1000,            // 10 min: keep in memory
       retry: 1,
+      refetchOnWindowFocus: false,      // prevent surprise refetches on tab switch
+      refetchOnReconnect: true,          // refetch on reconnect is fine
     },
   },
 });
@@ -121,6 +124,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
           const data = await res.json();
           if (data.user) {
             setUser(data.user);
+            // Prefetch common data in background after auth succeeds
+            queryClient.prefetchQuery({ queryKey: ['tournaments', { game: '', status: '', format: '', fee: '' }], queryFn: () => fetch('/api/tournaments?limit=6').then(r => r.json()) }).catch(() => {});
+            queryClient.prefetchQuery({ queryKey: ['featured-streams'], queryFn: () => fetch('/api/streams').then(r => r.json()) }).catch(() => {});
+            queryClient.prefetchQuery({ queryKey: ['games-filter'], queryFn: () => fetch('/api/games').then(r => r.json()) }).catch(() => {});
           } else {
             logout();
           }

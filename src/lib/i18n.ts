@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 // ==================== i18n SYSTEM ====================
 
@@ -277,20 +277,61 @@ const translations: Record<Language, Record<string, string>> = {
   },
 };
 
-// Get the current theme (for skeleton colors)
-export function useTheme() {
+// Reactive theme hook — re-renders when theme changes
+let themeListeners: Array<() => void> = [];
+
+function subscribeToTheme(callback: () => void) {
+  themeListeners.push(callback);
+  return () => { themeListeners = themeListeners.filter(l => l !== callback); };
+}
+
+function getThemeSnapshot(): string {
   if (typeof window === 'undefined') return 'dark';
   const saved = localStorage.getItem('aa-theme') as string | null;
   if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
   return 'dark';
 }
 
-// Get the current language
-export function useLanguage() {
+function getServerThemeSnapshot(): string {
+  return 'dark';
+}
+
+export function useTheme(): string {
+  const theme = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, getServerThemeSnapshot);
+  return theme;
+}
+
+// Call this after setting the theme to trigger re-renders
+export function notifyThemeChange() {
+  for (const listener of themeListeners) listener();
+}
+
+// Reactive language hook
+let languageListeners: Array<() => void> = [];
+
+function subscribeToLanguage(callback: () => void) {
+  languageListeners.push(callback);
+  return () => { languageListeners = languageListeners.filter(l => l !== callback); };
+}
+
+function getLanguageSnapshot(): Language {
   if (typeof window === 'undefined') return 'en';
   const saved = localStorage.getItem('aa-language') as Language | null;
   if (saved && (saved === 'en' || saved === 'hi')) return saved;
   return 'en';
+}
+
+function getServerLanguageSnapshot(): Language {
+  return 'en';
+}
+
+export function useLanguage(): Language {
+  return useSyncExternalStore(subscribeToLanguage, getLanguageSnapshot, getServerLanguageSnapshot);
+}
+
+// Call this after setting the language to trigger re-renders
+export function notifyLanguageChange() {
+  for (const listener of languageListeners) listener();
 }
 
 // Translation hook

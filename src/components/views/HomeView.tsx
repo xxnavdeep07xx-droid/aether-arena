@@ -31,7 +31,8 @@ function StreamBannerSection() {
   const { data: streams } = useQuery({
     queryKey: ['featured-streams'],
     queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => d.streams || d || []),
-    refetchInterval: 30000,
+    placeholderData: [],
+    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -124,6 +125,8 @@ function TopPlayersSection() {
       }
       return Array.from(best.values()).sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
     }),
+    placeholderData: [],
+    staleTime: 5 * 60 * 1000,
   });
 
   if (!entries || entries.length === 0) {
@@ -199,6 +202,8 @@ function AffiliateCarouselSection() {
   const { data: affiliates } = useQuery({
     queryKey: ['affiliates'],
     queryFn: () => fetch('/api/affiliates').then(r => r.json()).then(d => d.affiliates || d || []),
+    placeholderData: [],
+    staleTime: 10 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -279,7 +284,8 @@ function TopupCarouselSection() {
   const { data: packsData } = useQuery({
     queryKey: ['topup-packs'],
     queryFn: () => fetch('/api/topup-packs').then(r => r.json()).then(d => d.packs || []),
-    refetchInterval: 60000,
+    placeholderData: { packs: [] },
+    staleTime: 10 * 60 * 1000,
   });
 
   const packs = (packsData || []) as any[];
@@ -403,6 +409,7 @@ function HomeTournamentsSection() {
       params.set('limit', '6');
       return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => d.tournaments || d || []);
     },
+    placeholderData: [],
   });
 
   return (
