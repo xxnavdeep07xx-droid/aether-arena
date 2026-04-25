@@ -12,7 +12,7 @@ export function TopupFullView() {
 
   const { data: packsData, isLoading } = useQuery({
     queryKey: ['topup-packs-all', filterGame],
-    queryFn: () => fetch(`/api/topup-packs${filterGame !== 'all' ? `?game=${filterGame}` : ''}`).then(r => r.json()).then(d => d.packs || []),
+    queryFn: () => fetch(`/api/topup-packs${filterGame !== 'all' ? `?game=${filterGame}` : ''}`).then(r => r.json()).then(d => Array.isArray(d.packs) ? d.packs : []),
   });
 
   const packs = (packsData || []) as any[];

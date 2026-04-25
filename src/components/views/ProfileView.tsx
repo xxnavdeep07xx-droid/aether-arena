@@ -26,7 +26,7 @@ export function ProfileView() {
 
   const { data: registrations } = useQuery({
     queryKey: ['my-registrations'],
-    queryFn: () => fetch('/api/registrations').then(r => r.json()).then(d => d.registrations || d || []),
+    queryFn: () => fetch('/api/registrations').then(r => r.json()).then(d => Array.isArray(d.registrations) ? d.registrations : Array.isArray(d) ? d : []),
     enabled: isAuthenticated && !viewingOtherUser,
   });
 

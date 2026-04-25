@@ -15,7 +15,7 @@ export function LeaderboardView() {
 
   const { data: games } = useQuery({
     queryKey: ['lb-games'],
-    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d || []),
+    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
 
   const { data: entries, isLoading } = useQuery({
@@ -25,7 +25,7 @@ export function LeaderboardView() {
       if (gameFilter !== 'all') params.set('gameId', gameFilter);
       params.set('period', period);
       if (searchQuery) params.set('search', searchQuery);
-      return fetch(`/api/leaderboard?${params}`).then(r => r.json()).then(d => d.leaderboard || d || []);
+      return fetch(`/api/leaderboard?${params}`).then(r => r.json()).then(d => Array.isArray(d.leaderboard) ? d.leaderboard : Array.isArray(d) ? d : []);
     },
   });
 

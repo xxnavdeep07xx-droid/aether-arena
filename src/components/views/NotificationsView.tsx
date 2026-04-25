@@ -11,7 +11,7 @@ export function NotificationsView() {
   const { navigate } = useAppStore();
   const { data: notifications, isLoading, refetch } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => fetch('/api/notifications').then(r => r.json()).then(d => d.notifications || d || []),
+    queryFn: () => fetch('/api/notifications').then(r => r.json()).then(d => Array.isArray(d.notifications) ? d.notifications : Array.isArray(d) ? d : []),
   });
 
   const markAllRead = async () => {

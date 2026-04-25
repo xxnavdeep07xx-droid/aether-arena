@@ -301,7 +301,7 @@ function TopupCarouselSection() {
   const { data: packsData } = useQuery({
     queryKey: ['topup-packs'],
     queryFn: () => fetch('/api/topup-packs').then(r => r.json()).then(d => Array.isArray(d.packs) ? d.packs : []),
-    placeholderData: { packs: [] },
+    placeholderData: [],
     staleTime: 10 * 60 * 1000,
   });
 

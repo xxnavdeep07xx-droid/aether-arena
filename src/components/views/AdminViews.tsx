@@ -125,7 +125,7 @@ export function AdminTournamentsView() {
 
   const { data: tournaments, refetch } = useQuery({
     queryKey: ['admin-tournaments', statusFilter],
-    queryFn: () => fetch(`/api/admin/tournaments${statusFilter ? `?status=${statusFilter}` : ''}`).then(r => r.json()).then(d => d.tournaments || d || []),
+    queryFn: () => fetch(`/api/admin/tournaments${statusFilter ? `?status=${statusFilter}` : ''}`).then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
   });
 
   const deleteTournament = async (id: string) => {
@@ -181,7 +181,7 @@ export function AdminTournamentsView() {
 export function AdminTournamentCreateView() {
   const { navigate, viewParams } = useAppStore();
   const editId = viewParams?.id;
-  const { data: games } = useQuery({ queryKey: ['admin-games'], queryFn: () => fetch('/api/games').then(r => r.json()).then(d => d.games || d || []) });
+  const { data: games } = useQuery({ queryKey: ['admin-games'], queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []) });
 
   const [form, setForm] = useState({ title: '', description: '', gameId: '', format: 'solo', entryFee: '0', prizePool: '0', maxPlayers: '100', startTime: '', customRules: '', isFeatured: false, roomId: '', roomPassword: '', map: '', matchMode: '', bannerImageUrl: '', status: 'upcoming' });
   const [saving, setSaving] = useState(false);
@@ -302,7 +302,7 @@ export function AdminRegistrationsView() {
 
   const { data: registrations, refetch } = useQuery({
     queryKey: ['admin-registrations', filter],
-    queryFn: () => fetch(`/api/admin/registrations?status=${filter}`).then(r => r.json()).then(d => d.registrations || d || []),
+    queryFn: () => fetch(`/api/admin/registrations?status=${filter}`).then(r => r.json()).then(d => Array.isArray(d.registrations) ? d.registrations : Array.isArray(d) ? d : []),
   });
 
   const handleVerify = async (id: string) => {
@@ -407,7 +407,7 @@ export function AdminRegistrationsView() {
 export function AdminGamesView() {
   const { data: games, refetch } = useQuery({
     queryKey: ['admin-games-list'],
-    queryFn: () => fetch('/api/admin/games').then(r => r.json()).then(d => d.games || d || []),
+    queryFn: () => fetch('/api/admin/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -512,7 +512,7 @@ export function AdminGamesView() {
 export function AdminStreamsView() {
   const { data: streams, refetch } = useQuery({
     queryKey: ['admin-streams-list'],
-    queryFn: () => fetch('/api/admin/streams').then(r => r.json()).then(d => d.streams || d || []),
+    queryFn: () => fetch('/api/admin/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
   });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -615,7 +615,7 @@ export function AdminStreamsView() {
 export function AdminAffiliatesView() {
   const { data: affiliates, refetch } = useQuery({
     queryKey: ['admin-affiliates-list'],
-    queryFn: () => fetch('/api/admin/affiliates').then(r => r.json()).then(d => d.affiliates || d || []),
+    queryFn: () => fetch('/api/admin/affiliates').then(r => r.json()).then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
   });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -736,7 +736,7 @@ export function AdminSettingsView() {
 
   const { data: fetchedSettings, isLoading } = useQuery({
     queryKey: ['admin-platform-settings'],
-    queryFn: () => fetch('/api/admin/settings').then(r => r.json()).then(d => d.settings || d || {}),
+    queryFn: () => fetch('/api/admin/settings').then(r => r.json()).then(d => d && typeof d === 'object' && !Array.isArray(d) && !d.error ? (d.settings || d) : {}),
   });
 
   const [localSettings, setLocalSettings] = useState<Record<string, string> | null>(null);
@@ -1177,7 +1177,7 @@ export function AdminSettingsView() {
 export function AdminTopupView() {
   const { data: packs, refetch } = useQuery({
     queryKey: ['admin-topup-packs'],
-    queryFn: () => fetch('/api/admin/topup-packs').then(r => r.json()).then(d => d.packs || []),
+    queryFn: () => fetch('/api/admin/topup-packs').then(r => r.json()).then(d => Array.isArray(d.packs) ? d.packs : []),
   });
   const [showCreate, setShowCreate] = useState(false);
   const [editingPack, setEditingPack] = useState<any>(null);

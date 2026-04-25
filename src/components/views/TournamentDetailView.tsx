@@ -39,7 +39,7 @@ export function TournamentDetailView() {
       try {
         const res = await fetch('/api/registrations');
         const data = await res.json();
-        const regs = data.registrations || data || [];
+        const regs = Array.isArray(data.registrations) ? data.registrations : Array.isArray(data) ? data : [];
         const existing = regs.find((r: any) => r.tournamentId === viewParams.id);
         if (existing) { setRegistered(true); setPaymentStatus(existing.paymentStatus); }
       } catch {}
