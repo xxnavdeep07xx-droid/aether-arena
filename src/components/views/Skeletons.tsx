@@ -173,6 +173,26 @@ export function NotificationsSkeleton() {
   );
 }
 
+export function GenericSkeleton() {
+  return (
+    <div className="space-y-4 py-2">
+      <div className="flex items-center gap-3 mb-6">
+        <ThemedSkeleton className="w-10 h-10 rounded-xl" />
+        <div className="flex-1">
+          <ThemedSkeleton className="h-5 w-40 mb-2" />
+          <ThemedSkeleton className="h-3 w-56" />
+        </div>
+      </div>
+      <ThemedSkeleton className="h-32 w-full rounded-2xl" />
+      <div className="space-y-3">
+        {[1, 2, 3, 4].map(i => (
+          <ThemedSkeleton key={i} className="h-16 w-full rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function LandingSkeleton() {
   return (
     <div className="min-h-screen bg-arena-dark flex flex-col items-center justify-center relative overflow-hidden">

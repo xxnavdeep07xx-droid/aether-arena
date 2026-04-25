@@ -15,7 +15,7 @@ import { AETHER_SYMBOL } from '@/lib/aether';
 import { useTranslation } from '@/lib/i18n';
 
 // Skeleton fallbacks
-import { LandingSkeleton, HomeSkeleton, TournamentsSkeleton, LeaderboardSkeleton, StreamsSkeleton, ProfileSkeleton, NotificationsSkeleton } from '@/components/views/Skeletons';
+import { LandingSkeleton, HomeSkeleton, TournamentsSkeleton, LeaderboardSkeleton, StreamsSkeleton, ProfileSkeleton, NotificationsSkeleton, GenericSkeleton } from '@/components/views/Skeletons';
 import Image from 'next/image';
 
 // Keep LandingView static for instant load
@@ -116,7 +116,7 @@ function BellWithBadge({ className }: { className?: string }) {
 // ==================== VIEW FALLBACK ====================
 
 function ViewFallback() {
-  return <div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-arena-accent border-t-transparent rounded-full animate-spin" /></div>;
+  return <GenericSkeleton />;
 }
 
 // ==================== VIEW RENDERER ====================

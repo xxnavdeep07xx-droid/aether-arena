@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   Flame, Gift, ExternalLink, CheckCircle2, Clock,
-  Copy, Share2, ChevronRight, Loader2, AlertCircle,
+  Copy, Share2, ChevronRight, AlertCircle,
   Wallet, History, Zap, Trophy, Star, Gamepad2,
   Users, ArrowRight, Shield
 } from 'lucide-react';
@@ -478,7 +478,7 @@ function AetherRedeemView() {
               className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {redeemMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                <span className="animate-pulse">Processing...</span>
               ) : (
                 <>Redeem {bal} {AETHER_SYMBOL} for ₹{aetherToInr(bal).toFixed(0)} <ArrowRight className="w-4 h-4" /></>
               )}
@@ -646,7 +646,7 @@ function TaskCard({ task, isClaiming, onClaim }: {
             disabled={isClaiming}
             className="flex items-center gap-1 px-3 py-1.5 bg-arena-accent text-white text-xs font-semibold rounded-lg hover:bg-arena-accent-light transition-colors disabled:opacity-50"
           >
-            {isClaiming ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Claim'}
+            {isClaiming ? <span className="inline-flex gap-0.5"><span className="w-1 h-1 rounded-full bg-white animate-bounce" style={{ animationDelay: '0ms' }} /><span className="w-1 h-1 rounded-full bg-white animate-bounce" style={{ animationDelay: '150ms' }} /><span className="w-1 h-1 rounded-full bg-white animate-bounce" style={{ animationDelay: '300ms' }} /></span> : 'Claim'}
           </button>
         )}
       </div>

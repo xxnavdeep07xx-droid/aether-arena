@@ -1,9 +1,13 @@
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+
 export default function Loading() {
   return (
     <div className="min-h-screen bg-arena-dark flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4 animate-pulse">
-        <div className="w-16 h-16 rounded-2xl bg-arena-accent/20 animate-spin-slow" />
-        <p className="text-sm text-arena-text-muted">Loading Aether Arena...</p>
+      <div className="w-full max-w-sm px-6 space-y-4">
+        <Skeleton circle width={64} height={64} baseColor="#1a1d27" highlightColor="#2a2d3a" />
+        <Skeleton width={180} height={16} borderRadius={8} baseColor="#1a1d27" highlightColor="#2a2d3a" />
+        <Skeleton width={120} height={12} borderRadius={6} baseColor="#1a1d27" highlightColor="#2a2d3a" />
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star, CircleDot, Calendar, MonitorPlay, Gamepad2,
-  Shield, Copy, Loader2, CheckCircle2
+  Shield, Copy, CheckCircle2
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
@@ -294,7 +294,7 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
       <button onClick={handleRazorpayPayment} disabled={loading}
         className="w-full py-2.5 h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 flex items-center justify-center gap-2">
         {loading ? (
-          <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+          <span className="animate-pulse">Processing...</span>
         ) : (
           <>Pay {paiseToRupee(tournament.entryFee)}</>
         )}

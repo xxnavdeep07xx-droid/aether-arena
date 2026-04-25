@@ -7,7 +7,7 @@ import {
   Users, Trophy, Clock, DollarSign, CheckCircle2, XCircle, Plus,
   Eye, Trash2, Gamepad2, Pencil, X, Tv, ExternalLink, Link2,
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
-  ChevronRight, AlertTriangle, Wallet, Loader2,
+  ChevronRight, AlertTriangle, Wallet,
   Share2, Calendar, Globe, Gift, Bell
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
@@ -1655,7 +1655,7 @@ export function AdminRedemptionsView() {
               <button onClick={() => handleAction(noteDialog.redemptionId, noteDialog.action)} disabled={processing}
                 className={cn('flex-1 py-2.5 h-10 text-white font-semibold rounded-xl text-sm disabled:opacity-50',
                   noteDialog.action === 'reject' ? 'bg-red-500 hover:bg-red-600' : noteDialog.action === 'mark_paid' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600')}>
-                {processing ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : noteDialog.action === 'mark_paid' ? 'Mark Paid' : noteDialog.action === 'reject' ? 'Reject' : 'Approve'}
+                {processing ? <span className="animate-pulse">Processing...</span> : noteDialog.action === 'mark_paid' ? 'Mark Paid' : noteDialog.action === 'reject' ? 'Reject' : 'Approve'}
               </button>
             </div>
           </div>
@@ -1742,7 +1742,7 @@ export function AdminAetherManageView() {
           )}
           <button onClick={handleAdjust} disabled={adjusting || !userId || !amount}
             className="px-6 py-2.5 bg-arena-accent hover:bg-arena-accent-light text-white text-sm font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
-            {adjusting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Adjust Balance'}
+            {adjusting ? <span className="animate-pulse">Adjusting...</span> : 'Adjust Balance'}
           </button>
         </div>
       </div>
