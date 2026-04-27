@@ -125,8 +125,8 @@ export const darkTheme: ThemeConfig = {
     bronze: '#CD7F32',
 
     // Skeleton
-    skeletonBase: '#1a1d27',
-    skeletonHighlight: '#2a2d3a',
+    skeletonBase: '#14161e',
+    skeletonHighlight: '#1e2030',
   },
   shadcn: {
     background: '#0f0f14',

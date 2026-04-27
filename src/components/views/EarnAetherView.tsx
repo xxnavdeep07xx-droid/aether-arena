@@ -52,6 +52,10 @@ function FloatingAether({ amount, key }: { amount: number; key: number }) {
 function AetherOverview() {
   const { navigate } = useAppStore();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const [floatingKey, setFloatingKey] = useState(0);
+  const [floatingAmount, setFloatingAmount] = useState(0);
+  const [showFloating, setShowFloating] = useState(false);
 
   const { data: balanceData } = useQuery({
     queryKey: ['aether-balance-overview'],
@@ -61,6 +65,37 @@ function AetherOverview() {
   const { data: streak } = useQuery({
     queryKey: ['aether-streak-overview'],
     queryFn: () => fetch('/api/aether/streak').then(r => r.json()),
+  });
+
+  // Claim daily checkin mutation
+  const claimCheckinMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/aether/checkin', { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to claim daily reward');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success(`Daily reward claimed! +${data.dailyLoginAwarded ? 5 : 0} Aether`);
+      if (data.streakBonusAwarded) {
+        setTimeout(() => {
+          toast.success(`${data.streakBonusAwarded.milestone}-Day Streak Bonus! +${data.streakBonusAwarded.amount} Aether`);
+        }, 800);
+      }
+      queryClient.invalidateQueries({ queryKey: ['aether-streak-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['aether-balance-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['aether-balance'] });
+      queryClient.invalidateQueries({ queryKey: ['aether-balance-header'] });
+      setFloatingAmount(data.dailyLoginAwarded ? 5 : (data.streakBonusAwarded?.amount || 0));
+      setFloatingKey(k => k + 1);
+      setShowFloating(true);
+      setTimeout(() => setShowFloating(false), 1600);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
   });
 
   const { data: referral } = useQuery({
@@ -73,6 +108,7 @@ function AetherOverview() {
   const totalRedeemed = balanceData?.totalRedeemed ?? 0;
   const currentStreak = streak?.currentStreak || 0;
   const longestStreak = streak?.longestStreak || 0;
+  const alreadyCheckedIn = streak?.alreadyCheckedIn ?? false;
   const nextMilestone = getNextStreakMilestone(currentStreak);
 
   const handleCopy = (text: string) => {
@@ -148,6 +184,7 @@ function AetherOverview() {
       </div>
 
       {/* Streak Banner */}
+      {showFloating && <FloatingAether amount={floatingAmount} key={floatingKey} />}
       <div className="relative bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-red-500/10 border border-orange-500/20 rounded-2xl p-5 overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="flex items-center justify-between relative">
@@ -161,13 +198,40 @@ function AetherOverview() {
               <span className="text-sm text-arena-text-secondary">/ {longestStreak} best</span>
             </div>
             <p className="text-xs text-arena-text-muted mt-1">
-              {currentStreak > 0 ? `${currentStreak} day${currentStreak > 1 ? 's' : ''} in a row!` : 'Complete a task daily to start your streak!'}
+              {alreadyCheckedIn
+                ? `Checked in today! ${currentStreak} day${currentStreak > 1 ? 's' : ''} in a row.`
+                : currentStreak > 0
+                  ? `${currentStreak} day${currentStreak > 1 ? 's' : ''} in a row! Claim today's reward!`
+                  : 'Claim your first daily reward to start your streak!'}
             </p>
           </div>
           <div className="text-right">
-            <div className="text-xs text-arena-text-muted mb-2">Next bonus</div>
-            <div className="text-lg font-bold text-orange-400">{nextMilestone.milestone} days</div>
-            <div className="text-xs text-orange-300/80 flex items-center gap-0.5">+{nextMilestone.reward} <AetherIcon size="sm" /></div>
+            {alreadyCheckedIn ? (
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-12 h-12 rounded-xl bg-green-500/15 border border-green-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-green-400" />
+                </div>
+                <span className="text-[10px] text-green-400 font-medium">Claimed</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => claimCheckinMutation.mutate()}
+                disabled={claimCheckinMutation.isPending}
+                className="flex flex-col items-center gap-1 group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center group-hover:bg-orange-500/30 group-hover:border-orange-500/50 transition-all duration-200 group-hover:scale-105 active:scale-95">
+                  <Gift className="w-6 h-6 text-orange-400 group-hover:text-orange-300 transition-colors" />
+                </div>
+                <span className="text-[10px] text-orange-400 font-semibold">
+                  {claimCheckinMutation.isPending ? 'Claiming...' : '+5 Claim'}
+                </span>
+              </button>
+            )}
+            <div className="mt-2">
+              <div className="text-xs text-arena-text-muted">Next bonus</div>
+              <div className="text-sm font-bold text-orange-400">{nextMilestone.milestone} days</div>
+              <div className="text-[10px] text-orange-300/80 flex items-center gap-0.5 justify-end">+{nextMilestone.reward} <AetherIcon size="sm" /></div>
+            </div>
           </div>
         </div>
         <div className="mt-4 relative">

@@ -9,22 +9,22 @@ export default function Loading() {
           circle
           width={64}
           height={64}
-          baseColor="var(--skeleton-base, #1a1d27)"
-          highlightColor="var(--skeleton-highlight, #2a2d3a)"
+          baseColor="var(--skeleton-base, #14161e)"
+          highlightColor="var(--skeleton-highlight, #1e2030)"
         />
         <Skeleton
           width={180}
           height={16}
           borderRadius={8}
-          baseColor="var(--skeleton-base, #1a1d27)"
-          highlightColor="var(--skeleton-highlight, #2a2d3a)"
+          baseColor="var(--skeleton-base, #14161e)"
+          highlightColor="var(--skeleton-highlight, #1e2030)"
         />
         <Skeleton
           width={120}
           height={12}
           borderRadius={6}
-          baseColor="var(--skeleton-base, #1a1d27)"
-          highlightColor="var(--skeleton-highlight, #2a2d3a)"
+          baseColor="var(--skeleton-base, #14161e)"
+          highlightColor="var(--skeleton-highlight, #1e2030)"
         />
       </div>
     </div>

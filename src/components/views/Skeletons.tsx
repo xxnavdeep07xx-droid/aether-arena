@@ -7,8 +7,8 @@ import Image from 'next/image';
 function ThemedSkeleton(props: React.ComponentProps<typeof Skeleton>) {
   return (
     <Skeleton
-      baseColor="var(--skeleton-base, #1a1d27)"
-      highlightColor="var(--skeleton-highlight, #2a2d3a)"
+      baseColor="var(--skeleton-base, #14161e)"
+      highlightColor="var(--skeleton-highlight, #1e2030)"
       {...props}
     />
   );

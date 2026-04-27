@@ -277,15 +277,6 @@ export default function Page() {
     }
   }, [isAuthenticated, currentView, navigate]);
 
-  // Daily checkin: call once on mount when authenticated
-  const checkinDone = useState(false);
-  useEffect(() => {
-    if (isAuthenticated && !checkinDone[0]) {
-      fetch('/api/aether/checkin', { method: 'POST' }).catch(() => {});
-      checkinDone[1](true);
-    }
-  }, [isAuthenticated, checkinDone]);
-
   return (
     <div className="min-h-screen bg-arena-dark">
       {/* Landing page - full width */}
