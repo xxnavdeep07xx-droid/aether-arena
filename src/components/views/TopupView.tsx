@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Zap, ExternalLink, ChevronRight, Tag, TrendingUp, Sparkles } from 'lucide-react';
 import { cn, paiseToRupee } from '@/lib/utils';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
+import { ThemedSkeleton } from './Skeletons';
 
 export function TopupFullView() {
   const [filterGame, setFilterGame] = useState('all');
@@ -75,7 +74,7 @@ export function TopupFullView() {
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-44 rounded-2xl" />)}
+          {[1,2,3,4,5,6].map(i => <ThemedSkeleton key={i} className="h-44 rounded-2xl" />)}
         </div>
       ) : packs.length > 0 ? (
         <>

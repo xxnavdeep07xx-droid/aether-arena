@@ -18,8 +18,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Area, AreaChart
 } from 'recharts';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
+import { ThemedSkeleton } from './Skeletons';
 import Image from 'next/image';
 
 // ==================== REUSABLE CONFIRM DIALOG ====================
@@ -1340,7 +1339,7 @@ export function AdminAnalyticsView() {
   if (isLoading) return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {[1,2,3,4,5,6].map(i => <div key={i} className="bg-arena-card border border-arena-border rounded-xl p-4"><Skeleton className="h-4 w-16 mb-2" /><Skeleton className="h-6 w-24" /></div>)}
+        {[1,2,3,4,5,6].map(i => <div key={i} className="bg-arena-card border border-arena-border rounded-xl p-4"><ThemedSkeleton className="h-4 w-16 mb-2" /><ThemedSkeleton className="h-6 w-24" /></div>)}
       </div>
     </div>
   );
