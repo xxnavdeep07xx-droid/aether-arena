@@ -12,7 +12,7 @@ import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
 import { AetherIcon } from '@/components/ui/aether-icon';
-import { PASSWORD_RULES, AUTH_CONSTANTS } from '@/lib/theme';
+import { PASSWORD_RULES } from '@/lib/theme';
 
 export function DiscordIcon() {
   return (
@@ -23,7 +23,7 @@ export function DiscordIcon() {
 // Password strength indicator
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
-    { label: `${AUTH_CONSTANTS.minLength}+ characters`, met: password.length >= AUTH_CONSTANTS.minLength },
+    { label: `${PASSWORD_RULES.minLength}+ characters`, met: password.length >= PASSWORD_RULES.minLength },
     { label: 'Uppercase (A-Z)', met: /[A-Z]/.test(password) },
     { label: 'Lowercase (a-z)', met: /[a-z]/.test(password) },
     { label: 'Number (0-9)', met: /[0-9]/.test(password) },

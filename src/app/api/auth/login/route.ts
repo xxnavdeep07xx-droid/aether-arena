@@ -47,7 +47,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    let cred = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let cred: any = null;
     const trimmedIdentifier = resolvedIdentifier.trim();
 
     // Try to find credential by email, username, or phone
