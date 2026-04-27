@@ -6,15 +6,50 @@ import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import {
   Trophy, Gamepad2, Users, Coins, ChevronRight,
-  CircleDot, Search, User
+  CircleDot, Search, User, Eye, EyeOff, Check, X, Phone
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
+import { AetherIcon } from '@/components/ui/aether-icon';
+import { PASSWORD_RULES, AUTH_CONSTANTS } from '@/lib/theme';
 
 export function DiscordIcon() {
   return (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
+  );
+}
+
+// Password strength indicator
+function PasswordStrength({ password }: { password: string }) {
+  const checks = [
+    { label: `${AUTH_CONSTANTS.minLength}+ characters`, met: password.length >= AUTH_CONSTANTS.minLength },
+    { label: 'Uppercase (A-Z)', met: /[A-Z]/.test(password) },
+    { label: 'Lowercase (a-z)', met: /[a-z]/.test(password) },
+    { label: 'Number (0-9)', met: /[0-9]/.test(password) },
+  ];
+
+  const metCount = checks.filter(c => c.met).length;
+
+  return (
+    <div className="space-y-1.5 mt-2">
+      <div className="flex gap-1">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className={cn(
+            'h-1 flex-1 rounded-full transition-colors duration-200',
+            i <= metCount ? (metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-orange-500' : metCount <= 3 ? 'bg-yellow-500' : 'bg-green-500') : 'bg-arena-border'
+          )} />
+        ))}
+      </div>
+      <div className="space-y-0.5">
+        {checks.map((check) => (
+          <div key={check.label} className={cn('flex items-center gap-1.5 text-[10px] transition-colors duration-200', check.met ? 'text-green-400' : 'text-arena-text-muted')}>
+            {check.met ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+            {check.label}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -23,9 +58,27 @@ export function LandingView() {
   const { navigate: nav } = useAppStore();
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [signupForm, setSignupForm] = useState({ email: '', password: '', username: '', displayName: '' });
-  const [loading, setLoading] = useState(false);
+
+  // Login form
+  const [loginForm, setLoginForm] = useState({ identifier: '', password: '' });
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  // Signup form
+  const [signupForm, setSignupForm] = useState({
+    displayName: '',
+    username: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    referralCode: '',
+  });
+  const [signupLoading, setSignupLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpVerified, setOtpVerified] = useState(false);
 
   // Handle OAuth error params from Discord callback redirect
   useEffect(() => {
@@ -61,12 +114,15 @@ export function LandingView() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setLoginLoading(true);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginForm),
+        body: JSON.stringify({
+          identifier: loginForm.identifier,
+          password: loginForm.password,
+        }),
       });
       const data = await res.json();
       if (res.ok && data.user) {
@@ -79,21 +135,70 @@ export function LandingView() {
     } catch {
       toast.error('Login failed');
     }
-    setLoading(false);
+    setLoginLoading(false);
+  };
+
+  const handleSendOtp = async () => {
+    if (!signupForm.phone || !/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) {
+      toast.error('Enter a valid 10-digit Indian phone number');
+      return;
+    }
+    // In production, this would call an SMS API.
+    // For now, we simulate OTP send and auto-verify
+    toast.success('OTP sent to your phone! (Demo: use any 6-digit code)');
+    setOtpSent(true);
+  };
+
+  const handleVerifyOtp = () => {
+    if (otp.length === 6) {
+      // In production, this would verify against the actual OTP
+      setOtpVerified(true);
+      toast.success('Phone number verified!');
+    } else {
+      toast.error('Enter a valid 6-digit OTP');
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate password
     if (signupForm.password.length < 8 || !/[A-Z]/.test(signupForm.password) || !/[a-z]/.test(signupForm.password) || !/[0-9]/.test(signupForm.password)) {
       toast.error('Password must be at least 8 characters with uppercase, lowercase, and a number');
       return;
     }
-    setLoading(true);
+
+    // Validate confirm password
+    if (signupForm.password !== signupForm.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    // Validate phone if provided
+    if (signupForm.phone && !/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) {
+      toast.error('Enter a valid 10-digit Indian phone number');
+      return;
+    }
+
+    // Note: OTP verification is optional for now (can be made mandatory later)
+    // if (signupForm.phone && !otpVerified) {
+    //   toast.error('Please verify your phone number');
+    //   return;
+    // }
+
+    setSignupLoading(true);
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signupForm),
+        body: JSON.stringify({
+          email: signupForm.email,
+          username: signupForm.username,
+          displayName: signupForm.displayName,
+          phone: signupForm.phone || undefined,
+          password: signupForm.password,
+          referralCode: signupForm.referralCode || undefined,
+        }),
       });
       const data = await res.json();
       if (res.ok && data.user) {
@@ -106,8 +211,10 @@ export function LandingView() {
     } catch {
       toast.error('Signup failed');
     }
-    setLoading(false);
+    setSignupLoading(false);
   };
+
+  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150";
 
   return (
     <div className="min-h-screen bg-arena-dark">
@@ -331,19 +438,24 @@ export function LandingView() {
         </div>
       </footer>
 
-      {/* Login Modal */}
+      {/* ===== LOGIN MODAL ===== */}
       <ArenaModal open={showLogin} onClose={() => setShowLogin(false)} title="Welcome Back" description="Sign in to your Aether Arena account" icon={<User className="w-5 h-5" />}>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Email</label>
-            <input type="email" required value={loginForm.email} onChange={e => setLoginForm({ ...loginForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="your@email.com" />
+            <label className="text-sm text-arena-text-secondary mb-1 block">Username, Email, or Phone</label>
+            <input type="text" required value={loginForm.identifier} onChange={e => setLoginForm({ ...loginForm, identifier: e.target.value })} className={inputClass} placeholder="username / your@email.com / 9876543210" />
           </div>
           <div>
             <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
-            <input type="password" required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="••••••••" />
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className={cn(inputClass, 'pr-10')} placeholder="••••••••" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
-          <button type="submit" disabled={loading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
-            {loading ? 'Logging in...' : 'Log In'}
+          <button type="submit" disabled={loginLoading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
+            {loginLoading ? 'Logging in...' : 'Log In'}
           </button>
           {/* Discord OAuth */}
           <div className="relative flex items-center gap-3 my-2">
@@ -363,28 +475,99 @@ export function LandingView() {
         </form>
       </ArenaModal>
 
-      {/* Signup Modal */}
-      <ArenaModal open={showSignup} onClose={() => setShowSignup(false)} title="Create Account" description="Join Aether Arena and start competing" icon={<User className="w-5 h-5" />}>
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Email</label>
-            <input type="email" required value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="your@email.com" />
-          </div>
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Username</label>
-            <input type="text" required value={signupForm.username} onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="gamer_tag" />
-          </div>
+      {/* ===== SIGNUP MODAL ===== */}
+      <ArenaModal open={showSignup} onClose={() => setShowSignup(false)} title="Create Account" description="Join Aether Arena and start competing" icon={<User className="w-5 h-5" />} size="lg">
+        <form onSubmit={handleSignup} className="space-y-3">
+          {/* Display Name */}
           <div>
             <label className="text-sm text-arena-text-secondary mb-1 block">Display Name</label>
-            <input type="text" value={signupForm.displayName} onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="Your Name (optional)" />
+            <input type="text" required value={signupForm.displayName} onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })} className={inputClass} placeholder="Your display name (can be common)" />
           </div>
+
+          {/* Username */}
           <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
-            <input type="password" required minLength={8} value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150" placeholder="Min 8 chars, upper+lower+digit" />
+            <label className="text-sm text-arena-text-secondary mb-1 block">Username <span className="text-arena-accent">*</span></label>
+            <input type="text" required value={signupForm.username} onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })} className={inputClass} placeholder="unique_username (3-20 chars)" />
+            <p className="text-[10px] text-arena-text-muted mt-0.5">Must be unique. Letters, numbers, underscores, and hyphens only.</p>
           </div>
-          <button type="submit" disabled={loading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
-            {loading ? 'Creating Account...' : 'Create Account'}
+
+          {/* Email */}
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Email Address <span className="text-arena-accent">*</span></label>
+            <input type="email" required value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className={inputClass} placeholder="your@email.com" />
+          </div>
+
+          {/* Phone with OTP */}
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Phone Number</label>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-arena-text-muted">+91</span>
+                <input type="tel" value={signupForm.phone} onChange={e => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} className={cn(inputClass, 'pl-12')} placeholder="9876543210" />
+              </div>
+              {!otpVerified && (
+                <button type="button" onClick={handleSendOtp} disabled={!signupForm.phone || signupForm.phone.length !== 10}
+                  className="px-4 h-11 bg-arena-accent/20 text-arena-accent text-xs font-semibold rounded-xl hover:bg-arena-accent/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                  {otpSent ? 'Resend' : 'Send OTP'}
+                </button>
+              )}
+              {otpVerified && (
+                <div className="flex items-center gap-1 px-3 h-11 bg-green-500/10 text-green-400 text-xs font-semibold rounded-xl">
+                  <Check className="w-3.5 h-3.5" /> Verified
+                </div>
+              )}
+            </div>
+            {/* OTP Input */}
+            {otpSent && !otpVerified && (
+              <div className="flex gap-2 mt-2">
+                <input type="text" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} className={cn(inputClass, 'h-9 text-center tracking-[0.3em] font-mono')} placeholder="000000" maxLength={6} />
+                <button type="button" onClick={handleVerifyOtp} disabled={otp.length !== 6}
+                  className="px-3 h-9 bg-green-500/20 text-green-400 text-xs font-semibold rounded-lg hover:bg-green-500/30 transition-colors disabled:opacity-40">
+                  Verify
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Create Password <span className="text-arena-accent">*</span></label>
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} required minLength={8} value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className={cn(inputClass, 'pr-10')} placeholder="Min 8 chars, A-Z, a-z, 0-9" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {signupForm.password && <PasswordStrength password={signupForm.password} />}
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Confirm Password <span className="text-arena-accent">*</span></label>
+            <div className="relative">
+              <input type={showConfirmPassword ? "text" : "password"} required value={signupForm.confirmPassword} onChange={e => setSignupForm({ ...signupForm, confirmPassword: e.target.value })} className={cn(inputClass, 'pr-10')} placeholder="Re-enter your password" />
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {signupForm.confirmPassword && signupForm.password !== signupForm.confirmPassword && (
+              <p className="text-[10px] text-red-400 mt-0.5">Passwords do not match</p>
+            )}
+            {signupForm.confirmPassword && signupForm.password === signupForm.confirmPassword && (
+              <p className="text-[10px] text-green-400 mt-0.5 flex items-center gap-1"><Check className="w-3 h-3" /> Passwords match</p>
+            )}
+          </div>
+
+          {/* Referral Code */}
+          <div>
+            <label className="text-sm text-arena-text-secondary mb-1 block">Referral Code <span className="text-arena-text-muted">(optional)</span></label>
+            <input type="text" value={signupForm.referralCode} onChange={e => setSignupForm({ ...signupForm, referralCode: e.target.value })} className={inputClass} placeholder="Enter referral code if you have one" />
+          </div>
+
+          <button type="submit" disabled={signupLoading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
+            {signupLoading ? 'Creating Account...' : 'Create Account'}
           </button>
+
           {/* Discord OAuth */}
           <div className="relative flex items-center gap-3 my-2">
             <div className="flex-1 h-px bg-arena-border" />

@@ -49,7 +49,7 @@ export function AetherIcon({ className, size = 'md', animated = false }: AetherI
       )}
       <img
         src={srcMap[size]}
-        alt="◆"
+        alt="Aether Coin"
         className="w-full h-full object-contain select-none relative z-10"
         draggable={false}
       />

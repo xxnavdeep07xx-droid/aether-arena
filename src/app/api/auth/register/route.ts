@@ -16,7 +16,15 @@ export async function POST(request: Request) {
   }
 
   // Parse body ONCE before any try/catch
-  let body: { email?: string; password?: string; username?: string; displayName?: string; ref?: string }
+  let body: {
+    email?: string;
+    password?: string;
+    username?: string;
+    displayName?: string;
+    phone?: string;
+    referralCode?: string;
+    ref?: string;
+  }
   try {
     body = await request.json()
   } catch {
@@ -26,7 +34,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const { email, password, username, displayName, ref } = body
+  const { email, password, username, displayName, phone, referralCode, ref } = body
 
   // Validate required fields
   if (!email || !password || !username) {
@@ -45,7 +53,7 @@ export async function POST(request: Request) {
     )
   }
 
-  // Validate password length
+  // Validate password
   if (password.length < 8) {
     return NextResponse.json(
       { error: 'Password must be at least 8 characters' },
@@ -76,6 +84,20 @@ export async function POST(request: Request) {
     )
   }
 
+  // Validate phone if provided
+  if (phone && phone.trim().length > 0) {
+    const phoneRegex = /^[6-9]\d{9}$/
+    if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
+      return NextResponse.json(
+        { error: 'Invalid Indian phone number. Must be 10 digits starting with 6-9' },
+        { status: 400 }
+      )
+    }
+  }
+
+  // Resolve referral code (accept both referralCode and ref)
+  const resolvedRefCode = referralCode || ref || null;
+
   try {
     // Check if email already exists
     const existingCred = await db.accountCredential.findUnique({
@@ -99,8 +121,25 @@ export async function POST(request: Request) {
       )
     }
 
+    // Check if phone already exists (if provided)
+    if (phone && phone.trim().length > 0) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      const existingPhone = await db.profile.findUnique({
+        where: { phone: cleanPhone },
+      })
+      if (existingPhone) {
+        return NextResponse.json(
+          { error: 'Phone number already registered' },
+          { status: 409 }
+        )
+      }
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
+
+    // Clean phone number
+    const cleanPhone = phone && phone.trim().length > 0 ? phone.replace(/\D/g, '') : null;
 
     // Create profile with credential atomically
     const profile = await db.$transaction(async (tx) => {
@@ -111,18 +150,22 @@ export async function POST(request: Request) {
         data: {
           username,
           displayName: displayName || username,
+          phone: cleanPhone,
+          phoneVerified: false,
           isAdmin,
-          referredByCode: ref || null,
+          referredByCode: resolvedRefCode || null,
           credentials: {
             create: {
               email: email.toLowerCase(),
               password: hashedPassword,
+              phone: cleanPhone,
+              phoneVerified: false,
             },
           },
         },
         include: {
           credentials: {
-            select: { email: true },
+            select: { email: true, phone: true },
           },
         },
       })
@@ -181,9 +224,9 @@ export async function POST(request: Request) {
       })
 
       // Handle referral: if ref code provided, award 30 Aether to the referrer
-      if (ref && ref.trim().length > 0) {
+      if (resolvedRefCode && resolvedRefCode.trim().length > 0) {
         const referrer = await tx.profile.findFirst({
-          where: { username: ref.trim().toLowerCase() },
+          where: { username: resolvedRefCode.trim().toLowerCase() },
         })
         if (referrer && referrer.id !== profile.id) {
           const referrerBalance = await tx.aetherBalance.upsert({
@@ -226,6 +269,7 @@ export async function POST(request: Request) {
         displayName: profile.displayName,
         avatarUrl: profile.avatarUrl,
         email: profile.credentials?.email,
+        phone: profile.credentials?.phone || profile.phone,
         isAdmin: profile.isAdmin,
       },
     })
@@ -244,8 +288,18 @@ export async function POST(request: Request) {
 
     // Only catch known unique constraint violations — everything else surfaces the real error
     if (msg.includes('Unique constraint')) {
+      // Determine which field caused the constraint violation
+      if (msg.includes('email')) {
+        return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
+      }
+      if (msg.includes('username')) {
+        return NextResponse.json({ error: 'Username already taken' }, { status: 409 })
+      }
+      if (msg.includes('phone')) {
+        return NextResponse.json({ error: 'Phone number already registered' }, { status: 409 })
+      }
       return NextResponse.json(
-        { error: 'Email or username already exists' },
+        { error: 'Email, username, or phone already exists' },
         { status: 409 }
       )
     }

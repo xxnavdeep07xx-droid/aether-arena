@@ -65,6 +65,17 @@
   --skeleton-highlight: #2a2d3a;
 }
 
+/* Override react-loading-skeleton default styles to use our theme variables */
+.react-loading-skeleton {
+  background-color: var(--skeleton-base, #1a1d27) !important;
+  background-image: linear-gradient(
+    90deg,
+    var(--skeleton-base, #1a1d27),
+    var(--skeleton-highlight, #2a2d3a),
+    var(--skeleton-base, #1a1d27)
+  ) !important;
+}
+
 :root {
   --radius: 0.625rem;
   --background: #0f0f14;
@@ -703,7 +714,21 @@
   --skeleton-base: #e5e7eb;
   --skeleton-highlight: #f3f4f6;
 
-  /* shadcn/ui tokens */
+  /* Override skeleton for light mode */
+}
+
+:root[data-theme="light"] .react-loading-skeleton {
+  background-color: #e5e7eb !important;
+  background-image: linear-gradient(
+    90deg,
+    #e5e7eb,
+    #f3f4f6,
+    #e5e7eb
+  ) !important;
+}
+
+:root[data-theme="light"] {
+
   --background: #f5f6f8;
   --foreground: #1a1a2e;
   --card: #ffffff;
@@ -869,6 +894,75 @@
 
 :root[data-theme="light"] .bg-arena-accent\/10 {
   background: rgba(230, 57, 80, 0.08);
+}
+
+/* Light mode form inputs - override hardcoded bg-arena-dark */
+:root[data-theme="light"] input[type="text"],
+:root[data-theme="light"] input[type="email"],
+:root[data-theme="light"] input[type="password"],
+:root[data-theme="light"] input[type="tel"],
+:root[data-theme="light"] input[type="number"],
+:root[data-theme="light"] input[type="url"],
+:root[data-theme="light"] input[type="search"],
+:root[data-theme="light"] input[type="datetime-local"],
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] select {
+  background-color: #ffffff;
+  color: #1a1a2e;
+  border-color: #e2e4e8;
+}
+
+:root[data-theme="light"] input:focus,
+:root[data-theme="light"] textarea:focus,
+:root[data-theme="light"] select:focus {
+  border-color: #e63950;
+  box-shadow: 0 0 0 1px rgba(230, 57, 80, 0.2);
+}
+
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder {
+  color: #9a9ab0;
+}
+
+/* Light mode code blocks */
+:root[data-theme="light"] code {
+  background-color: #f0f1f3;
+  color: #1a1a2e;
+}
+
+/* Light mode gradient overlays */
+:root[data-theme="light"] .bg-gradient-to-br.from-arena-accent\/10 {
+  background: linear-gradient(to bottom right, rgba(230, 57, 80, 0.06), rgba(250, 251, 252, 1), rgba(124, 58, 237, 0.06));
+}
+
+:root[data-theme="light"] .bg-gradient-to-r.from-arena-accent\/10 {
+  background: linear-gradient(to right, rgba(230, 57, 80, 0.06), rgba(250, 251, 252, 1), rgba(124, 58, 237, 0.06));
+}
+
+:root[data-theme="light"] .from-arena-accent\/5 {
+  background: linear-gradient(to bottom, rgba(230, 57, 80, 0.03), transparent);
+}
+
+:root[data-theme="light"] .from-arena-accent\/20 {
+  background: linear-gradient(to bottom right, rgba(230, 57, 80, 0.1), rgba(124, 58, 237, 0.1));
+}
+
+:root[data-theme="light"] .to-arena-purple\/20 {
+  background: linear-gradient(to bottom right, rgba(230, 57, 80, 0.1), rgba(124, 58, 237, 0.1));
+}
+
+/* Light mode dark background overrides */
+:root[data-theme="light"] .bg-arena-dark\/50 {
+  background: rgba(240, 241, 243, 0.5);
+}
+
+:root[data-theme="light"] .bg-arena-dark {
+  background-color: #f5f6f8;
+}
+
+/* Light mode bottom nav background */
+:root[data-theme="light"] .bg-arena-surface\/95 {
+  background: rgba(250, 251, 252, 0.95);
 }
 
 /* ===== AETHER COIN ANIMATIONS ===== */

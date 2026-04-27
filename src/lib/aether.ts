@@ -1,4 +1,6 @@
-export const AETHER_SYMBOL = '◆';
+// AETHER_SYMBOL is kept for backward compatibility but should be replaced
+// with <AetherIcon /> component in UI. Use this only for non-UI contexts.
+export const AETHER_SYMBOL = 'Aether';
 export const AETHER_NAME = 'Aether';
 export const REDEEM_MINIMUM = 500;
 export const CONVERSION_RATE = 100; // 100 Aether = ₹10

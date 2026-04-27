@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn } from '@/lib/utils';
-import { AETHER_SYMBOL } from '@/lib/aether';
 import { useTranslation } from '@/lib/i18n';
 
 // Skeleton fallbacks
@@ -123,7 +122,16 @@ function ViewFallback() {
 
 function ViewRenderer() {
   const { currentView } = useAppStore();
-  const { isLoading } = useAuthStore();
+  const { isLoading, user } = useAuthStore();
+  const isAdmin = user?.isAdmin;
+
+  // Admin-only views - redirect non-admins
+  const adminViews: ViewName[] = [
+    'admin-dashboard', 'admin-tournaments', 'admin-tournament-create',
+    'admin-registrations', 'admin-games', 'admin-streams',
+    'admin-affiliates', 'admin-topup', 'admin-analytics',
+    'admin-settings', 'admin-redemptions', 'admin-aether-manage',
+  ];
 
   // Skeleton loading based on current view instead of spinner
   if (isLoading) {
@@ -137,6 +145,17 @@ function ViewRenderer() {
       'notifications': <NotificationsSkeleton />,
     };
     return skeletonMap[currentView] || <HomeSkeleton />;
+  }
+
+  // Guard admin views for non-admin users
+  if (adminViews.includes(currentView) && !isAdmin) {
+    return (
+      <div className="text-center py-20">
+        <Shield className="w-16 h-16 mx-auto mb-4 text-arena-text-muted opacity-50" />
+        <h2 className="text-xl font-bold mb-2">Access Denied</h2>
+        <p className="text-arena-text-muted">You don&apos;t have permission to view this page.</p>
+      </div>
+    );
   }
 
   const viewMap: Record<ViewName, React.ReactNode> = {
@@ -393,7 +412,6 @@ export default function Page() {
                     className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-arena-card border border-arena-border hover:border-arena-accent/30 transition-all duration-200 flex-shrink-0 cursor-pointer">
                     <AetherIcon size="sm" animated />
                     <span className="text-sm font-bold text-arena-accent">{aetherBalance ?? '...'}</span>
-                    <span className="hidden sm:inline text-xs text-arena-text-muted">{AETHER_SYMBOL}</span>
                   </a>
                 )}
                 {/* Right icons (hidden when search is focused) */}

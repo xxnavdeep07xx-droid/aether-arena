@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Trophy, BarChart3, Tv } from 'lucide-react';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn, LEAGUE_CONFIG } from '@/lib/utils';
-import { AETHER_SYMBOL } from '@/lib/aether';
+import { AETHER_NAME } from '@/lib/aether';
 
 function AetherBalanceCard() {
   const { navigate } = useAppStore();
@@ -26,16 +26,16 @@ function AetherBalanceCard() {
         <span className="relative animate-glow-pulse">
           <AetherIcon size="md" className="animate-glow-pulse" />
         </span>
-        <span className="text-2xl font-bold text-arena-accent">{balance} <span className="text-lg">{AETHER_SYMBOL}</span></span>
+        <span className="text-2xl font-bold text-arena-accent">{balance}</span>
       </div>
       <div className="space-y-1.5 mb-3">
         <div className="flex items-center justify-between text-xs">
           <span className="text-arena-text-muted">Earned</span>
-          <span className="text-arena-text-secondary">{totalEarned} {AETHER_SYMBOL}</span>
+          <span className="text-arena-text-secondary">{totalEarned}</span>
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="text-arena-text-muted">Redeemed</span>
-          <span className="text-arena-text-secondary">{totalRedeemed} {AETHER_SYMBOL}</span>
+          <span className="text-arena-text-secondary">{totalRedeemed}</span>
         </div>
       </div>
       <button

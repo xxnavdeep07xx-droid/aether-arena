@@ -88,6 +88,7 @@ interface AuthState {
     league: string;
     leaguePoints: number;
     totalWins: number;
+    phone?: string | null;
   } | null;
   isAuthenticated: boolean;
   isLoading: boolean;

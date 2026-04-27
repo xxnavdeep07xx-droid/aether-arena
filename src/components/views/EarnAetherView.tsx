@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import {
-  AETHER_SYMBOL, AETHER_NAME, REDEEM_MINIMUM, CONVERSION_RATE,
+  AETHER_NAME, REDEEM_MINIMUM, CONVERSION_RATE,
   formatAether, aetherToInr, getNextStreakMilestone
 } from '@/lib/aether';
 import Skeleton from 'react-loading-skeleton';
@@ -32,8 +32,8 @@ function FloatingAether({ amount, key }: { amount: number; key: number }) {
         transform: 'translateX(-50%)',
       }}
     >
-      <span className="text-2xl font-bold text-arena-accent drop-shadow-lg">
-        +{amount} {AETHER_SYMBOL}
+      <span className="text-2xl font-bold text-arena-accent drop-shadow-lg flex items-center gap-1">
+        +{amount} <AetherIcon size="md" />
       </span>
       <style>{`
         @keyframes floatUp {
@@ -102,7 +102,7 @@ function AetherOverview() {
       view: 'aether-redeem' as ViewName,
       icon: Wallet,
       title: 'Redeem',
-      description: `Convert ${AETHER_NAME} to real money via UPI (min ${REDEEM_MINIMUM} ${AETHER_SYMBOL})`,
+      description: `Convert ${AETHER_NAME} to real money via UPI (min ${REDEEM_MINIMUM} Aether)`,
       color: 'from-green-500/20 to-emerald-500/20',
       borderColor: 'border-green-500/20',
       iconColor: 'text-green-400',
@@ -131,17 +131,17 @@ function AetherOverview() {
           </div>
           <div className="flex items-baseline gap-2 mb-4">
             <span className="text-4xl font-bold text-arena-accent">{balance}</span>
-            <span className="text-xl text-arena-accent/70">{AETHER_SYMBOL}</span>
+            <AetherIcon size="lg" className="text-arena-accent/70" />
             <span className="text-sm text-arena-text-muted ml-2">≈ ₹{aetherToInr(balance).toFixed(1)}</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-arena-dark/50 rounded-xl px-4 py-3">
               <div className="text-xs text-arena-text-muted mb-0.5">Total Earned</div>
-              <div className="text-lg font-bold text-green-400">{totalEarned} {AETHER_SYMBOL}</div>
+              <div className="text-lg font-bold text-green-400 flex items-center gap-1">{totalEarned} <AetherIcon size="sm" /></div>
             </div>
             <div className="bg-arena-dark/50 rounded-xl px-4 py-3">
               <div className="text-xs text-arena-text-muted mb-0.5">Total Redeemed</div>
-              <div className="text-lg font-bold text-orange-400">{totalRedeemed} {AETHER_SYMBOL}</div>
+              <div className="text-lg font-bold text-orange-400 flex items-center gap-1">{totalRedeemed} <AetherIcon size="sm" /></div>
             </div>
           </div>
         </div>
@@ -167,7 +167,7 @@ function AetherOverview() {
           <div className="text-right">
             <div className="text-xs text-arena-text-muted mb-2">Next bonus</div>
             <div className="text-lg font-bold text-orange-400">{nextMilestone.milestone} days</div>
-            <div className="text-xs text-orange-300/80">+{nextMilestone.reward} {AETHER_SYMBOL}</div>
+            <div className="text-xs text-orange-300/80 flex items-center gap-0.5">+{nextMilestone.reward} <AetherIcon size="sm" /></div>
           </div>
         </div>
         <div className="mt-4 relative">
@@ -178,7 +178,7 @@ function AetherOverview() {
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-arena-text-muted">{currentStreak}/{nextMilestone.milestone} for {nextMilestone.reward} {AETHER_SYMBOL} bonus</span>
+            <span className="text-[10px] text-arena-text-muted">{currentStreak}/{nextMilestone.milestone} for {nextMilestone.reward} Aether bonus</span>
           </div>
         </div>
         <style>{`
@@ -200,7 +200,7 @@ function AetherOverview() {
         <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
             <Users className="w-5 h-5 text-purple-400" />
-            <h3 className="font-semibold text-sm">Invite Friends — Earn 30 {AETHER_SYMBOL} each!</h3>
+            <h3 className="font-semibold text-sm">Invite Friends — Earn 30 Aether each!</h3>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -276,7 +276,7 @@ function AetherTasksView() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast.success(`You earned ${data.amount} ${AETHER_SYMBOL} ${AETHER_NAME}!`);
+      toast.success(`You earned ${data.amount} ${AETHER_NAME}!`);
       queryClient.invalidateQueries({ queryKey: ['aether-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['aether-balance'] });
       setFloatingAmount(data.amount);
@@ -422,12 +422,12 @@ function AetherRedeemView() {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-arena-card border border-arena-border rounded-xl p-4 text-center">
           <div className="text-xs text-arena-text-muted mb-1">Your Balance</div>
-          <div className="text-2xl font-bold text-arena-accent">{bal} <span className="text-lg">{AETHER_SYMBOL}</span></div>
+          <div className="text-2xl font-bold text-arena-accent flex items-center gap-1">{bal} <AetherIcon size="md" /></div>
           <div className="text-xs text-arena-text-muted mt-1">≈ ₹{aetherToInr(bal).toFixed(1)}</div>
         </div>
         <div className="bg-arena-card border border-arena-border rounded-xl p-4 text-center">
           <div className="text-xs text-arena-text-muted mb-1">Conversion Rate</div>
-          <div className="text-2xl font-bold text-green-400">{CONVERSION_RATE} {AETHER_SYMBOL}</div>
+          <div className="text-2xl font-bold text-green-400 flex items-center gap-1">{CONVERSION_RATE} <AetherIcon size="md" /></div>
           <div className="text-xs text-arena-text-muted mt-1">= ₹10</div>
         </div>
       </div>
@@ -460,7 +460,7 @@ function AetherRedeemView() {
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-arena-text-muted">{AETHER_NAME} deducted</span>
-                  <span className="font-medium">{bal} {AETHER_SYMBOL}</span>
+                  <span className="font-medium flex items-center gap-1">{bal} <AetherIcon size="sm" /></span>
                 </div>
               </div>
             )}
@@ -468,7 +468,7 @@ function AetherRedeemView() {
             {!canRedeem && (
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-4 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <span className="text-xs text-amber-300">You need at least {REDEEM_MINIMUM} {AETHER_SYMBOL} (₹{aetherToInr(REDEEM_MINIMUM)}) to redeem. Earn more from tasks!</span>
+                <span className="text-xs text-amber-300">You need at least {REDEEM_MINIMUM} Aether (₹{aetherToInr(REDEEM_MINIMUM)}) to redeem. Earn more from tasks!</span>
               </div>
             )}
 
@@ -480,7 +480,7 @@ function AetherRedeemView() {
               {redeemMutation.isPending ? (
                 <span className="animate-pulse">Processing...</span>
               ) : (
-                <>Redeem {bal} {AETHER_SYMBOL} for ₹{aetherToInr(bal).toFixed(0)} <ArrowRight className="w-4 h-4" /></>
+                <>Redeem {bal} Aether for ₹{aetherToInr(bal).toFixed(0)} <ArrowRight className="w-4 h-4" /></>
               )}
             </button>
           </>
@@ -568,9 +568,9 @@ function AetherHistoryView() {
                   'text-sm font-bold',
                   tx.amount >= 0 ? 'text-green-400' : 'text-red-400'
                 )}>
-                  {tx.amount >= 0 ? '+' : ''}{tx.amount} {AETHER_SYMBOL}
+                  <span className="flex items-center gap-0.5">{tx.amount >= 0 ? '+' : ''}{tx.amount} <AetherIcon size="sm" /></span>
                 </span>
-                <div className="text-[10px] text-arena-text-muted">Bal: {tx.balanceAfter} {AETHER_SYMBOL}</div>
+                <div className="text-[10px] text-arena-text-muted flex items-center gap-0.5">Bal: {tx.balanceAfter} <AetherIcon size="sm" /></div>
               </div>
             </div>
           ))}
@@ -627,7 +627,7 @@ function TaskCard({ task, isClaiming, onClaim }: {
         ) : (
           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Available</span>
         )}
-        <span className="text-xs font-bold text-arena-accent whitespace-nowrap">+{task.rewardAmount} {AETHER_SYMBOL}</span>
+        <span className="text-xs font-bold text-arena-accent whitespace-nowrap flex items-center gap-0.5">+{task.rewardAmount} <AetherIcon size="sm" /></span>
         {isCompleted ? (
           <div className="w-8 h-8 rounded-lg bg-arena-dark flex items-center justify-center">
             <CheckCircle2 className="w-4 h-4 text-green-400" />

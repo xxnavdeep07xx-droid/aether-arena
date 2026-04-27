@@ -19,6 +19,7 @@ export async function GET() {
         displayName: true,
         avatarUrl: true,
         bio: true,
+        phone: true,
         isAdmin: true,
         isBanned: true,
         league: true,
@@ -30,7 +31,7 @@ export async function GET() {
         totalPrizeWon: true,
         scheduledDeletionAt: true,
         credentials: {
-          select: { email: true },
+          select: { email: true, phone: true },
         },
       },
     })
@@ -56,6 +57,7 @@ export async function GET() {
       user: {
         ...profile,
         email: profile.credentials?.email || null,
+        phone: profile.phone || profile.credentials?.phone || null,
         credentials: undefined,
       },
     })
