@@ -1,8 +1,68 @@
-// Distributed rate limiter using Vercel KV (Redis)
+// Distributed rate limiter using Redis (ioredis)
 // Falls back to in-memory rate limiting for local development
 // On Vercel, this works across ALL serverless function instances
 
-import { kv } from '@vercel/kv'
+import Redis from 'ioredis'
+
+// ─── Redis Connection (lazy singleton) ────────────────────────
+// Supports both Vercel KV env vars AND pure Redis env vars
+
+let redis: Redis | null = null
+
+function getRedis(): Redis | null {
+  if (redis) return redis
+  if (typeof window !== 'undefined') return null // don't run on client
+
+  // Try Vercel KV env vars first (Upstash REST API compatible)
+  const kvUrl = process.env.KV_REST_API_URL
+  const kvToken = process.env.KV_REST_API_TOKEN
+  if (kvUrl && kvToken) {
+    // Vercel KV uses Upstash REST API — ioredis can connect via REDIS_URL
+    // The KV_REST_API_URL is like https://xxx.upstash.io
+    // We need the native Redis URL instead: rediss://default:token@xxx.upstash.io:6379
+    const host = kvUrl.replace('https://', '').replace('.upstash.io', '')
+    redis = new Redis({
+      host: `${host}.upstash.io`,
+      port: 6379,
+      password: kvToken,
+      tls: { servername: `${host}.upstash.io` },
+      maxRetriesPerRequest: 1,
+      enableReadyCheck: false,
+      lazyConnect: true,
+    })
+    return redis
+  }
+
+  // Try pure Redis URL (redis:// or rediss://)
+  const redisUrl = process.env.REDIS_URL
+  if (redisUrl) {
+    redis = new Redis(redisUrl, {
+      maxRetriesPerRequest: 1,
+      enableReadyCheck: false,
+      lazyConnect: true,
+    })
+    return redis
+  }
+
+  // Try individual Redis env vars (Vercel's pure Redis integration)
+  const redisHost = process.env.REDIS_HOST
+  const redisPort = process.env.REDIS_PORT
+  const redisPassword = process.env.REDIS_PASSWORD
+  if (redisHost) {
+    redis = new Redis({
+      host: redisHost,
+      port: redisPort ? parseInt(redisPort, 10) : 6379,
+      password: redisPassword || undefined,
+      tls: redisUrl?.startsWith('rediss://') ? {} : undefined,
+      maxRetriesPerRequest: 1,
+      enableReadyCheck: false,
+      lazyConnect: true,
+    })
+    return redis
+  }
+
+  return null // No Redis configured — use in-memory fallback
+}
 
 // ─── In-Memory Fallback (for local dev) ──────────────────────
 
@@ -33,16 +93,16 @@ export interface RateLimitConfig {
 // ─── Main Rate Limit Function ─────────────────────────────────
 
 export function rateLimit(config: RateLimitConfig = { windowMs: 60 * 1000, maxRequests: 30 }) {
-  return function checkLimit(identifier: string): Promise<{ success: boolean; remaining: number; resetTime: number }> {
-    // Use Vercel KV in production, in-memory fallback for local dev
-    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-      return kvRateLimit(identifier, config)
+  return async function checkLimit(identifier: string): Promise<{ success: boolean; remaining: number; resetTime: number }> {
+    const client = getRedis()
+    if (client) {
+      return redisRateLimit(client, identifier, config)
     }
-    return Promise.resolve(memoryRateLimit(identifier, config))
+    return memoryRateLimit(identifier, config)
   }
 }
 
-// ─── Vercel KV Implementation ─────────────────────────────────
+// ─── Redis Implementation ─────────────────────────────────────
 // Uses a Lua script for atomic fixed-window rate limiting.
 // The expiry is only set on the first request (count=1), so the
 // window doesn't slide on subsequent requests. This prevents
@@ -57,7 +117,8 @@ const RATE_LIMIT_SCRIPT = `
   return { count, ttl }
 `
 
-async function kvRateLimit(
+async function redisRateLimit(
+  client: Redis,
   identifier: string,
   config: RateLimitConfig
 ): Promise<{ success: boolean; remaining: number; resetTime: number }> {
@@ -67,7 +128,7 @@ async function kvRateLimit(
 
   try {
     // Atomic Lua script: INCR + conditional EXPIRE + get TTL
-    const result = await kv.eval(RATE_LIMIT_SCRIPT, [key], [windowSeconds]) as [number, number]
+    const result = await client.eval(RATE_LIMIT_SCRIPT, 1, key, windowSeconds) as [number, number]
     const count = result[0]
     const ttl = result[1]
 
@@ -83,8 +144,8 @@ async function kvRateLimit(
 
     return { success: true, remaining: config.maxRequests - count, resetTime }
   } catch (error) {
-    // If KV fails, fall back to in-memory to avoid blocking requests
-    console.error('KV rate limit error, falling back to memory:', error)
+    // If Redis fails, fall back to in-memory to avoid blocking requests
+    console.error('Redis rate limit error, falling back to memory:', error)
     return memoryRateLimit(identifier, config)
   }
 }
