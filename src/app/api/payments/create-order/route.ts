@@ -34,11 +34,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Already registered' }, { status: 409 })
     }
 
-    // Get Razorpay credentials from platform settings
-    const razorpayKey = await db.platformSetting.findUnique({ where: { key: 'razorpay_key_id' } })
-    const razorpaySecret = await db.platformSetting.findUnique({ where: { key: 'razorpay_key_secret' } })
+    // Get Razorpay credentials — prefer env vars, fall back to DB settings
+    const razorpayKeyId = process.env.RAZORPAY_KEY_ID || (await db.platformSetting.findUnique({ where: { key: 'razorpay_key_id' } }))?.value
+    const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || (await db.platformSetting.findUnique({ where: { key: 'razorpay_key_secret' } }))?.value
 
-    if (!razorpayKey?.value || !razorpaySecret?.value) {
+    if (!razorpayKeyId || !razorpayKeySecret) {
       return NextResponse.json({ error: 'Payment gateway not configured. Please contact admin.' }, { status: 503 })
     }
 
@@ -48,8 +48,8 @@ export async function POST(request: Request) {
     try {
       const Razorpay = require('razorpay')
       const razorpay = new Razorpay({
-        key_id: razorpayKey.value,
-        key_secret: razorpaySecret.value,
+        key_id: razorpayKeyId,
+        key_secret: razorpayKeySecret,
       })
 
       const order = await razorpay.orders.create({
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         orderId: order.id,
         amount: order.amount,
         currency: order.currency,
-        razorpayKey: razorpayKey.value,
+        razorpayKey: razorpayKeyId,
       })
     } catch (rzpError: any) {
       console.error('Razorpay order creation error:', rzpError)

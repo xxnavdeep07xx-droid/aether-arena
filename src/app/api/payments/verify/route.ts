@@ -17,15 +17,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing payment verification data' }, { status: 400 })
     }
 
-    // Get Razorpay secret from settings
-    const razorpaySecret = await db.platformSetting.findUnique({ where: { key: 'razorpay_key_secret' } })
-    if (!razorpaySecret?.value) {
+    // Get Razorpay secret — prefer env vars, fall back to DB settings
+    const razorpaySecret = process.env.RAZORPAY_KEY_SECRET || (await db.platformSetting.findUnique({ where: { key: 'razorpay_key_secret' } }))?.value
+    if (!razorpaySecret) {
       return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 503 })
     }
 
     // Verify signature
     const expectedSignature = crypto
-      .createHmac('sha256', razorpaySecret.value)
+      .createHmac('sha256', razorpaySecret)
       .update(`${razorpayOrderId}|${razorpayPaymentId}`)
       .digest('hex')
 
