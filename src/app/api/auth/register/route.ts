@@ -7,7 +7,7 @@ import { authLimiter } from '@/lib/rate-limit';
 export async function POST(request: Request) {
   // Rate limiting
   const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-  const { success: rateLimitOk } = authLimiter(`register:${clientIp}`);
+  const { success: rateLimitOk } = await authLimiter(`register:${clientIp}`);
   if (!rateLimitOk) {
     return NextResponse.json(
       { error: 'Too many registration attempts. Please try again later.' },
