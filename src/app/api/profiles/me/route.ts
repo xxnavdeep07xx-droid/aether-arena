@@ -73,6 +73,17 @@ export async function PUT(request: Request) {
     const body = await request.json()
     const { displayName, bio, avatarUrl } = body
 
+    // Input length validation to prevent abuse
+    if (displayName !== undefined && displayName.length > 50) {
+      return NextResponse.json({ error: 'Display name must be 50 characters or less' }, { status: 400 })
+    }
+    if (bio !== undefined && bio.length > 500) {
+      return NextResponse.json({ error: 'Bio must be 500 characters or less' }, { status: 400 })
+    }
+    if (avatarUrl !== undefined && avatarUrl.length > 2000) {
+      return NextResponse.json({ error: 'Avatar URL is too long' }, { status: 400 })
+    }
+
     // Build update data
     const updateData: Record<string, unknown> = {}
     if (displayName !== undefined) updateData.displayName = displayName

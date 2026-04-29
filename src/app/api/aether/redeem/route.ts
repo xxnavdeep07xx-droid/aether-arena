@@ -22,6 +22,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'UPI ID is required' }, { status: 400 })
     }
 
+    // Validate UPI ID format: name@bank (e.g., user@paytm, name@oksbi)
+    const upiRegex = /^[a-zA-Z0-9._-]{1,100}@[a-zA-Z]{2,}$/
+    if (!upiRegex.test(upiId.trim())) {
+      return NextResponse.json({ error: 'Invalid UPI ID format. Use format: name@bank' }, { status: 400 })
+    }
+
     const result = await db.$transaction(async (tx) => {
       // Get balance
       const balance = await tx.aetherBalance.findUnique({

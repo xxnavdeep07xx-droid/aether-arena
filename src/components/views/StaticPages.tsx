@@ -13,7 +13,7 @@ function LegalPageWrapper({ title, children }: { title: string; children: React.
       <div className="bg-arena-card border border-arena-border rounded-2xl p-6 md:p-8 prose-sm text-arena-text-secondary leading-relaxed space-y-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-arena-text-primary [&_h2]:mt-8 [&_h2]:mb-3 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-arena-text-primary [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:text-sm [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1.5 [&_li]:text-sm [&_strong]:text-arena-text-primary [&_strong]:font-medium [&_a]:text-arena-accent [&_a]:hover:underline">
         {children}
       </div>
-      <p className="text-xs text-arena-text-muted mt-4 text-center">Last updated: April 2025</p>
+      <p className="text-xs text-arena-text-muted mt-4 text-center">Last updated: April 2026</p>
     </div>
   );
 }

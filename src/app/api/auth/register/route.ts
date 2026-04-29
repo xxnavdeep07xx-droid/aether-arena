@@ -52,11 +52,23 @@ export async function POST(request: Request) {
       { status: 400 }
     )
   }
+  if (email.length > 254) {
+    return NextResponse.json(
+      { error: 'Email is too long' },
+      { status: 400 }
+    )
+  }
 
   // Validate password
   if (password.length < 8) {
     return NextResponse.json(
       { error: 'Password must be at least 8 characters' },
+      { status: 400 }
+    )
+  }
+  if (password.length > 128) {
+    return NextResponse.json(
+      { error: 'Password must be 128 characters or less' },
       { status: 400 }
     )
   }
@@ -72,6 +84,14 @@ export async function POST(request: Request) {
   if (username.length < 3 || username.length > 20) {
     return NextResponse.json(
       { error: 'Username must be between 3 and 20 characters' },
+      { status: 400 }
+    )
+  }
+
+  // Validate displayName length if provided
+  if (displayName && displayName.length > 50) {
+    return NextResponse.json(
+      { error: 'Display name must be 50 characters or less' },
       { status: 400 }
     )
   }
@@ -305,7 +325,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: `Registration failed: ${msg}` },
+      { error: 'Registration failed. Please try again later.' },
       { status: 500 }
     )
   }

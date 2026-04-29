@@ -61,4 +61,13 @@ server.log
 # Uploads
 /upload/
 
+# Local DB
+db/custom.db
+
+# Worklog
+worklog.md
+
+# Download artifacts
+download/
+
 

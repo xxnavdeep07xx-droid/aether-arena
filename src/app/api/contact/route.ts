@@ -17,6 +17,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name, email, and message are required' }, { status: 400 });
     }
 
+    // Input length limits to prevent abuse
+    if (name.length > 100 || email.length > 254 || message.length > 5000 || (subject && subject.length > 200)) {
+      return NextResponse.json({ error: 'Input too long. Please shorten your message.' }, { status: 400 });
+    }
+
     // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
