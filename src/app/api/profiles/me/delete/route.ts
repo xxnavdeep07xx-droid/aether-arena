@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { strictLimiter } from '@/lib/rate-limit'
 
 // POST /api/profiles/me/delete — Schedule account deletion (30-day window)
 export async function POST(request: Request) {
+  // Rate limiting — strict because this is a destructive action
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await strictLimiter(`delete:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Too many deletion attempts. Please try again later.' }, { status: 429 });
+  }
+
   try {
     const auth = await requireAuth(request)
     const userId = auth.userId

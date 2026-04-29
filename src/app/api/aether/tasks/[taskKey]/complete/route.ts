@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, AuthError } from '@/lib/auth'
+import { apiLimiter } from '@/lib/rate-limit'
 
 // Helper: get today's date in IST (just the date part, no time)
 function getTodayISTDate(): Date {
@@ -16,6 +17,13 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ taskKey: string }> }
 ) {
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await apiLimiter(`task:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
+
   try {
     const { userId } = await requireAuth(request)
     const { taskKey } = await params

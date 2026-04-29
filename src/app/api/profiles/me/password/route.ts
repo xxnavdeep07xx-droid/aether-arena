@@ -2,9 +2,20 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
+import { authLimiter } from '@/lib/rate-limit'
 
 // PUT /api/profiles/me/password — Change password for email/password users
 export async function PUT(request: Request) {
+  // Rate limiting — same as auth routes to prevent brute-force password changes
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await authLimiter(`password:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json(
+      { error: 'Too many password change attempts. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   try {
     const auth = await requireAuth(request)
 

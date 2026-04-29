@@ -43,6 +43,19 @@ export function rateLimit(config: RateLimitConfig = { windowMs: 60 * 1000, maxRe
 }
 
 // ─── Vercel KV Implementation ─────────────────────────────────
+// Uses a Lua script for atomic fixed-window rate limiting.
+// The expiry is only set on the first request (count=1), so the
+// window doesn't slide on subsequent requests. This prevents
+// attackers from bypassing the limit by pacing requests.
+
+const RATE_LIMIT_SCRIPT = `
+  local count = redis.call('INCR', KEYS[1])
+  if count == 1 then
+    redis.call('EXPIRE', KEYS[1], ARGV[1])
+  end
+  local ttl = redis.call('TTL', KEYS[1])
+  return { count, ttl }
+`
 
 async function kvRateLimit(
   identifier: string,
@@ -51,21 +64,18 @@ async function kvRateLimit(
   const key = `ratelimit:${identifier}`
   const windowSeconds = Math.ceil(config.windowMs / 1000)
   const now = Date.now()
-  const resetTime = now + config.windowMs
 
   try {
-    // Use a Redis INCR + EXPIRE pattern (sliding window)
-    const multi = kv.multi()
-    multi.incr(key)
-    multi.expire(key, windowSeconds)
+    // Atomic Lua script: INCR + conditional EXPIRE + get TTL
+    const result = await kv.eval(RATE_LIMIT_SCRIPT, [key], [windowSeconds]) as [number, number]
+    const count = result[0]
+    const ttl = result[1]
 
-    const results = await multi.exec() as [number, number | null]
-    const count = results[0]
-
-    if (count === 1) {
-      // First request in this window — TTL was just set
-      return { success: true, remaining: config.maxRequests - 1, resetTime }
-    }
+    // Compute actual reset time from TTL
+    // TTL is in seconds; -1 = no expiry (shouldn't happen), -2 = key doesn't exist
+    const resetTime = ttl > 0
+      ? now + (ttl * 1000)
+      : now + config.windowMs // fallback
 
     if (count > config.maxRequests) {
       return { success: false, remaining: 0, resetTime }

@@ -2,8 +2,16 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import crypto from 'crypto'
+import { strictLimiter } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
+  // Rate limiting — strict because payment verification is sensitive
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await strictLimiter(`verify:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Too many verification attempts. Please try again later.' }, { status: 429 });
+  }
+
   try {
     const auth = await requireAuth(request)
     if (auth.profile.isBanned) {

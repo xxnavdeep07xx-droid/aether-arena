@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
+import { authLimiter } from '@/lib/rate-limit'
 
 function getDiscordEnv() {
   const clientId = process.env.DISCORD_CLIENT_ID;
@@ -46,6 +47,14 @@ async function getDiscordUser(accessToken: string) {
 }
 
 export async function GET(request: Request) {
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await authLimiter(`discord:${clientIp}`);
+  if (!rateLimitOk) {
+    const url = new URL(request.url);
+    return NextResponse.redirect(`${url.origin}/?error=rate_limited`);
+  }
+
   try {
     const { clientId, clientSecret, redirectUri } = getDiscordEnv();
 

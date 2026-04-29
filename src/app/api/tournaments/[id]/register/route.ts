@@ -1,11 +1,22 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { apiLimiter } from '@/lib/rate-limit'
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await apiLimiter(`register:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json(
+      { error: 'Too many registration attempts. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   try {
     const auth = await requireAuth(request)
     const { id: tournamentId } = await params

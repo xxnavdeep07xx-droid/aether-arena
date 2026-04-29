@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, AuthError } from '@/lib/auth'
+import { strictLimiter } from '@/lib/rate-limit'
 
 const MIN_REDEEM_AMOUNT = 500
 const AETHER_TO_INR_RATE = 10 / 100 // 100 Aether = ₹10
 
 export async function POST(request: Request) {
+  // Rate limiting — strict because redemptions involve money
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await strictLimiter(`redeem:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Too many redemption attempts. Please try again later.' }, { status: 429 });
+  }
+
   try {
     const { userId } = await requireAuth(request)
 

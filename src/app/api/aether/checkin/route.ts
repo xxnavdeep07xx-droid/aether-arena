@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, AuthError } from '@/lib/auth'
+import { strictLimiter } from '@/lib/rate-limit'
 
 // Helper: get today's date in IST (midnight IST)
 function getTodayIST(): Date {
@@ -29,6 +30,13 @@ function isYesterday(date: Date, today: Date): boolean {
 }
 
 export async function POST(request: Request) {
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await strictLimiter(`checkin:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Too many check-in attempts. Please try again later.' }, { status: 429 });
+  }
+
   try {
     const { userId } = await requireAuth(request)
     const today = getTodayIST()
