@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
-import { authLimiter } from '@/lib/rate-limit';
+import { authLimiter } from '@/lib/rate-limit'
+import { sendVerificationEmail } from '@/lib/email'
+import crypto from 'crypto'
 
 export async function POST(request: Request) {
   // Rate limiting
@@ -180,12 +182,15 @@ export async function POST(request: Request) {
               password: hashedPassword,
               phone: cleanPhone,
               phoneVerified: false,
+              emailVerified: false,
+              emailVerificationToken: crypto.randomBytes(32).toString('hex'),
+              emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
             },
           },
         },
         include: {
           credentials: {
-            select: { email: true, phone: true },
+            select: { email: true, phone: true, emailVerificationToken: true },
           },
         },
       })
@@ -281,6 +286,17 @@ export async function POST(request: Request) {
     // Create session
     const token = await createSession(profile.id)
 
+    // Send verification email (non-blocking — don't fail registration if email fails)
+    if (profile.credentials?.emailVerificationToken) {
+      sendVerificationEmail(
+        profile.credentials.email,
+        profile.username,
+        profile.credentials.emailVerificationToken
+      ).catch((err) => {
+        console.error('[Register] Failed to send verification email:', err)
+      })
+    }
+
     // Build response
     const response = NextResponse.json({
       user: {
@@ -291,6 +307,7 @@ export async function POST(request: Request) {
         email: profile.credentials?.email,
         phone: profile.credentials?.phone || profile.phone,
         isAdmin: profile.isAdmin,
+        emailVerified: false,
       },
     })
 

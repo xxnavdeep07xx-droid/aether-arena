@@ -371,18 +371,22 @@ model PlatformSetting {
 // AccountCredential (simple email/password)
 // ============================================
 model AccountCredential {
-  id         String  @id @default(cuid())
-  userId     String  @unique
-  email      String  @unique
-  password   String
-  phone      String?  @unique
-  phoneVerified Boolean @default(false)
-  createdAt  DateTime @default(now())
+  id                          String    @id @default(cuid())
+  userId                      String    @unique
+  email                       String    @unique
+  password                    String
+  phone                       String?   @unique
+  phoneVerified               Boolean   @default(false)
+  emailVerified               Boolean   @default(false)
+  emailVerificationToken      String?   @unique
+  emailVerificationExpires    DateTime?
+  createdAt                   DateTime  @default(now())
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email])
   @@index([phone])
+  @@index([emailVerificationToken])
 }
 
 // ============================================

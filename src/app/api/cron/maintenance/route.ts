@@ -77,6 +77,24 @@ export async function GET(request: Request) {
     results.push(`OTP cleanup failed: ${e instanceof Error ? e.message : 'unknown'}`)
   }
 
+  // ── 4. Clean expired email verification tokens ─────────────
+  try {
+    const expiredTokens = await db.accountCredential.updateMany({
+      where: {
+        emailVerificationToken: { not: null },
+        emailVerificationExpires: { lt: new Date() },
+        emailVerified: false,
+      },
+      data: {
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+    })
+    results.push(`Expired email verification tokens cleaned: ${expiredTokens.count}`)
+  } catch (e) {
+    results.push(`Email verification cleanup failed: ${e instanceof Error ? e.message : 'unknown'}`)
+  }
+
   console.log('[Cron] Maintenance results:', results)
   return NextResponse.json({ success: true, results })
 }

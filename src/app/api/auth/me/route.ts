@@ -31,7 +31,7 @@ export async function GET() {
         totalPrizeWon: true,
         scheduledDeletionAt: true,
         credentials: {
-          select: { email: true, phone: true },
+          select: { email: true, phone: true, emailVerified: true },
         },
       },
     })
@@ -58,6 +58,7 @@ export async function GET() {
         ...profile,
         email: profile.credentials?.email || null,
         phone: profile.phone || profile.credentials?.phone || null,
+        emailVerified: profile.credentials?.emailVerified ?? false,
         credentials: undefined,
       },
     })

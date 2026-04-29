@@ -66,6 +66,7 @@
     "react-loading-skeleton": "^3.5.0",
     "react-resizable-panels": "^4.10.0",
     "recharts": "^2.15.4",
+    "resend": "^6.12.2",
     "sharp": "^0.34.3",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",

@@ -120,6 +120,7 @@ export async function POST(request: Request) {
         email: cred.email,
         phone: cred.user.phone || cred.phone,
         isAdmin: cred.user.isAdmin,
+        emailVerified: cred.emailVerified ?? false,
       },
     })
 
