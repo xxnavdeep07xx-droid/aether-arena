@@ -47,6 +47,7 @@ model Account {
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 // ============================================
@@ -159,8 +160,8 @@ model Tournament {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  game           Game                   @relation(fields: [gameId], references: [id])
-  createdBy      Profile?               @relation("TournamentCreator", fields: [createdById], references: [id])
+  game           Game                   @relation(fields: [gameId], references: [id], onDelete: Restrict)
+  createdBy      Profile?               @relation("TournamentCreator", fields: [createdById], references: [id], onDelete: SetNull)
   registrations  TournamentRegistration[]
   matches        Match[]
   streamSchedules StreamSchedule[]
@@ -190,6 +191,7 @@ model TournamentRegistration {
   player     Profile    @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, playerId])
+  @@index([tournamentId])
   @@index([playerId])
   @@index([paymentStatus])
 }
@@ -297,10 +299,11 @@ model Announcement {
   createdAt   DateTime  @default(now())
   expiresAt   DateTime?
 
-  createdBy Profile @relation(fields: [createdById], references: [id])
+  createdBy Profile @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([createdAt])
+  @@index([createdById])
 }
 
 // ============================================
@@ -324,11 +327,12 @@ model StreamSchedule {
   createdAt      DateTime  @default(now())
 
   tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  createdBy  Profile     @relation(fields: [createdById], references: [id])
+  createdBy  Profile     @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([scheduledStart])
   @@index([isFeatured])
+  @@index([createdById])
 }
 
 // ============================================
@@ -364,7 +368,7 @@ model PlatformSetting {
   updatedAt  DateTime @updatedAt
   updatedById String?
 
-  updatedBy Profile? @relation(fields: [updatedById], references: [id])
+  updatedBy Profile? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
 }
 
 // ============================================
@@ -473,9 +477,10 @@ model AetherTaskProgress {
   timesCompleted Int       @default(0) @map("times_completed")
   createdAt      DateTime  @default(now()) @map("created_at")
   user           Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task           AetherTask @relation(fields: [taskKey], references: [taskKey])
+  task           AetherTask @relation(fields: [taskKey], references: [taskKey], onDelete: Cascade)
 
   @@unique([userId, taskKey, resetDate])
+  @@index([userId])
   @@map("AetherTaskProgress")
 }
 

@@ -6,26 +6,39 @@ export async function GET(request: Request) {
   try {
     await requireAdmin(request)
 
-    const streams = await db.streamSchedule.findMany({
-      orderBy: { scheduledStart: 'desc' },
-      include: {
-        tournament: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-        createdBy: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-          },
-        },
-      },
-    })
+    const { searchParams } = new URL(request.url)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 100)
+    const skip = (page - 1) * limit
 
-    return NextResponse.json({ streams })
+    const [streams, total] = await Promise.all([
+      db.streamSchedule.findMany({
+        orderBy: { scheduledStart: 'desc' },
+        include: {
+          tournament: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+      }),
+      db.streamSchedule.count(),
+    ])
+
+    return NextResponse.json({
+      streams,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error) {
       const authError = error as { statusCode: number; message: string }

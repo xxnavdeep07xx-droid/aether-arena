@@ -63,15 +63,25 @@ export async function GET(request: Request) {
       _count: true,
     });
 
-    // ===== REGISTRATIONS BY GAME =====
-    const registrationsByGame = await db.tournament.findMany({
-      select: { game: { select: { name: true } }, registrations: { select: { id: true } } },
+    // ===== REGISTRATIONS BY GAME (using aggregation — avoids fetching all records) =====
+    const registrationsByGameRaw = await db.tournamentRegistration.groupBy({
+      by: ['tournamentId'],
+      _count: true,
+      where: { paymentStatus: 'verified' },
     });
 
+    // Map tournamentId → game name, then aggregate by game
+    const tournamentIds = registrationsByGameRaw.map(r => r.tournamentId);
+    const tournamentGames = await db.tournament.findMany({
+      where: { id: { in: tournamentIds } },
+      select: { id: true, game: { select: { name: true } } },
+    });
+    const tournamentGameMap = new Map(tournamentGames.map(t => [t.id, t.game?.name || 'Unknown']));
+
     const gameRegCounts: Record<string, number> = {};
-    for (const t of registrationsByGame) {
-      const gameName = t.game?.name || 'Unknown';
-      gameRegCounts[gameName] = (gameRegCounts[gameName] || 0) + t.registrations.length;
+    for (const reg of registrationsByGameRaw) {
+      const gameName = tournamentGameMap.get(reg.tournamentId) || 'Unknown';
+      gameRegCounts[gameName] = (gameRegCounts[gameName] || 0) + reg._count;
     }
 
     // ===== TOP PLAYERS =====
