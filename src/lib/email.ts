@@ -1,21 +1,41 @@
-// Email sending utility using Resend
-// https://resend.com — 100 free emails/day on free tier
+// Email sending utility — uses Gmail SMTP (nodemailer)
+// 500 free emails/day via Gmail — no custom domain needed!
+//
+// Gmail setup:
+// 1. Go to https://myaccount.google.com/security
+// 2. Enable 2-Step Verification
+// 3. Go to https://myaccount.google.com/apppasswords
+// 4. Create an App Password for "Mail" → use that as GMAIL_APP_PASSWORD
 
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 
-let resendInstance: Resend | null = null
+// ─── Gmail SMTP Transporter (lazy singleton) ──────────────────
 
-function getResend(): Resend | null {
-  if (resendInstance) return resendInstance
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) return null
-  resendInstance = new Resend(apiKey)
-  return resendInstance
+let gmailTransporter: nodemailer.Transporter | null = null
+
+function getGmailTransporter(): nodemailer.Transporter | null {
+  if (gmailTransporter) return gmailTransporter
+  if (typeof window !== 'undefined') return null
+
+  const gmailUser = process.env.GMAIL_USER
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD
+
+  if (!gmailUser || !gmailAppPassword) return null
+
+  gmailTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: gmailUser,
+      pass: gmailAppPassword,
+    },
+  })
+
+  return gmailTransporter
 }
 
 // ─── Email From Address ───────────────────────────────────────
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'Aether Arena <onboarding@resend.dev>'
+const FROM_EMAIL = process.env.EMAIL_FROM || 'Aether Arena <aetherarena.999@gmail.com>'
 
 // ─── Send Email Verification ──────────────────────────────────
 
@@ -24,9 +44,10 @@ export async function sendVerificationEmail(
   username: string,
   verificationToken: string
 ): Promise<{ success: boolean; error?: string }> {
-  const resend = getResend()
-  if (!resend) {
-    console.warn('[Email] RESEND_API_KEY not set — skipping verification email')
+  const transporter = getGmailTransporter()
+
+  if (!transporter) {
+    console.warn('[Email] GMAIL_USER / GMAIL_APP_PASSWORD not set — skipping verification email')
     return { success: false, error: 'Email service not configured' }
   }
 
@@ -34,7 +55,7 @@ export async function sendVerificationEmail(
   const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`
 
   try {
-    const { error } = await resend.emails.send({
+    await transporter.sendMail({
       from: FROM_EMAIL,
       to: toEmail,
       subject: 'Verify your email — Aether Arena',
@@ -50,14 +71,12 @@ export async function sendVerificationEmail(
             <tr>
               <td align="center" style="padding: 40px 20px;">
                 <table role="presentation" width="500" cellpadding="0" cellspacing="0" style="background-color: #1a1a3e; border-radius: 16px; border: 1px solid #2a2a5a; overflow: hidden;">
-                  <!-- Header -->
                   <tr>
                     <td align="center" style="padding: 40px 40px 20px 40px;">
                       <h1 style="margin: 0; color: #a78bfa; font-size: 28px; font-weight: 700;">Aether Arena</h1>
                       <p style="margin: 8px 0 0 0; color: #8888aa; font-size: 14px;">Your Esports Battlefield</p>
                     </td>
                   </tr>
-                  <!-- Body -->
                   <tr>
                     <td style="padding: 20px 40px 30px 40px;">
                       <p style="margin: 0 0 16px 0; color: #e0e0ff; font-size: 16px;">
@@ -66,7 +85,6 @@ export async function sendVerificationEmail(
                       <p style="margin: 0 0 24px 0; color: #b0b0cc; font-size: 15px; line-height: 1.6;">
                         Welcome to Aether Arena! To get started, please verify your email address by clicking the button below. This link expires in <strong style="color: #e0e0ff;">24 hours</strong>.
                       </p>
-                      <!-- CTA Button -->
                       <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                         <tr>
                           <td align="center" style="border-radius: 12px; background: linear-gradient(135deg, #7c3aed, #a78bfa);">
@@ -76,14 +94,12 @@ export async function sendVerificationEmail(
                           </td>
                         </tr>
                       </table>
-                      <!-- Fallback link -->
                       <p style="margin: 24px 0 0 0; color: #8888aa; font-size: 13px; line-height: 1.5;">
                         If the button doesn't work, copy and paste this link into your browser:<br>
                         <a href="${verificationUrl}" style="color: #a78bfa; word-break: break-all;">${verificationUrl}</a>
                       </p>
                     </td>
                   </tr>
-                  <!-- Footer -->
                   <tr>
                     <td style="padding: 20px 40px 30px 40px; border-top: 1px solid #2a2a5a;">
                       <p style="margin: 0; color: #666688; font-size: 12px; text-align: center;">
@@ -100,24 +116,9 @@ export async function sendVerificationEmail(
       `,
     })
 
-    if (error) {
-      console.error('[Email] Resend error:', error)
-      return { success: false, error: error.message }
-    }
-
     return { success: true }
   } catch (error) {
     console.error('[Email] Failed to send verification email:', error)
     return { success: false, error: 'Failed to send email' }
   }
-}
-
-// ─── Send Resend Verification Email (for already registered users) ──
-
-export async function resendVerificationEmail(
-  toEmail: string,
-  username: string,
-  verificationToken: string
-): Promise<{ success: boolean; error?: string }> {
-  return sendVerificationEmail(toEmail, username, verificationToken)
 }
