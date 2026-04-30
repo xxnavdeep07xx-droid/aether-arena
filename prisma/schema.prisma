@@ -436,6 +436,8 @@ model AetherTransaction {
   user         Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
   balance      AetherBalance @relation(fields: [userId], references: [userId], map: "AetherTransaction_balance_fkey")
 
+  @@index([userId])
+  @@index([userId, createdAt])
   @@map("AetherTransaction")
 }
 
@@ -498,7 +500,7 @@ model RedemptionRequest {
   id           String    @id @default(uuid())
   userId       String    @map("user_id")
   amountAether Int       @map("amount_aether")
-  amountInr    Float     @map("amount_inr")
+  amountInr    Int       @map("amount_inr")  // stored in paise (₹1 = 100)
   upiId        String    @map("upi_id")
   status       String    @default("pending")
   adminNote    String?   @map("admin_note")
@@ -507,6 +509,8 @@ model RedemptionRequest {
   user         Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
   balance      AetherBalance @relation(fields: [userId], references: [userId], map: "RedemptionRequest_balance_fkey")
 
+  @@index([userId])
+  @@index([status])
   @@map("RedemptionRequest")
 }
 

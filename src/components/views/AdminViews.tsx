@@ -19,6 +19,7 @@ import {
   PieChart, Pie, Cell, CartesianGrid, Area, AreaChart
 } from 'recharts';
 import { ThemedSkeleton } from './Skeletons';
+import { apiFetch } from '@/lib/api';
 import Image from 'next/image';
 
 // ==================== REUSABLE CONFIRM DIALOG ====================
@@ -65,7 +66,7 @@ export function AdminDashboardView() {
 
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
-    queryFn: () => fetch('/api/admin/stats').then(r => r.json()),
+    queryFn: () => apiFetch<any>('/api/admin/stats'),
   });
 
   if (!user?.isAdmin) return <div className="text-center py-20 text-arena-text-muted">Access Denied</div>;
@@ -124,13 +125,12 @@ export function AdminTournamentsView() {
 
   const { data: tournaments, refetch } = useQuery({
     queryKey: ['admin-tournaments', statusFilter],
-    queryFn: () => fetch(`/api/admin/tournaments${statusFilter ? `?status=${statusFilter}` : ''}`).then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>(`/api/admin/tournaments${statusFilter ? `?status=${statusFilter}` : ''}`).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
   });
 
   const deleteTournament = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/tournaments/${id}`, { method: 'DELETE' });
-      if (!res.ok) { const data = await res.json().catch(() => ({})); toast.error(data.error || 'Failed to delete tournament'); return; }
+      await apiFetch(`/api/admin/tournaments/${id}`, { method: 'DELETE' });
       refetch();
       toast.success('Tournament deleted');
     } catch { toast.error('Failed to delete tournament'); }
@@ -180,7 +180,7 @@ export function AdminTournamentsView() {
 export function AdminTournamentCreateView() {
   const { navigate, viewParams } = useAppStore();
   const editId = viewParams?.id;
-  const { data: games } = useQuery({ queryKey: ['admin-games'], queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []) });
+  const { data: games } = useQuery({ queryKey: ['admin-games'], queryFn: () => apiFetch<any>('/api/games').then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []) });
 
   const [form, setForm] = useState({ title: '', description: '', gameId: '', format: 'solo', entryFee: '0', prizePool: '0', maxPlayers: '100', startTime: '', customRules: '', isFeatured: false, roomId: '', roomPassword: '', map: '', matchMode: '', bannerImageUrl: '', status: 'upcoming' });
   const [saving, setSaving] = useState(false);
@@ -188,7 +188,7 @@ export function AdminTournamentCreateView() {
   // Fetch existing tournament data for editing
   const { data: existingTournament, isLoading: loadingExisting } = useQuery({
     queryKey: ['admin-tournament-edit', editId],
-    queryFn: () => fetch(`/api/admin/tournaments/${editId}`).then(r => r.json()).then(d => d.tournament || d),
+    queryFn: () => apiFetch<any>(`/api/admin/tournaments/${editId}`).then(d => d.tournament || d),
     enabled: !!editId,
   });
 
@@ -301,7 +301,7 @@ export function AdminRegistrationsView() {
 
   const { data: registrations, refetch } = useQuery({
     queryKey: ['admin-registrations', filter],
-    queryFn: () => fetch(`/api/admin/registrations?status=${filter}`).then(r => r.json()).then(d => Array.isArray(d.registrations) ? d.registrations : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>(`/api/admin/registrations?status=${filter}`).then(d => Array.isArray(d.registrations) ? d.registrations : Array.isArray(d) ? d : []),
   });
 
   const handleVerify = async (id: string) => {
@@ -406,7 +406,7 @@ export function AdminRegistrationsView() {
 export function AdminGamesView() {
   const { data: games, refetch } = useQuery({
     queryKey: ['admin-games-list'],
-    queryFn: () => fetch('/api/admin/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/admin/games').then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -511,7 +511,7 @@ export function AdminGamesView() {
 export function AdminStreamsView() {
   const { data: streams, refetch } = useQuery({
     queryKey: ['admin-streams-list'],
-    queryFn: () => fetch('/api/admin/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/admin/streams').then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
   });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -614,7 +614,7 @@ export function AdminStreamsView() {
 export function AdminAffiliatesView() {
   const { data: affiliates, refetch } = useQuery({
     queryKey: ['admin-affiliates-list'],
-    queryFn: () => fetch('/api/admin/affiliates').then(r => r.json()).then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/admin/affiliates').then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
   });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -735,7 +735,7 @@ export function AdminSettingsView() {
 
   const { data: fetchedSettings, isLoading } = useQuery({
     queryKey: ['admin-platform-settings'],
-    queryFn: () => fetch('/api/admin/settings').then(r => r.json()).then(d => d && typeof d === 'object' && !Array.isArray(d) && !d.error ? (d.settings || d) : {}),
+    queryFn: () => apiFetch<any>('/api/admin/settings').then(d => d && typeof d === 'object' && !Array.isArray(d) && !d.error ? (d.settings || d) : {}),
   });
 
   const [localSettings, setLocalSettings] = useState<Record<string, string> | null>(null);
@@ -774,7 +774,7 @@ export function AdminSettingsView() {
       newSettings.razorpay_key_id = rzpKeyId.trim();
       newSettings.razorpay_key_secret = rzpKeySecret.trim();
       newSettings.razorpay_webhook_secret = rzpWebhookSecret.trim();
-      await fetch('/api/admin/settings', {
+      await apiFetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSettings),
@@ -789,7 +789,7 @@ export function AdminSettingsView() {
   const handleGenericSave = async () => {
     setSaving(true);
     try {
-      await fetch('/api/admin/settings', {
+      await apiFetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
@@ -890,7 +890,7 @@ export function AdminSettingsView() {
                 onClick={() => {
                   const newVal = settings.maintenance_mode === 'true' ? 'false' : 'true';
                   setLocalSettings({ ...settings, maintenance_mode: newVal });
-                  fetch('/api/admin/settings', {
+                  apiFetch('/api/admin/settings', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ...settings, maintenance_mode: newVal }),
@@ -1024,7 +1024,7 @@ export function AdminSettingsView() {
                 onClick={() => {
                   const newVal = settings.tournament_auto_start === 'true' ? 'false' : 'true';
                   setLocalSettings({ ...settings, tournament_auto_start: newVal });
-                  fetch('/api/admin/settings', {
+                  apiFetch('/api/admin/settings', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ...settings, tournament_auto_start: newVal }),
@@ -1095,7 +1095,7 @@ export function AdminSettingsView() {
                 onClick={() => {
                   const newVal = settings.referral_enabled === 'true' ? 'false' : 'true';
                   setLocalSettings({ ...settings, referral_enabled: newVal });
-                  fetch('/api/admin/settings', {
+                  apiFetch('/api/admin/settings', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ...settings, referral_enabled: newVal }),
@@ -1150,7 +1150,7 @@ export function AdminSettingsView() {
                     onClick={() => {
                       const newVal = settings[item.key] === 'true' ? 'false' : 'true';
                       setLocalSettings({ ...settings, [item.key]: newVal });
-                      fetch('/api/admin/settings', {
+                      apiFetch('/api/admin/settings', {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ ...settings, [item.key]: newVal }),
@@ -1176,7 +1176,7 @@ export function AdminSettingsView() {
 export function AdminTopupView() {
   const { data: packs, refetch } = useQuery({
     queryKey: ['admin-topup-packs'],
-    queryFn: () => fetch('/api/admin/topup-packs').then(r => r.json()).then(d => Array.isArray(d.packs) ? d.packs : []),
+    queryFn: () => apiFetch<any>('/api/admin/topup-packs').then(d => Array.isArray(d.packs) ? d.packs : []),
   });
   const [showCreate, setShowCreate] = useState(false);
   const [editingPack, setEditingPack] = useState<any>(null);
@@ -1194,10 +1194,10 @@ export function AdminTopupView() {
     setSaving(true);
     try {
       if (editingPack) {
-        await fetch(`/api/admin/topup-packs/${editingPack.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        await apiFetch(`/api/admin/topup-packs/${editingPack.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
         toast.success('Pack updated!');
       } else {
-        await fetch('/api/admin/topup-packs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        await apiFetch('/api/admin/topup-packs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
         toast.success('Pack created!');
       }
       setShowCreate(false);
@@ -1208,7 +1208,7 @@ export function AdminTopupView() {
 
   const deletePack = async (id: string) => {
     try {
-      await fetch(`/api/admin/topup-packs/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/admin/topup-packs/${id}`, { method: 'DELETE' });
       toast.success('Pack deleted'); refetch();
     } catch { toast.error('Failed to delete pack'); }
   };
@@ -1317,7 +1317,7 @@ export function AdminTopupView() {
 export function AdminAnalyticsView() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-analytics'],
-    queryFn: () => fetch('/api/admin/analytics').then(r => r.json()),
+    queryFn: () => apiFetch<any>('/api/admin/analytics'),
     refetchInterval: 120000,
   });
 
@@ -1535,7 +1535,7 @@ export function AdminRedemptionsView() {
 
   const { data, refetch } = useQuery({
     queryKey: ['admin-redemptions', statusFilter],
-    queryFn: () => fetch(`/api/admin/redemptions${statusFilter ? `?status=${statusFilter}` : ''}`).then(r => r.json()),
+    queryFn: () => apiFetch<any>(`/api/admin/redemptions${statusFilter ? `?status=${statusFilter}` : ''}`),
     enabled: user?.isAdmin,
   });
 
@@ -1608,7 +1608,7 @@ export function AdminRedemptionsView() {
                   </td>
                   <td className="py-3 px-3">
                     <div className="font-semibold">{r.amountAether} ◆</div>
-                    <div className="text-xs text-arena-text-muted">₹{r.amountInr}</div>
+                    <div className="text-xs text-arena-text-muted">₹{(r.amountInr / 100).toFixed(0)}</div>
                   </td>
                   <td className="py-3 px-3 text-xs text-arena-text-secondary">{r.upiId || '—'}</td>
                   <td className="py-3 px-3">
@@ -1677,7 +1677,7 @@ export function AdminAetherManageView() {
 
   const { data: stats } = useQuery({
     queryKey: ['admin-aether-stats'],
-    queryFn: () => fetch('/api/admin/stats').then(r => r.json()),
+    queryFn: () => apiFetch<any>('/api/admin/stats'),
     enabled: user?.isAdmin,
   });
 

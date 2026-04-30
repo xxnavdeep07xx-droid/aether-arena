@@ -19,6 +19,7 @@ import Image from 'next/image';
 
 // Keep LandingView static for instant load
 import { LandingView } from '@/components/views/LandingView';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Lazy load ALL other views
 const HomeView = lazy(() => import('@/components/views/HomeView').then(m => ({ default: m.HomeView })));
@@ -91,7 +92,12 @@ function useUnreadCount() {
   const { isAuthenticated } = useAuthStore();
   const { data: unreadCount } = useQuery({
     queryKey: ['unread-notifications'],
-    queryFn: () => fetch('/api/notifications?limit=1').then(r => r.json()).then(d => d.unreadCount || 0),
+    queryFn: async () => {
+      const r = await fetch('/api/notifications?limit=1');
+      if (!r.ok) throw new Error(`API error: ${r.status}`);
+      const d = await r.json();
+      return d.unreadCount || 0;
+    },
     refetchInterval: 30000,
     enabled: isAuthenticated,
   });
@@ -161,42 +167,42 @@ function ViewRenderer() {
 
   const viewMap: Record<ViewName, React.ReactNode> = {
     'landing': <LandingView />,
-    'home': <Suspense fallback={<HomeSkeleton />}><HomeView /></Suspense>,
-    'tournaments': <Suspense fallback={<TournamentsSkeleton />}><TournamentsView /></Suspense>,
-    'tournament-detail': <Suspense fallback={<TournamentDetailSkeleton />}><TournamentDetailView /></Suspense>,
-    'leaderboard': <Suspense fallback={<LeaderboardSkeleton />}><LeaderboardView /></Suspense>,
-    'streams': <Suspense fallback={<StreamsSkeleton />}><StreamsView /></Suspense>,
-    'profile': <Suspense fallback={<ProfileSkeleton />}><ProfileView /></Suspense>,
-    'notifications': <Suspense fallback={<NotificationsSkeleton />}><NotificationsView /></Suspense>,
-    'settings': <Suspense fallback={<ViewFallback />}><SettingsView /></Suspense>,
+    'home': <ErrorBoundary><Suspense fallback={<HomeSkeleton />}><HomeView /></Suspense></ErrorBoundary>,
+    'tournaments': <ErrorBoundary><Suspense fallback={<TournamentsSkeleton />}><TournamentsView /></Suspense></ErrorBoundary>,
+    'tournament-detail': <ErrorBoundary><Suspense fallback={<TournamentDetailSkeleton />}><TournamentDetailView /></Suspense></ErrorBoundary>,
+    'leaderboard': <ErrorBoundary><Suspense fallback={<LeaderboardSkeleton />}><LeaderboardView /></Suspense></ErrorBoundary>,
+    'streams': <ErrorBoundary><Suspense fallback={<StreamsSkeleton />}><StreamsView /></Suspense></ErrorBoundary>,
+    'profile': <ErrorBoundary><Suspense fallback={<ProfileSkeleton />}><ProfileView /></Suspense></ErrorBoundary>,
+    'notifications': <ErrorBoundary><Suspense fallback={<NotificationsSkeleton />}><NotificationsView /></Suspense></ErrorBoundary>,
+    'settings': <ErrorBoundary><Suspense fallback={<ViewFallback />}><SettingsView /></Suspense></ErrorBoundary>,
     // Admin views routed through grouped lazy chunk
-    'admin-dashboard': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-dashboard" /></Suspense>,
-    'admin-tournaments': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-tournaments" /></Suspense>,
-    'admin-tournament-create': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-tournament-create" /></Suspense>,
-    'admin-registrations': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-registrations" /></Suspense>,
-    'admin-games': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-games" /></Suspense>,
-    'admin-streams': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-streams" /></Suspense>,
-    'admin-affiliates': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-affiliates" /></Suspense>,
-    'admin-topup': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-topup" /></Suspense>,
-    'admin-analytics': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-analytics" /></Suspense>,
-    'admin-settings': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-settings" /></Suspense>,
-    'admin-redemptions': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-redemptions" /></Suspense>,
-    'admin-aether-manage': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-aether-manage" /></Suspense>,
+    'admin-dashboard': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-dashboard" /></Suspense></ErrorBoundary>,
+    'admin-tournaments': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-tournaments" /></Suspense></ErrorBoundary>,
+    'admin-tournament-create': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-tournament-create" /></Suspense></ErrorBoundary>,
+    'admin-registrations': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-registrations" /></Suspense></ErrorBoundary>,
+    'admin-games': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-games" /></Suspense></ErrorBoundary>,
+    'admin-streams': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-streams" /></Suspense></ErrorBoundary>,
+    'admin-affiliates': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-affiliates" /></Suspense></ErrorBoundary>,
+    'admin-topup': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-topup" /></Suspense></ErrorBoundary>,
+    'admin-analytics': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-analytics" /></Suspense></ErrorBoundary>,
+    'admin-settings': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-settings" /></Suspense></ErrorBoundary>,
+    'admin-redemptions': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-redemptions" /></Suspense></ErrorBoundary>,
+    'admin-aether-manage': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-aether-manage" /></Suspense></ErrorBoundary>,
     // Aether views routed through grouped lazy chunk
-    'aether': <Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether" /></Suspense>,
-    'aether-tasks': <Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-tasks" /></Suspense>,
-    'aether-redeem': <Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-redeem" /></Suspense>,
-    'aether-history': <Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-history" /></Suspense>,
+    'aether': <ErrorBoundary><Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether" /></Suspense></ErrorBoundary>,
+    'aether-tasks': <ErrorBoundary><Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-tasks" /></Suspense></ErrorBoundary>,
+    'aether-redeem': <ErrorBoundary><Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-redeem" /></Suspense></ErrorBoundary>,
+    'aether-history': <ErrorBoundary><Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-history" /></Suspense></ErrorBoundary>,
     // Static pages routed through grouped lazy chunk
-    'privacy-policy': <Suspense fallback={<ViewFallback />}><StaticPagesLazy view="privacy-policy" /></Suspense>,
-    'terms-conditions': <Suspense fallback={<ViewFallback />}><StaticPagesLazy view="terms-conditions" /></Suspense>,
-    'refund-policy': <Suspense fallback={<ViewFallback />}><StaticPagesLazy view="refund-policy" /></Suspense>,
-    'contact': <Suspense fallback={<ViewFallback />}><StaticPagesLazy view="contact" /></Suspense>,
+    'privacy-policy': <ErrorBoundary><Suspense fallback={<ViewFallback />}><StaticPagesLazy view="privacy-policy" /></Suspense></ErrorBoundary>,
+    'terms-conditions': <ErrorBoundary><Suspense fallback={<ViewFallback />}><StaticPagesLazy view="terms-conditions" /></Suspense></ErrorBoundary>,
+    'refund-policy': <ErrorBoundary><Suspense fallback={<ViewFallback />}><StaticPagesLazy view="refund-policy" /></Suspense></ErrorBoundary>,
+    'contact': <ErrorBoundary><Suspense fallback={<ViewFallback />}><StaticPagesLazy view="contact" /></Suspense></ErrorBoundary>,
   };
 
   return (
     <div key={currentView} className="animate-fade-in">
-      {viewMap[currentView] || <Suspense fallback={<HomeSkeleton />}><HomeView /></Suspense>}
+      {viewMap[currentView] || <ErrorBoundary><Suspense fallback={<HomeSkeleton />}><HomeView /></Suspense></ErrorBoundary>}
     </div>
   );
 }
@@ -213,10 +219,13 @@ export default function Page() {
   // Fetch aether balance for header display
   useQuery({
     queryKey: ['aether-balance-header'],
-    queryFn: () => fetch('/api/aether/balance').then(r => r.json()).then(d => {
+    queryFn: async () => {
+      const r = await fetch('/api/aether/balance');
+      if (!r.ok) throw new Error(`API error: ${r.status}`);
+      const d = await r.json();
       if (d.balance !== undefined) setAetherBalance(d.balance);
       return d;
-    }),
+    },
     enabled: isAuthenticated && aetherBalance === null,
     refetchInterval: 60000,
   });

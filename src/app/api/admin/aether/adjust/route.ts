@@ -53,13 +53,12 @@ export async function POST(request: Request) {
         throw new Error(`Insufficient balance. Current: ${balance.balance}, Attempting to deduct: ${Math.abs(amount)}`)
       }
 
-      const newBalance = balance.balance + amount
-
+      // Atomic balance update — prevents race conditions
       if (amount > 0) {
         await tx.aetherBalance.update({
           where: { userId },
           data: {
-            balance: newBalance,
+            balance: { increment: amount },
             totalEarned: { increment: amount },
           },
         })
@@ -67,11 +66,15 @@ export async function POST(request: Request) {
         await tx.aetherBalance.update({
           where: { userId },
           data: {
-            balance: newBalance,
+            balance: { decrement: Math.abs(amount) },
             totalRedeemed: { increment: Math.abs(amount) },
           },
         })
       }
+
+      // Read updated balance for transaction record
+      const updatedBalance = await tx.aetherBalance.findUnique({ where: { userId } })
+      const newBalance = updatedBalance!.balance
 
       await tx.aetherTransaction.create({
         data: {

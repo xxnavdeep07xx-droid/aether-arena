@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, AuthError } from '@/lib/auth'
 import { apiLimiter } from '@/lib/rate-limit'
+import { Prisma } from '@prisma/client'
 
 // Helper: get today's date in IST (just the date part, no time)
 function getTodayISTDate(): Date {
@@ -39,58 +40,54 @@ export async function POST(
 
     const todayIST = getTodayISTDate()
 
-    // Check if already completed
-    if (task.resetType === 'daily') {
-      // For daily tasks, check if there's a completed record for today
-      const todayProgress = await db.aetherTaskProgress.findUnique({
-        where: {
-          userId_taskKey_resetDate: {
-            userId,
-            taskKey,
-            resetDate: todayIST,
-          },
-        },
-      })
-
-      if (todayProgress && todayProgress.completed) {
-        return NextResponse.json({ error: 'Task already completed today' }, { status: 400 })
-      }
-    } else {
-      // For one_time tasks, check if already completed
-      const existingProgress = await db.aetherTaskProgress.findFirst({
-        where: {
-          userId,
-          taskKey,
-          completed: true,
-        },
-      })
-
-      if (existingProgress) {
-        return NextResponse.json({ error: 'Task already completed' }, { status: 400 })
-      }
-    }
-
-    // Execute atomic transaction
+    // Execute atomic transaction — completion check INSIDE to prevent double-reward
     const result = await db.$transaction(async (tx) => {
-      // 1. Upsert AetherBalance
-      const balance = await tx.aetherBalance.upsert({
+      // ── Check if already completed (INSIDE transaction to prevent race condition) ──
+      if (task.resetType === 'daily') {
+        const todayProgress = await tx.aetherTaskProgress.findUnique({
+          where: {
+            userId_taskKey_resetDate: {
+              userId,
+              taskKey,
+              resetDate: todayIST,
+            },
+          },
+        })
+
+        if (todayProgress && todayProgress.completed) {
+          throw new Error('TASK_ALREADY_COMPLETED_TODAY')
+        }
+      } else {
+        const existingProgress = await tx.aetherTaskProgress.findFirst({
+          where: { userId, taskKey, completed: true },
+        })
+
+        if (existingProgress) {
+          throw new Error('TASK_ALREADY_COMPLETED')
+        }
+      }
+
+      // ── Ensure balance record exists ──
+      await tx.aetherBalance.upsert({
         where: { userId },
         create: { userId, balance: 0, totalEarned: 0, totalRedeemed: 0 },
         update: {},
       })
 
-      const newBalance = balance.balance + task.rewardAmount
-
-      // 2. Update balance
+      // ── Atomic balance increment — prevents race conditions ──
       await tx.aetherBalance.update({
         where: { userId },
         data: {
-          balance: newBalance,
+          balance: { increment: task.rewardAmount },
           totalEarned: { increment: task.rewardAmount },
         },
       })
 
-      // 3. Create transaction record
+      // Read updated balance for transaction record
+      const updatedBalance = await tx.aetherBalance.findUnique({ where: { userId } })
+      const newBalance = updatedBalance!.balance
+
+      // ── Create transaction record ──
       const transaction = await tx.aetherTransaction.create({
         data: {
           userId,
@@ -106,7 +103,7 @@ export async function POST(
         },
       })
 
-      // 4. Create or update task progress
+      // ── Create or update task progress ──
       if (task.resetType === 'daily') {
         await tx.aetherTaskProgress.upsert({
           where: {
@@ -131,7 +128,7 @@ export async function POST(
           },
         })
       } else {
-        // For one_time tasks, no resetDate
+        // For one_time tasks, no resetDate — use upsert with unique constraint catch
         const existingProgress = await tx.aetherTaskProgress.findFirst({
           where: { userId, taskKey },
         })
@@ -168,6 +165,17 @@ export async function POST(
       transaction: result.transaction,
     })
   } catch (error: unknown) {
+    // Handle task-already-completed errors (thrown from inside transaction)
+    if (error instanceof Error && error.message === 'TASK_ALREADY_COMPLETED_TODAY') {
+      return NextResponse.json({ error: 'Task already completed today' }, { status: 400 })
+    }
+    if (error instanceof Error && error.message === 'TASK_ALREADY_COMPLETED') {
+      return NextResponse.json({ error: 'Task already completed' }, { status: 400 })
+    }
+    // Handle unique constraint violation as extra safety net
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'Task already completed' }, { status: 400 })
+    }
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }

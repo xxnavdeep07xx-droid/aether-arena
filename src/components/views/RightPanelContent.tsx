@@ -7,12 +7,13 @@ import { Trophy, BarChart3, Tv } from 'lucide-react';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn, LEAGUE_CONFIG } from '@/lib/utils';
 import { AETHER_NAME } from '@/lib/aether';
+import { apiFetch } from '@/lib/api';
 
 function AetherBalanceCard() {
   const { navigate } = useAppStore();
   const { data: balanceData } = useQuery({
     queryKey: ['aether-balance-panel'],
-    queryFn: () => fetch('/api/aether/balance').then(r => r.json()),
+    queryFn: () => apiFetch<{ balance?: number; totalEarned?: number; totalRedeemed?: number }>('/api/aether/balance'),
     refetchInterval: 30000,
   });
 
@@ -61,7 +62,7 @@ export function RightPanelContent() {
 
   const { data: stats } = useQuery({
     queryKey: ['admin-stats-mini'],
-    queryFn: () => fetch('/api/admin/stats').then(r => r.json()),
+    queryFn: () => apiFetch<{ totalUsers?: number; activeTournaments?: number; pendingVerifications?: number }>('/api/admin/stats'),
     enabled: user?.isAdmin,
   });
 

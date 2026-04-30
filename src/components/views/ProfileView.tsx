@@ -8,6 +8,7 @@ import { Pencil, Trophy, Crown, Target, Coins, LogOut, Wallet, ChevronRight } fr
 import { cn, paiseToRupee, formatDate, LEAGUE_CONFIG } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ProfileSkeleton } from './Skeletons';
+import { apiFetch } from '@/lib/api';
 
 export function ProfileView() {
   const { user, isAuthenticated, setUser, logout } = useAuthStore();
@@ -20,13 +21,13 @@ export function ProfileView() {
 
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: viewingOtherUser ? ['other-profile', viewParams.username] : ['my-profile'],
-    queryFn: () => fetch(viewingOtherUser ? `/api/profiles/${viewParams.username}` : '/api/profiles/me').then(r => r.json()),
+    queryFn: () => apiFetch<{ displayName?: string; bio?: string; avatarUrl?: string; username?: string; league?: string; totalTournamentsPlayed?: number; totalWins?: number; totalKills?: number; totalPrizeWon?: number }>(viewingOtherUser ? `/api/profiles/${viewParams.username}` : '/api/profiles/me'),
     enabled: isAuthenticated || viewingOtherUser,
   });
 
   const { data: registrations } = useQuery({
     queryKey: ['my-registrations'],
-    queryFn: () => fetch('/api/registrations').then(r => r.json()).then(d => Array.isArray(d.registrations) ? d.registrations : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/registrations').then(d => Array.isArray(d.registrations) ? d.registrations : Array.isArray(d) ? d : []),
     enabled: isAuthenticated && !viewingOtherUser,
   });
 
@@ -38,21 +39,15 @@ export function ProfileView() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/profiles/me', {
+      const data = await apiFetch<any>('/api/profiles/me', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.profile || data);
-        setEditing(false);
-        toast.success('Profile updated!');
-        refetch();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'Failed to update profile');
-      }
+      setUser(data.profile || data);
+      setEditing(false);
+      toast.success('Profile updated!');
+      refetch();
     } catch {
       toast.error('Failed to update profile');
     }
@@ -72,7 +67,7 @@ export function ProfileView() {
   if (!viewingOtherUser && !isAuthenticated) return null;
   if (!viewingOtherUser && isLoading) return <ProfileSkeleton />;
 
-  const p = profile || user;
+  const p = (profile || user) as NonNullable<typeof profile>;
   const league = LEAGUE_CONFIG[p?.league || 'bronze'] || LEAGUE_CONFIG.bronze;
 
   return (

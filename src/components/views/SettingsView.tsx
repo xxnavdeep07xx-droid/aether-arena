@@ -10,11 +10,29 @@ import {
   Pencil, Save, Link2, Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiFetch } from '@/lib/api';
 import { toast } from 'sonner';
 import { notifyThemeChange, notifyLanguageChange } from '@/lib/i18n';
 import Image from 'next/image';
 
 type Theme = 'dark' | 'light' | 'system';
+
+interface ApiProfile {
+  displayName?: string;
+  bio?: string;
+  discordId?: string;
+  discordUsername?: string;
+}
+
+interface ApiCredentials {
+  email?: string;
+}
+
+interface ApiPreferences {
+  language?: string;
+  notificationPrefs?: Record<string, unknown>;
+  privacyPrefs?: Record<string, unknown>;
+}
 
 // ==================== SETTINGS VIEW ====================
 
@@ -52,7 +70,7 @@ function ProfileSettingsSection() {
 
   const { data: profile } = useQuery({
     queryKey: ['settings-profile'],
-    queryFn: () => fetch('/api/profiles/me').then(r => r.json()),
+    queryFn: () => apiFetch<ApiProfile>('/api/profiles/me'),
     enabled: isAuthenticated,
   });
 
@@ -67,22 +85,16 @@ function ProfileSettingsSection() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/profiles/me', {
+      const data = await apiFetch<{ profile?: Record<string, unknown> }>('/api/profiles/me', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.profile || data);
-        setEditing(false);
-        toast.success('Profile updated!');
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'Failed to update profile');
-      }
-    } catch {
-      toast.error('Failed to update profile');
+      setUser((data.profile || data) as Parameters<typeof setUser>[0]);
+      setEditing(false);
+      toast.success('Profile updated!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update profile');
     }
     setSaving(false);
   };
@@ -171,13 +183,13 @@ function ConnectedAccountsSection() {
 
   const { data: profile } = useQuery({
     queryKey: ['settings-profile'],
-    queryFn: () => fetch('/api/profiles/me').then(r => r.json()),
+    queryFn: () => apiFetch<ApiProfile>('/api/profiles/me'),
     enabled: isAuthenticated,
   });
 
   const { data: credentials } = useQuery({
     queryKey: ['settings-credentials'],
-    queryFn: () => fetch('/api/profiles/me/credentials').then(r => r.json()).catch(() => null),
+    queryFn: () => apiFetch<ApiCredentials>('/api/profiles/me/credentials').catch(() => null),
     enabled: isAuthenticated,
   });
 
@@ -330,17 +342,17 @@ function LanguageSection() {
 
   const { data: prefs } = useQuery({
     queryKey: ['user-preferences'],
-    queryFn: () => fetch('/api/profiles/me/preferences').then(r => r.json()),
+    queryFn: () => apiFetch<ApiPreferences>('/api/profiles/me/preferences'),
     enabled: isAuthenticated,
   });
 
   const savePrefs = useMutation({
     mutationFn: (data: { language?: string; notificationPrefs?: Record<string, unknown>; privacyPrefs?: Record<string, unknown> }) =>
-      fetch('/api/profiles/me/preferences', {
+      apiFetch('/api/profiles/me/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-preferences'] });
     },
@@ -462,7 +474,7 @@ function NotificationSettingsSection() {
 
   const { data: serverPrefs } = useQuery({
     queryKey: ['user-preferences'],
-    queryFn: () => fetch('/api/profiles/me/preferences').then(r => r.json()),
+    queryFn: () => apiFetch<ApiPreferences>('/api/profiles/me/preferences'),
     enabled: isAuthenticated,
   });
 
@@ -481,11 +493,11 @@ function NotificationSettingsSection() {
 
   const savePrefsMutation = useMutation({
     mutationFn: (newPrefs: NotificationPrefs) =>
-      fetch('/api/profiles/me/preferences', {
+      apiFetch('/api/profiles/me/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notificationPrefs: newPrefs }),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-preferences'] });
     },
@@ -595,7 +607,7 @@ function PrivacyDataSection() {
 
   const { data: serverPrefs } = useQuery({
     queryKey: ['user-preferences'],
-    queryFn: () => fetch('/api/profiles/me/preferences').then(r => r.json()),
+    queryFn: () => apiFetch<ApiPreferences>('/api/profiles/me/preferences'),
     enabled: isAuthenticated,
   });
 
@@ -619,11 +631,11 @@ function PrivacyDataSection() {
 
   const savePrivacyMutation = useMutation({
     mutationFn: (newPrefs: PrivacyPrefs) =>
-      fetch('/api/profiles/me/preferences', {
+      apiFetch('/api/profiles/me/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ privacyPrefs: newPrefs }),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-preferences'] });
     },
@@ -758,18 +770,12 @@ function AccountSection() {
     if (deleteStep === 2) {
       setDeleting(true);
       try {
-        const res = await fetch('/api/profiles/me/delete', { method: 'POST' });
-        const data = await res.json();
-        if (res.ok) {
-          toast.success(data.message || 'Account scheduled for deletion. You have 30 days to recover.');
-          logout();
-          navigate('landing');
-        } else {
-          toast.error(data.error || 'Failed to delete account');
-          cancelDeleteFlow();
-        }
-      } catch {
-        toast.error('Something went wrong. Please try again.');
+        const data = await apiFetch<{ message?: string; error?: string }>('/api/profiles/me/delete', { method: 'POST' });
+        toast.success(data.message || 'Account scheduled for deletion. You have 30 days to recover.');
+        logout();
+        navigate('landing');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to delete account');
         cancelDeleteFlow();
       }
       setDeleting(false);

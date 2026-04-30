@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import { TournamentCard } from './HomeView';
 import { TournamentsSkeleton } from './Skeletons';
+import { apiFetch } from '@/lib/api';
 
 export function TournamentsView() {
   const { navigate } = useAppStore();
@@ -19,7 +20,7 @@ export function TournamentsView() {
 
   const { data: games } = useQuery({
     queryKey: ['games-filter'],
-    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/games').then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
 
   // Close filter popup on outside click
@@ -50,7 +51,7 @@ export function TournamentsView() {
       if (filters.format) params.set('format', filters.format);
       if (filters.fee) params.set('fee', filters.fee);
       if (searchQuery) params.set('search', searchQuery);
-      return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []);
+      return apiFetch<any>(`/api/tournaments?${params}`).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []);
     },
   });
 

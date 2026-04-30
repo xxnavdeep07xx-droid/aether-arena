@@ -79,18 +79,26 @@ export async function POST(request: Request) {
 }
 
 async function performDeletion(userId: string) {
-  // Delete all related data in correct order due to foreign keys
-  await db.matchParticipant.deleteMany({ where: { playerId: userId } })
-  await db.match.deleteMany({ where: { tournament: { createdById: userId } } })
-  await db.tournamentRegistration.deleteMany({ where: { playerId: userId } })
-  await db.leaderboard.deleteMany({ where: { playerId: userId } })
-  await db.notification.deleteMany({ where: { userId } })
-  await db.announcement.deleteMany({ where: { createdById: userId } })
-  await db.streamSchedule.deleteMany({ where: { createdById: userId } })
-  await db.platformSetting.deleteMany({ where: { updatedById: userId } })
-  await db.tournament.deleteMany({ where: { createdById: userId } })
-  await db.session.deleteMany({ where: { userId } })
-  await db.account.deleteMany({ where: { userId } })
-  await db.accountCredential.deleteMany({ where: { userId } })
-  await db.profile.delete({ where: { id: userId } })
+  // Delete all related data in a transaction — prevents partial deletion
+  await db.$transaction(async (tx) => {
+    await tx.matchParticipant.deleteMany({ where: { playerId: userId } })
+    await tx.match.deleteMany({ where: { tournament: { createdById: userId } } })
+    await tx.tournamentRegistration.deleteMany({ where: { playerId: userId } })
+    await tx.leaderboard.deleteMany({ where: { playerId: userId } })
+    await tx.notification.deleteMany({ where: { userId } })
+    await tx.announcement.deleteMany({ where: { createdById: userId } })
+    await tx.streamSchedule.deleteMany({ where: { createdById: userId } })
+    await tx.platformSetting.deleteMany({ where: { updatedById: userId } })
+    // Aether-related data — was missing before!
+    await tx.aetherTaskProgress.deleteMany({ where: { userId } })
+    await tx.aetherTransaction.deleteMany({ where: { userId } })
+    await tx.redemptionRequest.deleteMany({ where: { userId } })
+    await tx.aetherBalance.deleteMany({ where: { userId } })
+    await tx.userStreak.deleteMany({ where: { userId } })
+    await tx.tournament.deleteMany({ where: { createdById: userId } })
+    await tx.session.deleteMany({ where: { userId } })
+    await tx.account.deleteMany({ where: { userId } })
+    await tx.accountCredential.deleteMany({ where: { userId } })
+    await tx.profile.delete({ where: { id: userId } })
+  })
 }

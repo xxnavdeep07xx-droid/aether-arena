@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { BarChart3, Award } from 'lucide-react';
 import { cn, LEAGUE_CONFIG } from '@/lib/utils';
 import { LeaderboardSkeleton } from './Skeletons';
+import { apiFetch } from '@/lib/api';
 
 export function LeaderboardView() {
   const [gameFilter, setGameFilter] = useState('all');
@@ -15,7 +16,7 @@ export function LeaderboardView() {
 
   const { data: games } = useQuery({
     queryKey: ['lb-games'],
-    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/games').then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
 
   const { data: entries, isLoading } = useQuery({
@@ -25,7 +26,7 @@ export function LeaderboardView() {
       if (gameFilter !== 'all') params.set('gameId', gameFilter);
       params.set('period', period);
       if (searchQuery) params.set('search', searchQuery);
-      return fetch(`/api/leaderboard?${params}`).then(r => r.json()).then(d => Array.isArray(d.leaderboard) ? d.leaderboard : Array.isArray(d) ? d : []);
+      return apiFetch<any>(`/api/leaderboard?${params}`).then(d => Array.isArray(d.leaderboard) ? d.leaderboard : Array.isArray(d) ? d : []);
     },
   });
 

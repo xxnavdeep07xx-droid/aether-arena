@@ -5,6 +5,7 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { useAuthStore } from '@/lib/store';
 import Image from 'next/image';
+import { apiFetch } from '@/lib/api';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -125,9 +126,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           if (data.user) {
             setUser(data.user);
             // Prefetch common data in background after auth succeeds
-            queryClient.prefetchQuery({ queryKey: ['tournaments', { game: '', status: '', format: '', fee: '' }], queryFn: () => fetch('/api/tournaments?limit=6').then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : []) }).catch(() => {});
-            queryClient.prefetchQuery({ queryKey: ['featured-streams'], queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : []) }).catch(() => {});
-            queryClient.prefetchQuery({ queryKey: ['games-filter'], queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : []) }).catch(() => {});
+            queryClient.prefetchQuery({ queryKey: ['tournaments', { game: '', status: '', format: '', fee: '' }], queryFn: () => apiFetch<any>('/api/tournaments?limit=6').then(d => Array.isArray(d.tournaments) ? d.tournaments : []) }).catch(() => {});
+            queryClient.prefetchQuery({ queryKey: ['featured-streams'], queryFn: () => apiFetch<any>('/api/streams').then(d => Array.isArray(d.streams) ? d.streams : []) }).catch(() => {});
+            queryClient.prefetchQuery({ queryKey: ['games-filter'], queryFn: () => apiFetch<any>('/api/games').then(d => Array.isArray(d.games) ? d.games : []) }).catch(() => {});
           } else {
             logout();
           }

@@ -11,6 +11,7 @@ import {
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { PASSWORD_RULES } from '@/lib/theme';
 
@@ -99,17 +100,17 @@ export function LandingView() {
 
   const { data: featuredTournaments } = useQuery({
     queryKey: ['featured-tournaments'],
-    queryFn: () => fetch('/api/tournaments?featured=true&limit=4').then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/tournaments?featured=true&limit=4').then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
   });
 
   const { data: games } = useQuery({
     queryKey: ['landing-games'],
-    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/games').then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
 
   const { data: stats } = useQuery({
     queryKey: ['platform-stats'],
-    queryFn: () => fetch('/api/stats').then(r => r.json()),
+    queryFn: () => apiFetch<{ players?: number; tournaments?: number; prizesWon?: number; games?: number }>('/api/stats'),
   });
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -300,7 +301,7 @@ export function LandingView() {
           {[
             { icon: Users, label: 'Players', value: stats?.players != null ? stats.players.toLocaleString() : '...' },
             { icon: Trophy, label: 'Tournaments', value: stats?.tournaments != null ? stats.tournaments.toLocaleString() : '...' },
-            { icon: Coins, label: 'Prizes Won', value: stats ? `₹${(stats.prizesWon / 100).toLocaleString('en-IN')}` : '...' },
+            { icon: Coins, label: 'Prizes Won', value: stats?.prizesWon != null ? `₹${(stats.prizesWon / 100).toLocaleString('en-IN')}` : '...' },
             { icon: Gamepad2, label: 'Games', value: stats?.games != null ? String(stats.games) : '...' },
           ].map((stat) => (
             <div key={stat.label} className="text-center">

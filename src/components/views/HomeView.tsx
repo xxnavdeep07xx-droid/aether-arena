@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn, paiseToRupee, formatDate, getCountdown, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 
 export function HomeView() {
   return (
@@ -30,7 +31,7 @@ function StreamBannerSection() {
 
   const { data: streams } = useQuery({
     queryKey: ['featured-streams'],
-    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/streams').then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
     placeholderData: [],
     staleTime: 5 * 60 * 1000,
   });
@@ -127,18 +128,15 @@ function TopPlayersSection() {
 
   const { data: entries } = useQuery({
     queryKey: ['top-players'],
-    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=50').then(r => r.json()).then(d => {
+    queryFn: () => apiFetch<any>('/api/leaderboard?period=all_time&limit=50').then(d => {
       const raw = d.leaderboard || d;
       const all = Array.isArray(raw) ? raw : [];
-      // Deduplicate: keep highest points per player
       const best = new Map<string, any>();
       for (const e of all) {
         const pid = e.playerId || e.player?.id;
         if (!pid) continue;
         const existing = best.get(pid);
-        if (!existing || (e.points || 0) > (existing.points || 0)) {
-          best.set(pid, e);
-        }
+        if (!existing || (e.points || 0) > (existing.points || 0)) best.set(pid, e);
       }
       return Array.from(best.values()).sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
     }),
@@ -218,7 +216,7 @@ function AffiliateCarouselSection() {
 
   const { data: affiliates } = useQuery({
     queryKey: ['affiliates'],
-    queryFn: () => fetch('/api/affiliates').then(r => r.json()).then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/affiliates').then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
     placeholderData: [],
     staleTime: 10 * 60 * 1000,
   });
@@ -300,7 +298,7 @@ function TopupCarouselSection() {
 
   const { data: packsData } = useQuery({
     queryKey: ['topup-packs'],
-    queryFn: () => fetch('/api/topup-packs').then(r => r.json()).then(d => Array.isArray(d.packs) ? d.packs : []),
+    queryFn: () => apiFetch<any>('/api/topup-packs').then(d => Array.isArray(d.packs) ? d.packs : []),
     placeholderData: [],
     staleTime: 10 * 60 * 1000,
   });
@@ -424,7 +422,7 @@ function HomeTournamentsSection() {
       if (filter === 'featured') { params.set('featured', 'true'); }
       else if (filter !== 'all') { params.set('status', filter); }
       params.set('limit', '6');
-      return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []);
+      return apiFetch<any>(`/api/tournaments?${params}`).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []);
     },
     placeholderData: [],
   });

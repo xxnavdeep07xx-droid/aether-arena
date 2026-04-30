@@ -10,6 +10,7 @@ import {
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 import { TournamentDetailSkeleton } from './Skeletons';
 
 export function TournamentDetailView() {
@@ -21,14 +22,11 @@ export function TournamentDetailView() {
 
   const { data: tournament, isLoading } = useQuery({
     queryKey: ['tournament', viewParams.id],
-    queryFn: () => fetch(`/api/tournaments/${viewParams.id}`).then(r => {
-      if (!r.ok) return null;
-      return r.json();
-    }).then(d => {
+    queryFn: () => apiFetch<any>(`/api/tournaments/${viewParams.id}`).then(d => {
       // Only return if it looks like a valid tournament (has a status field)
       if (!d || d.error || !d.status) return null;
       return d;
-    }),
+    }).catch(() => null),
     enabled: !!viewParams.id,
   });
 
@@ -36,8 +34,7 @@ export function TournamentDetailView() {
     if (!tournament || !isAuthenticated) return;
     const checkRegistration = async () => {
       try {
-        const res = await fetch('/api/registrations');
-        const data = await res.json();
+        const data = await apiFetch<any>('/api/registrations');
         const regs = Array.isArray(data.registrations) ? data.registrations : Array.isArray(data) ? data : [];
         const existing = regs.find((r: any) => r.tournamentId === viewParams.id);
         if (existing) { setRegistered(true); setPaymentStatus(existing.paymentStatus); }
@@ -48,22 +45,17 @@ export function TournamentDetailView() {
 
   const handleRegister = async (data: { paymentMethod?: string; paymentReference?: string }) => {
     try {
-      const res = await fetch(`/api/tournaments/${viewParams.id}/register`, {
+      const result = await apiFetch<{ registration?: { paymentStatus?: string } }>(`/api/tournaments/${viewParams.id}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      const result = await res.json();
-      if (res.ok) {
-        setRegistered(true);
-        setPaymentStatus(result.registration?.paymentStatus || 'pending');
-        setShowRegister(false);
-        toast.success(tournament.entryFee === 0 ? 'Registered successfully!' : 'Payment submitted! Waiting for verification.');
-      } else {
-        toast.error(result.error || 'Registration failed');
-      }
-    } catch {
-      toast.error('Registration failed');
+      setRegistered(true);
+      setPaymentStatus(result.registration?.paymentStatus || 'pending');
+      setShowRegister(false);
+      toast.success(tournament.entryFee === 0 ? 'Registered successfully!' : 'Payment submitted! Waiting for verification.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Registration failed');
     }
   };
 
@@ -207,7 +199,7 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
     setLoading(true);
     try {
       const amount = tournament.entryFee; // already in paise
-      const res = await fetch('/api/payments/create-order', {
+      const data = await apiFetch<{ razorpayKey?: string; amount: number; currency?: string; orderId: string }>('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -216,12 +208,6 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
           currency: 'INR',
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || 'Payment initialization failed');
-        setLoading(false);
-        return;
-      }
       // Razorpay checkout
       const options: any = {
         key: data.razorpayKey || '',
@@ -258,7 +244,7 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
       });
       rzp.open();
     } catch (err) {
-      toast.error('Failed to initialize payment');
+      toast.error(err instanceof Error ? err.message : 'Failed to initialize payment');
       setLoading(false);
     }
   };

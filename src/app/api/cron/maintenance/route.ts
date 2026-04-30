@@ -35,25 +35,27 @@ export async function GET(request: Request) {
 
     for (const user of expiredDeletions) {
       try {
-        // Delete in dependency order (same as performDeletion in me/delete/route.ts)
-        await db.matchParticipant.deleteMany({ where: { playerId: user.id } })
-        await db.match.deleteMany({ where: { tournament: { createdById: user.id } } })
-        await db.tournamentRegistration.deleteMany({ where: { playerId: user.id } })
-        await db.leaderboard.deleteMany({ where: { playerId: user.id } })
-        await db.notification.deleteMany({ where: { userId: user.id } })
-        await db.announcement.deleteMany({ where: { createdById: user.id } })
-        await db.streamSchedule.deleteMany({ where: { createdById: user.id } })
-        await db.platformSetting.deleteMany({ where: { updatedById: user.id } })
-        await db.aetherTaskProgress.deleteMany({ where: { userId: user.id } })
-        await db.aetherTransaction.deleteMany({ where: { userId: user.id } })
-        await db.redemptionRequest.deleteMany({ where: { userId: user.id } })
-        await db.aetherBalance.deleteMany({ where: { userId: user.id } })
-        await db.userStreak.deleteMany({ where: { userId: user.id } })
-        await db.tournament.deleteMany({ where: { createdById: user.id } })
-        await db.session.deleteMany({ where: { userId: user.id } })
-        await db.account.deleteMany({ where: { userId: user.id } })
-        await db.accountCredential.deleteMany({ where: { userId: user.id } })
-        await db.profile.delete({ where: { id: user.id } })
+        // Delete in dependency order inside a transaction — prevents partial deletion
+        await db.$transaction(async (tx) => {
+          await tx.matchParticipant.deleteMany({ where: { playerId: user.id } })
+          await tx.match.deleteMany({ where: { tournament: { createdById: user.id } } })
+          await tx.tournamentRegistration.deleteMany({ where: { playerId: user.id } })
+          await tx.leaderboard.deleteMany({ where: { playerId: user.id } })
+          await tx.notification.deleteMany({ where: { userId: user.id } })
+          await tx.announcement.deleteMany({ where: { createdById: user.id } })
+          await tx.streamSchedule.deleteMany({ where: { createdById: user.id } })
+          await tx.platformSetting.deleteMany({ where: { updatedById: user.id } })
+          await tx.aetherTaskProgress.deleteMany({ where: { userId: user.id } })
+          await tx.aetherTransaction.deleteMany({ where: { userId: user.id } })
+          await tx.redemptionRequest.deleteMany({ where: { userId: user.id } })
+          await tx.aetherBalance.deleteMany({ where: { userId: user.id } })
+          await tx.userStreak.deleteMany({ where: { userId: user.id } })
+          await tx.tournament.deleteMany({ where: { createdById: user.id } })
+          await tx.session.deleteMany({ where: { userId: user.id } })
+          await tx.account.deleteMany({ where: { userId: user.id } })
+          await tx.accountCredential.deleteMany({ where: { userId: user.id } })
+          await tx.profile.delete({ where: { id: user.id } })
+        })
         results.push(`Deleted account: ${user.username}`)
       } catch (e) {
         results.push(`Failed to delete ${user.username}: ${e instanceof Error ? e.message : 'unknown'}`)
@@ -95,6 +97,6 @@ export async function GET(request: Request) {
     results.push(`Email verification cleanup failed: ${e instanceof Error ? e.message : 'unknown'}`)
   }
 
-  console.log('[Cron] Maintenance results:', results)
+  console.info('[Cron] Maintenance results:', results)
   return NextResponse.json({ success: true, results })
 }
