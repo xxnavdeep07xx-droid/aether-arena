@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { updateSettingsSchema, formatZodError } from '@/lib/validations'
 
 export async function GET(request: Request) {
   try {
@@ -30,13 +31,16 @@ export async function PUT(request: Request) {
   try {
     const auth = await requireAdmin(request)
     const body = await request.json()
-    const { settings } = body as { settings: Record<string, string> }
 
-    if (!settings || typeof settings !== 'object') {
-      return NextResponse.json({ error: 'Settings object is required' }, { status: 400 })
+    // Zod validation with setting key whitelist
+    const parsed = updateSettingsSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 })
     }
 
-    // Upsert each setting
+    const { settings } = parsed.data
+
+    // Upsert each setting (keys are already validated against whitelist)
     const results = await Promise.all(
       Object.entries(settings).map(([key, value]) =>
         db.platformSetting.upsert({

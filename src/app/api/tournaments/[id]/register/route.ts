@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { apiLimiter } from '@/lib/rate-limit'
+import { Prisma } from '@prisma/client'
+import { registerTournamentSchema, formatZodError } from '@/lib/validations'
 
 export async function POST(
   request: Request,
@@ -89,11 +91,16 @@ export async function POST(
       body = {}
     }
 
-    const { paymentMethod, paymentReference, paymentScreenshotUrl } = body as {
-      paymentMethod?: string
-      paymentReference?: string
-      paymentScreenshotUrl?: string
+    // Zod validation for payment fields
+    const parsed = registerTournamentSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: formatZodError(parsed.error) },
+        { status: 400 }
+      )
     }
+
+    const { paymentMethod, paymentReference, paymentScreenshotUrl } = parsed.data
 
     // Determine payment status
     const paymentStatus = tournament.entryFee === 0 ? 'verified' : (paymentMethod === 'razorpay' ? 'verified' : 'pending')
@@ -194,6 +201,10 @@ export async function POST(
           : 'Registration successful! You are confirmed for this tournament.',
     })
   } catch (error: unknown) {
+    // Handle P2002 unique constraint violation (duplicate registration race condition)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'You are already registered for this tournament' }, { status: 409 })
+    }
     if (error instanceof Error && error.message === 'TOURNAMENT_FULL') {
       return NextResponse.json({ error: 'Tournament is full' }, { status: 400 })
     }

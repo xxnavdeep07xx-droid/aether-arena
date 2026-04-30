@@ -39,22 +39,45 @@ export async function GET(request: Request) {
       db.tournamentRegistration.count({ where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } }),
     ]);
 
-    // ===== REVENUE OVER TIME (Last 12 months) =====
-    const revenueByMonth: { month: string; revenue: number; registrations: number }[] = [];
+    // ===== REVENUE OVER TIME (Last 12 months — single GROUP BY query) =====
+    // Replaces 12 sequential month queries with one aggregated query
+    const revenueByMonthRaw = await db.$queryRaw<Array<{
+      month: Date
+      total_revenue: bigint
+      total_registrations: bigint
+    }>>`
+      SELECT
+        DATE_TRUNC('month', "createdAt") AS month,
+        COALESCE(SUM("paidAmount"), 0) AS total_revenue,
+        COUNT(*) AS total_registrations
+      FROM "TournamentRegistration"
+      WHERE "paymentStatus" = 'verified'
+        AND "createdAt" >= NOW() - INTERVAL '12 months'
+      GROUP BY DATE_TRUNC('month', "createdAt")
+      ORDER BY month ASC
+    `
+
+    // Build 12-month array filling in gaps with zeros
+    const revenueByMonth: { month: string; revenue: number; registrations: number }[] = []
+    const revenueMap = new Map<string, { revenue: number; registrations: number }>()
+    for (const row of revenueByMonthRaw) {
+      const key = new Date(row.month).toISOString().slice(0, 7) // YYYY-MM
+      revenueMap.set(key, {
+        revenue: Number(row.total_revenue),
+        registrations: Number(row.total_registrations),
+      })
+    }
+
     for (let i = 11; i >= 0; i--) {
-      const start = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
-      const end = new Date(new Date().getFullYear(), new Date().getMonth() - i + 1, 1);
-      const monthName = start.toLocaleString('en-IN', { month: 'short' });
-
-      const [regCount, rev] = await Promise.all([
-        db.tournamentRegistration.count({ where: { createdAt: { gte: start, lt: end } } }),
-        db.tournamentRegistration.aggregate({
-          _sum: { paidAmount: true },
-          where: { createdAt: { gte: start, lt: end }, paymentStatus: 'verified' },
-        }),
-      ]);
-
-      revenueByMonth.push({ month: monthName, revenue: rev._sum.paidAmount || 0, registrations: regCount });
+      const d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1)
+      const key = d.toISOString().slice(0, 7)
+      const monthName = d.toLocaleString('en-IN', { month: 'short' })
+      const data = revenueMap.get(key)
+      revenueByMonth.push({
+        month: monthName,
+        revenue: data?.revenue ?? 0,
+        registrations: data?.registrations ?? 0,
+      })
     }
 
     // ===== TOURNAMENTS BY STATUS =====

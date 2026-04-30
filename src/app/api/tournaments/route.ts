@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
+import { getSession } from '@/lib/auth'
+import { apiLimiter } from '@/lib/rate-limit'
 
 let setupAttempted = false
 
@@ -13,6 +15,13 @@ async function ensureSetup() {
 }
 
 export async function GET(request: Request) {
+  // Rate limiting for public endpoint
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+  const { success: rateLimitOk } = await apiLimiter(`public:${clientIp}`)
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const game = searchParams.get('game')
@@ -85,7 +94,7 @@ export async function GET(request: Request) {
 
     // Check if current user is registered for each tournament
     let registeredTournaments: Set<string> = new Set()
-    const session = await getSessionFromRequest(request)
+    const session = await getSession(request)
     if (session) {
       const myRegs = await db.tournamentRegistration.findMany({
         where: {
@@ -115,8 +124,8 @@ export async function GET(request: Request) {
         totalPages: Math.ceil(total / limit),
       },
     })
-  } catch (error: any) {
-    const msg = error?.message || ''
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : ''
     if (msg.includes('does not exist') && !setupAttempted) {
       await ensureSetup()
       // Return empty on first attempt — client will refetch
@@ -126,23 +135,5 @@ export async function GET(request: Request) {
       { error: 'Internal server error' },
       { status: 500 }
     )
-  }
-}
-
-// Helper to get session from request
-async function getSessionFromRequest(request: Request) {
-  try {
-    const cookieHeader = request.headers.get('cookie')
-    if (!cookieHeader) return null
-    const match = cookieHeader.match(/aether_session=([^;]+)/)
-    if (!match) return null
-    const session = await db.session.findUnique({
-      where: { token: match[1] },
-      select: { userId: true, expiresAt: true },
-    })
-    if (!session || session.expiresAt < new Date()) return null
-    return session
-  } catch {
-    return null
   }
 }

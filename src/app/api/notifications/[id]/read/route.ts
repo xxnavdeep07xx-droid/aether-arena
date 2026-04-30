@@ -10,19 +10,16 @@ export async function POST(
     const auth = await requireAuth(request)
     const { id } = await params
 
-    const notification = await db.notification.findUnique({
-      where: { id },
-      select: { userId: true },
-    })
-
-    if (!notification || notification.userId !== auth.userId) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
-    }
-
-    await db.notification.update({
-      where: { id },
+    // Use updateMany with userId filter — combines ownership check and update in one query
+    // Returns count=0 if notification doesn't exist or doesn't belong to user
+    const result = await db.notification.updateMany({
+      where: { id, userId: auth.userId, isRead: false },
       data: { isRead: true },
     })
+
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error: unknown) {

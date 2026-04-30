@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let cred: any = null;
+    let cred: { userId: string; email: string; phone: string | null; password: string; emailVerified: boolean | null; user: { id: string; username: string; displayName: string | null; avatarUrl: string | null; phone: string | null; isAdmin: boolean; isBanned: boolean } } | null = null;
     let resolvedKey = ''; // key for per-account lockout tracking
     const trimmedIdentifier = resolvedIdentifier.trim();
 

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
-import crypto from 'crypto'
 import { strictLimiter } from '@/lib/rate-limit'
+import { createOrderSchema, formatZodError } from '@/lib/validations'
 
 export async function POST(request: Request) {
   // Rate limiting — strict because payments are sensitive
@@ -14,16 +14,15 @@ export async function POST(request: Request) {
 
   try {
     const auth = await requireAuth(request)
-    if (auth.profile.isBanned) {
-      return NextResponse.json({ error: 'Account banned' }, { status: 403 })
-    }
 
     const body = await request.json()
-    const { amount, tournamentId, currency = 'INR' } = body
 
-    if (!amount || !tournamentId) {
-      return NextResponse.json({ error: 'Amount and tournament ID required' }, { status: 400 })
+    // Zod validation
+    const parsed = createOrderSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 })
     }
+    const { amount, tournamentId, currency } = parsed.data
 
     // Check tournament exists and registration is open
     const tournament = await db.tournament.findUnique({ where: { id: tournamentId } })
@@ -32,6 +31,11 @@ export async function POST(request: Request) {
     }
     if (tournament.status !== 'upcoming' && tournament.status !== 'registration_open') {
       return NextResponse.json({ error: 'Registration is not open' }, { status: 400 })
+    }
+
+    // Validate amount matches tournament entry fee (prevent amount manipulation)
+    if (amount !== tournament.entryFee) {
+      return NextResponse.json({ error: 'Amount does not match tournament entry fee' }, { status: 400 })
     }
 
     // Check if already registered
@@ -51,8 +55,6 @@ export async function POST(request: Request) {
     }
 
     // Create Razorpay order
-    // Note: In production, use the razorpay SDK: npm install razorpay
-    // For now, we'll create a placeholder order
     try {
       const Razorpay = require('razorpay')
       const razorpay = new Razorpay({
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
         currency: order.currency,
         razorpayKey: razorpayKeyId,
       })
-    } catch (rzpError: any) {
+    } catch (rzpError: unknown) {
       console.error('Razorpay order creation error:', rzpError)
       return NextResponse.json({ error: 'Payment gateway error. Please try again later.' }, { status: 500 })
     }

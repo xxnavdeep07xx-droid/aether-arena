@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
 import { authLimiter } from '@/lib/rate-limit'
+import { Prisma } from '@prisma/client'
 
 function getDiscordEnv() {
   const clientId = process.env.DISCORD_CLIENT_ID;
@@ -126,6 +127,8 @@ export async function GET(request: Request) {
     if (!baseUsername || baseUsername.length < 3) baseUsername = `user_${discordUser.id.slice(0, 6)}`
 
     // Check if username exists and add suffix if needed
+    // Note: This check is outside the transaction, so we wrap the transaction
+    // in a retry loop to handle P2002 unique constraint violations from race conditions
     let username = baseUsername
     let suffix = 0
     while (await db.profile.findUnique({ where: { username } })) {
@@ -133,8 +136,14 @@ export async function GET(request: Request) {
       username = `${baseUsername}${suffix}`
     }
 
-    // Create profile with Discord account atomically to prevent race condition
-    const profile = await db.$transaction(async (tx) => {
+    // Create profile with Discord account atomically
+    // Retry on P2002 (username collision from concurrent registrations)
+    let profile
+    let retries = 0
+    const MAX_RETRIES = 3
+    while (retries < MAX_RETRIES) {
+      try {
+        profile = await db.$transaction(async (tx) => {
       const userCount = await tx.profile.count()
       const isAdmin = userCount === 0
 
@@ -256,6 +265,27 @@ export async function GET(request: Request) {
 
       return newProfile
     })
+
+        // Transaction succeeded, break out of retry loop
+        break
+      } catch (txError: unknown) {
+        // Handle P2002 unique constraint violation (username collision)
+        if (txError instanceof Prisma.PrismaClientKnownRequestError && txError.code === 'P2002') {
+          retries++
+          suffix++
+          username = `${baseUsername}${suffix}`
+          if (retries >= MAX_RETRIES) {
+            throw new Error('Failed to create unique username after multiple attempts')
+          }
+          continue
+        }
+        throw txError
+      }
+    }
+
+    if (!profile) {
+      throw new Error('Failed to create account')
+    }
 
     // Create session
     const sessionToken = await createSession(profile.id)

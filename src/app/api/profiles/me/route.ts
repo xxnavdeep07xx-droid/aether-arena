@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { updateProfileSchema, formatZodError } from '@/lib/validations'
 
 export async function GET(request: Request) {
   try {
@@ -71,24 +72,20 @@ export async function PUT(request: Request) {
   try {
     const auth = await requireAuth(request)
     const body = await request.json()
-    const { displayName, bio, avatarUrl } = body
 
-    // Input length validation to prevent abuse
-    if (displayName !== undefined && displayName.length > 50) {
-      return NextResponse.json({ error: 'Display name must be 50 characters or less' }, { status: 400 })
+    // Zod validation (validates types, lengths, and URL format)
+    const parsed = updateProfileSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 })
     }
-    if (bio !== undefined && bio.length > 500) {
-      return NextResponse.json({ error: 'Bio must be 500 characters or less' }, { status: 400 })
-    }
-    if (avatarUrl !== undefined && avatarUrl.length > 2000) {
-      return NextResponse.json({ error: 'Avatar URL is too long' }, { status: 400 })
-    }
+
+    const { displayName, bio, avatarUrl } = parsed.data
 
     // Build update data
     const updateData: Record<string, unknown> = {}
     if (displayName !== undefined) updateData.displayName = displayName
     if (bio !== undefined) updateData.bio = bio
-    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl
+    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl || null
 
     const profile = await db.profile.update({
       where: { id: auth.userId },

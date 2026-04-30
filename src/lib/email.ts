@@ -37,6 +37,17 @@ function getGmailTransporter(): nodemailer.Transporter | null {
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'Aether Arena <aetherarena.999@gmail.com>'
 
+// ─── HTML Escape Utility ──────────────────────────────────────
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
 // ─── Send Email Verification ──────────────────────────────────
 
 export async function sendVerificationEmail(
@@ -80,7 +91,7 @@ export async function sendVerificationEmail(
                   <tr>
                     <td style="padding: 20px 40px 30px 40px;">
                       <p style="margin: 0 0 16px 0; color: #e0e0ff; font-size: 16px;">
-                        Hey <strong style="color: #a78bfa;">${username}</strong>,
+                        Hey <strong style="color: #a78bfa;">${escapeHtml(username)}</strong>,
                       </p>
                       <p style="margin: 0 0 24px 0; color: #b0b0cc; font-size: 15px; line-height: 1.6;">
                         Welcome to Aether Arena! To get started, please verify your email address by clicking the button below. This link expires in <strong style="color: #e0e0ff;">24 hours</strong>.

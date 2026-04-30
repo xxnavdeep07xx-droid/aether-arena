@@ -40,13 +40,6 @@ export async function GET() {
       return NextResponse.json({ user: null })
     }
 
-    // If account has scheduled deletion and within recovery period, cancel it on login
-    if (profile.scheduledDeletionAt && new Date(profile.scheduledDeletionAt) > new Date()) {
-      await db.profile.update({
-        where: { id: session.userId },
-        data: { scheduledDeletionAt: null },
-      })
-    }
     // If deletion period has passed, treat as deleted
     if (profile.scheduledDeletionAt && new Date(profile.scheduledDeletionAt) <= new Date()) {
       await db.session.deleteMany({ where: { userId: session.userId } })
@@ -62,6 +55,40 @@ export async function GET() {
         credentials: undefined,
       },
     })
+  } catch {
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// POST /api/auth/me — Cancel scheduled account deletion
+// Separated from GET to avoid writes on read requests (proper HTTP semantics)
+export async function POST() {
+  try {
+    const session = await getSession()
+
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const profile = await db.profile.findUnique({
+      where: { id: session.userId },
+      select: { scheduledDeletionAt: true },
+    })
+
+    if (!profile?.scheduledDeletionAt) {
+      return NextResponse.json({ message: 'No scheduled deletion found' })
+    }
+
+    // Cancel the deletion
+    await db.profile.update({
+      where: { id: session.userId },
+      data: { scheduledDeletionAt: null },
+    })
+
+    return NextResponse.json({ message: 'Account deletion cancelled successfully' })
   } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
