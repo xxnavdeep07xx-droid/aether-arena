@@ -1,12 +1,13 @@
 'use client';
 
 import { useAppStore, useAuthStore } from '@/lib/store';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import {
   Trophy, Gamepad2, Users, Coins, ChevronRight,
-  CircleDot, Search, User, Eye, EyeOff, Check, X, Phone
+  CircleDot, Search, User, Eye, EyeOff, Check, X, Phone,
+  AtSign, Mail, Lock, Shield, Gift, Loader2, Sparkles
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel } from '@/lib/utils';
@@ -21,7 +22,7 @@ export function DiscordIcon() {
   );
 }
 
-// Password strength indicator
+// Password strength indicator — enhanced with label and color-coded checks
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
     { label: `${PASSWORD_RULES.minLength}+ characters`, met: password.length >= PASSWORD_RULES.minLength },
@@ -31,25 +32,81 @@ function PasswordStrength({ password }: { password: string }) {
   ];
 
   const metCount = checks.filter(c => c.met).length;
+  const strengthLabel = metCount === 0 ? '' : metCount <= 1 ? 'Weak' : metCount <= 2 ? 'Fair' : metCount <= 3 ? 'Good' : 'Strong';
+  const strengthColor = metCount <= 1 ? 'text-red-400' : metCount <= 2 ? 'text-orange-400' : metCount <= 3 ? 'text-yellow-400' : 'text-green-400';
 
   return (
-    <div className="space-y-1.5 mt-2">
-      <div className="flex gap-1">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className={cn(
-            'h-1 flex-1 rounded-full transition-colors duration-200',
-            i <= metCount ? (metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-orange-500' : metCount <= 3 ? 'bg-yellow-500' : 'bg-green-500') : 'bg-arena-border'
-          )} />
-        ))}
+    <div className="space-y-2 mt-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1.5 flex-1">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className={cn(
+              'h-1.5 flex-1 rounded-full transition-all duration-300',
+              i <= metCount ? (metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-orange-500' : metCount <= 3 ? 'bg-yellow-500' : 'bg-green-500') : 'bg-arena-border/50'
+            )} />
+          ))}
+        </div>
+        {strengthLabel && (
+          <span className={cn('text-[11px] font-semibold ml-3 transition-colors duration-300', strengthColor)}>
+            {strengthLabel}
+          </span>
+        )}
       </div>
-      <div className="space-y-0.5">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {checks.map((check) => (
-          <div key={check.label} className={cn('flex items-center gap-1.5 text-[10px] transition-colors duration-200', check.met ? 'text-green-400' : 'text-arena-text-muted')}>
-            {check.met ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+          <div key={check.label} className={cn(
+            'flex items-center gap-1.5 text-[11px] transition-all duration-200',
+            check.met ? 'text-green-400' : 'text-arena-text-muted/60'
+          )}>
+            <div className={cn(
+              'w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200',
+              check.met ? 'bg-green-500/20' : 'bg-arena-border/30'
+            )}>
+              {check.met ? <Check className="w-2.5 h-2.5" /> : <div className="w-1 h-1 rounded-full bg-arena-text-muted/30" />}
+            </div>
             {check.label}
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Reusable input field wrapper with icon support
+function FormField({
+  label,
+  required,
+  optional,
+  icon,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  optional?: boolean;
+  icon?: React.ReactNode;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="text-[13px] font-medium text-arena-text-primary/80 mb-1.5 block">
+        {label}
+        {required && <span className="text-arena-accent ml-0.5">*</span>}
+        {optional && <span className="text-arena-text-muted text-[11px] ml-1.5 font-normal">(optional)</span>}
+      </label>
+      <div className="relative">
+        {icon && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-arena-text-muted/50 pointer-events-none">
+            {icon}
+          </div>
+        )}
+        {children}
+      </div>
+      {error && <p className="text-[11px] text-red-400 mt-1 flex items-center gap-1"><X className="w-3 h-3" />{error}</p>}
+      {hint && !error && <p className="text-[11px] text-arena-text-muted/60 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -80,6 +137,10 @@ export function LandingView() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpVerified, setOtpVerified] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
 
   // Handle OAuth error params from Discord callback redirect
   useEffect(() => {
@@ -93,10 +154,32 @@ export function LandingView() {
         'account_banned': 'This account has been banned.',
       };
       toast.error(errorMessages[error] || `Login error: ${error}`);
-      // Clean URL without reloading
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  // Username availability check (debounced)
+  const checkUsername = useCallback(async (username: string) => {
+    if (username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_-]+$/.test(username)) {
+      setUsernameAvailable(null);
+      return;
+    }
+    setUsernameChecking(true);
+    try {
+      const res = await fetch(`/api/profiles/${username}`)
+      setUsernameAvailable(!res.ok) // 404 = available
+    } catch {
+      setUsernameAvailable(null)
+    }
+    setUsernameChecking(false);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (signupForm.username) checkUsername(signupForm.username)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [signupForm.username, checkUsername])
 
   const { data: featuredTournaments } = useQuery({
     queryKey: ['featured-tournaments'],
@@ -144,15 +227,12 @@ export function LandingView() {
       toast.error('Enter a valid 10-digit Indian phone number');
       return;
     }
-    // In production, this would call an SMS API.
-    // For now, we simulate OTP send and auto-verify
     toast.success('OTP sent to your phone! (Demo: use any 6-digit code)');
     setOtpSent(true);
   };
 
   const handleVerifyOtp = () => {
     if (otp.length === 6) {
-      // In production, this would verify against the actual OTP
       setOtpVerified(true);
       toast.success('Phone number verified!');
     } else {
@@ -162,6 +242,11 @@ export function LandingView() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!agreedToTerms) {
+      toast.error('Please agree to the Terms & Conditions');
+      return;
+    }
 
     // Validate password
     if (signupForm.password.length < 8 || !/[A-Z]/.test(signupForm.password) || !/[a-z]/.test(signupForm.password) || !/[0-9]/.test(signupForm.password)) {
@@ -180,12 +265,6 @@ export function LandingView() {
       toast.error('Enter a valid 10-digit Indian phone number');
       return;
     }
-
-    // Note: OTP verification is optional for now (can be made mandatory later)
-    // if (signupForm.phone && !otpVerified) {
-    //   toast.error('Please verify your phone number');
-    //   return;
-    // }
 
     setSignupLoading(true);
     try {
@@ -215,7 +294,19 @@ export function LandingView() {
     setSignupLoading(false);
   };
 
-  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150";
+  // Enhanced input styles
+  const inputBase = "w-full bg-arena-surface/50 border border-arena-border/60 rounded-xl text-sm text-arena-text-primary placeholder:text-arena-text-muted/40 focus:outline-none focus:border-arena-accent/70 focus:ring-2 focus:ring-arena-accent/10 transition-all duration-200";
+  const inputDefault = cn(inputBase, "px-4 py-3 h-12");
+  const inputWithIcon = cn(inputBase, "pl-10 pr-4 py-3 h-12");
+  const inputWithRightAction = cn(inputBase, "pl-10 pr-12 py-3 h-12");
+
+  // Username validation state
+  const usernameValid = signupForm.username.length >= 3 && /^[a-zA-Z0-9_-]+$/.test(signupForm.username);
+  const usernameError = signupForm.username.length > 0 && !usernameValid
+    ? 'Only letters, numbers, underscores, and hyphens'
+    : usernameValid && usernameAvailable === false
+    ? 'This username is already taken'
+    : undefined;
 
   return (
     <div className="min-h-screen bg-arena-dark">
@@ -263,27 +354,21 @@ export function LandingView() {
             {/* Right - Animated Logo */}
             <div className="flex-shrink-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
               <div className="hero-energy-container w-48 h-48 md:w-64 md:h-64">
-                {/* Background aura */}
                 <div className="energy-aura" />
-                {/* Energy swirls */}
                 <div className="energy-swirl" />
                 <div className="energy-swirl energy-swirl-2" />
-                {/* Rotating energy rings */}
                 <div className="energy-ring energy-ring-1" />
                 <div className="energy-ring energy-ring-2" />
                 <div className="energy-ring energy-ring-3" />
-                {/* Floating particles */}
                 <div className="energy-particle energy-particle-1" />
                 <div className="energy-particle energy-particle-2" />
                 <div className="energy-particle energy-particle-3" />
                 <div className="energy-particle energy-particle-4" />
                 <div className="energy-particle energy-particle-5" />
                 <div className="energy-particle energy-particle-6" />
-                {/* Energy streaks */}
                 <div className="energy-streak energy-streak-1" />
                 <div className="energy-streak energy-streak-2" />
                 <div className="energy-streak energy-streak-3" />
-                {/* The Logo */}
                 <img
                   src="/logo-hero.webp"
                   alt="Aether Arena"
@@ -421,7 +506,7 @@ export function LandingView() {
           <div className="border-t border-arena-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Image src="/logo-md.webp" alt="Aether Arena" width={24} height={24} className="w-6 h-6 rounded-lg" />
-              <span className="text-xs text-arena-text-muted">© {new Date().getFullYear()} Aether Arena. All rights reserved.</span>
+              <span className="text-xs text-arena-text-muted">&copy; {new Date().getFullYear()} Aether Arena. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-4">
               {[
@@ -443,146 +528,261 @@ export function LandingView() {
       <ArenaModal open={showLogin} onClose={() => setShowLogin(false)} title="Welcome Back" description="Sign in to your Aether Arena account" icon={<User className="w-5 h-5" />}>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Username, Email, or Phone</label>
-            <input type="text" required value={loginForm.identifier} onChange={e => setLoginForm({ ...loginForm, identifier: e.target.value })} className={inputClass} placeholder="username / your@email.com / 9876543210" />
+            <label className="text-[13px] font-medium text-arena-text-primary/80 mb-1.5 block">Username, Email, or Phone</label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-arena-text-muted/50"><User className="w-4.5 h-4.5" /></div>
+              <input type="text" required value={loginForm.identifier} onChange={e => setLoginForm({ ...loginForm, identifier: e.target.value })} className={inputWithIcon} placeholder="username / your@email.com / 9876543210" />
+            </div>
           </div>
           <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
+            <label className="text-[13px] font-medium text-arena-text-primary/80 mb-1.5 block">Password</label>
             <div className="relative">
-              <input type={showPassword ? "text" : "password"} required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className={cn(inputClass, 'pr-10')} placeholder="••••••••" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-arena-text-muted/50"><Lock className="w-4.5 h-4.5" /></div>
+              <input type={showPassword ? "text" : "password"} required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className={cn(inputBase, "pl-10 pr-12 py-3 h-12")} placeholder="Enter your password" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors p-1 rounded-md hover:bg-arena-surface">
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
-          <button type="submit" disabled={loginLoading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
-            {loginLoading ? 'Logging in...' : 'Log In'}
+          <button type="submit" disabled={loginLoading} className="w-full py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 mt-2">
+            {loginLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Logging in...</> : 'Log In'}
           </button>
           {/* Discord OAuth */}
-          <div className="relative flex items-center gap-3 my-2">
-            <div className="flex-1 h-px bg-arena-border" />
-            <span className="text-xs text-arena-text-muted">or continue with</span>
-            <div className="flex-1 h-px bg-arena-border" />
+          <div className="relative flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-arena-border/50" />
+            <span className="text-[11px] text-arena-text-muted/60">or continue with</span>
+            <div className="flex-1 h-px bg-arena-border/50" />
           </div>
           <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
-            className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
+            className="w-full py-3 h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2.5">
             <DiscordIcon />
-            Discord
+            Continue with Discord
           </button>
-          <p className="text-center text-sm text-arena-text-muted">
+          <p className="text-center text-[13px] text-arena-text-muted mt-1">
             Don&apos;t have an account?{' '}
-            <button type="button" onClick={() => { setShowLogin(false); setShowSignup(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Sign Up</button>
+            <button type="button" onClick={() => { setShowLogin(false); setShowSignup(true); }} className="text-arena-accent hover:underline font-medium transition-colors duration-150">Sign Up</button>
           </p>
         </form>
       </ArenaModal>
 
-      {/* ===== SIGNUP MODAL ===== */}
-      <ArenaModal open={showSignup} onClose={() => setShowSignup(false)} title="Create Account" description="Join Aether Arena and start competing" icon={<User className="w-5 h-5" />} size="lg">
-        <form onSubmit={handleSignup} className="space-y-3">
-          {/* Display Name */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Display Name</label>
-            <input type="text" required value={signupForm.displayName} onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })} className={inputClass} placeholder="Your display name (can be common)" />
+      {/* ===== SIGNUP MODAL — REDESIGNED ===== */}
+      <ArenaModal open={showSignup} onClose={() => setShowSignup(false)} title="Create Account" description="Join Aether Arena and start competing" icon={<Sparkles className="w-5 h-5" />} size="lg">
+        <form onSubmit={handleSignup} className="space-y-4">
+
+          {/* ── Section: Identity ─────────────────────── */}
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-5 h-5 rounded-md bg-arena-accent/10 flex items-center justify-center"><User className="w-3 h-3 text-arena-accent" /></div>
+            <span className="text-[11px] font-semibold text-arena-text-muted uppercase tracking-wider">Your Identity</span>
           </div>
 
-          {/* Username */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Username <span className="text-arena-accent">*</span></label>
-            <input type="text" required value={signupForm.username} onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })} className={inputClass} placeholder="unique_username (3-20 chars)" />
-            <p className="text-[10px] text-arena-text-muted mt-0.5">Must be unique. Letters, numbers, underscores, and hyphens only.</p>
-          </div>
+          {/* Display Name */}
+          <FormField label="Display Name" optional icon={<User className="w-4.5 h-4.5" />}>
+            <input
+              type="text"
+              value={signupForm.displayName}
+              onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })}
+              className={inputWithIcon}
+              placeholder="What should we call you?"
+            />
+          </FormField>
+
+          {/* Username with availability check */}
+          <FormField
+            label="Username"
+            required
+            icon={<AtSign className="w-4.5 h-4.5" />}
+            error={usernameError}
+            hint={!signupForm.username ? '3-20 characters. Letters, numbers, _ and - only.' : undefined}
+          >
+            <div className="relative">
+              <input
+                type="text"
+                required
+                value={signupForm.username}
+                onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })}
+                className={cn(inputBase, "pl-10 pr-10 py-3 h-12", usernameValid && usernameAvailable === true && "border-green-500/40 focus:border-green-500/60", usernameValid && usernameAvailable === false && "border-red-500/40 focus:border-red-500/60")}
+                placeholder="unique_username"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                {usernameChecking && <Loader2 className="w-4 h-4 text-arena-text-muted animate-spin" />}
+                {!usernameChecking && usernameValid && usernameAvailable === true && <Check className="w-4 h-4 text-green-400" />}
+                {!usernameChecking && usernameValid && usernameAvailable === false && <X className="w-4 h-4 text-red-400" />}
+              </div>
+            </div>
+          </FormField>
 
           {/* Email */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Email Address <span className="text-arena-accent">*</span></label>
-            <input type="email" required value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className={inputClass} placeholder="your@email.com" />
-          </div>
+          <FormField label="Email Address" required icon={<Mail className="w-4.5 h-4.5" />}>
+            <input
+              type="email"
+              required
+              value={signupForm.email}
+              onChange={e => setSignupForm({ ...signupForm, email: e.target.value })}
+              className={inputWithIcon}
+              placeholder="your@email.com"
+            />
+          </FormField>
 
           {/* Phone with OTP */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Phone Number</label>
+          <FormField label="Phone Number" optional icon={<Phone className="w-4.5 h-4.5" />}>
             <div className="flex gap-2">
               <div className="flex-1 relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-arena-text-muted">+91</span>
-                <input type="tel" value={signupForm.phone} onChange={e => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} className={cn(inputClass, 'pl-12')} placeholder="9876543210" />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-arena-text-muted/60 font-medium">+91</div>
+                <input
+                  type="tel"
+                  value={signupForm.phone}
+                  onChange={e => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                  className={cn(inputBase, "pl-12 pr-4 py-3 h-12")}
+                  placeholder="9876543210"
+                />
               </div>
               {!otpVerified && (
                 <button type="button" onClick={handleSendOtp} disabled={!signupForm.phone || signupForm.phone.length !== 10}
-                  className="px-4 h-11 bg-arena-accent/20 text-arena-accent text-xs font-semibold rounded-xl hover:bg-arena-accent/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                  className="px-4 h-12 bg-arena-accent/15 text-arena-accent text-[12px] font-semibold rounded-xl hover:bg-arena-accent/25 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap border border-arena-accent/20">
                   {otpSent ? 'Resend' : 'Send OTP'}
                 </button>
               )}
               {otpVerified && (
-                <div className="flex items-center gap-1 px-3 h-11 bg-green-500/10 text-green-400 text-xs font-semibold rounded-xl">
-                  <Check className="w-3.5 h-3.5" /> Verified
+                <div className="flex items-center gap-1.5 px-4 h-12 bg-green-500/10 border border-green-500/20 text-green-400 text-[12px] font-semibold rounded-xl">
+                  <Check className="w-4 h-4" /> Verified
                 </div>
               )}
             </div>
             {/* OTP Input */}
             {otpSent && !otpVerified && (
               <div className="flex gap-2 mt-2">
-                <input type="text" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} className={cn(inputClass, 'h-9 text-center tracking-[0.3em] font-mono')} placeholder="000000" maxLength={6} />
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className={cn(inputBase, "h-10 text-center tracking-[0.4em] font-mono text-base px-3 py-2")}
+                  placeholder="000000"
+                  maxLength={6}
+                />
                 <button type="button" onClick={handleVerifyOtp} disabled={otp.length !== 6}
-                  className="px-3 h-9 bg-green-500/20 text-green-400 text-xs font-semibold rounded-lg hover:bg-green-500/30 transition-colors disabled:opacity-40">
+                  className="px-4 h-10 bg-green-500/15 border border-green-500/20 text-green-400 text-[12px] font-semibold rounded-xl hover:bg-green-500/25 active:scale-95 transition-all disabled:opacity-30">
                   Verify
                 </button>
               </div>
             )}
+          </FormField>
+
+          {/* ── Section: Security ─────────────────────── */}
+          <div className="flex items-center gap-2 mt-2 mb-1">
+            <div className="w-5 h-5 rounded-md bg-arena-accent/10 flex items-center justify-center"><Lock className="w-3 h-3 text-arena-accent" /></div>
+            <span className="text-[11px] font-semibold text-arena-text-muted uppercase tracking-wider">Security</span>
           </div>
 
           {/* Password */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Create Password <span className="text-arena-accent">*</span></label>
+          <FormField label="Create Password" required icon={<Lock className="w-4.5 h-4.5" />}>
             <div className="relative">
-              <input type={showPassword ? "text" : "password"} required minLength={8} value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className={cn(inputClass, 'pr-10')} placeholder="Min 8 chars, A-Z, a-z, 0-9" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                minLength={8}
+                value={signupForm.password}
+                onChange={e => setSignupForm({ ...signupForm, password: e.target.value })}
+                className={cn(inputBase, "pl-10 pr-12 py-3 h-12")}
+                placeholder="Create a strong password"
+              />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors p-1 rounded-md hover:bg-arena-surface">
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {signupForm.password && <PasswordStrength password={signupForm.password} />}
-          </div>
+          </FormField>
 
           {/* Confirm Password */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Confirm Password <span className="text-arena-accent">*</span></label>
+          <FormField
+            label="Confirm Password"
+            required
+            icon={<Shield className="w-4.5 h-4.5" />}
+            error={signupForm.confirmPassword.length > 0 && signupForm.password !== signupForm.confirmPassword ? 'Passwords do not match' : undefined}
+          >
             <div className="relative">
-              <input type={showConfirmPassword ? "text" : "password"} required value={signupForm.confirmPassword} onChange={e => setSignupForm({ ...signupForm, confirmPassword: e.target.value })} className={cn(inputClass, 'pr-10')} placeholder="Re-enter your password" />
-              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                required
+                value={signupForm.confirmPassword}
+                onChange={e => setSignupForm({ ...signupForm, confirmPassword: e.target.value })}
+                className={cn(inputBase, "pl-10 pr-10 py-3 h-12", signupForm.confirmPassword.length > 0 && signupForm.password === signupForm.confirmPassword && "border-green-500/40 focus:border-green-500/60")}
+                placeholder="Re-enter your password"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {signupForm.confirmPassword.length > 0 && signupForm.password === signupForm.confirmPassword && (
+                  <Check className="w-4 h-4 text-green-400" />
+                )}
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="text-arena-text-muted hover:text-arena-text-primary transition-colors p-0.5 rounded-md hover:bg-arena-surface">
+                  {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
-            {signupForm.confirmPassword && signupForm.password !== signupForm.confirmPassword && (
-              <p className="text-[10px] text-red-400 mt-0.5">Passwords do not match</p>
-            )}
-            {signupForm.confirmPassword && signupForm.password === signupForm.confirmPassword && (
-              <p className="text-[10px] text-green-400 mt-0.5 flex items-center gap-1"><Check className="w-3 h-3" /> Passwords match</p>
-            )}
-          </div>
+          </FormField>
 
-          {/* Referral Code */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Referral Code <span className="text-arena-text-muted">(optional)</span></label>
-            <input type="text" value={signupForm.referralCode} onChange={e => setSignupForm({ ...signupForm, referralCode: e.target.value })} className={inputClass} placeholder="Enter referral code if you have one" />
-          </div>
+          {/* ── Section: Extras ─────────────────────── */}
+          {/* Referral Code — collapsible */}
+          {!showReferral ? (
+            <button type="button" onClick={() => setShowReferral(true)} className="flex items-center gap-1.5 text-[12px] text-arena-accent/70 hover:text-arena-accent transition-colors mt-1">
+              <Gift className="w-3.5 h-3.5" />
+              Have a referral code?
+            </button>
+          ) : (
+            <FormField label="Referral Code" optional icon={<Gift className="w-4.5 h-4.5" />}>
+              <input
+                type="text"
+                value={signupForm.referralCode}
+                onChange={e => setSignupForm({ ...signupForm, referralCode: e.target.value })}
+                className={inputWithIcon}
+                placeholder="Enter referral code"
+              />
+            </FormField>
+          )}
 
-          <button type="submit" disabled={signupLoading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
-            {signupLoading ? 'Creating Account...' : 'Create Account'}
+          {/* Terms & Conditions */}
+          <label className="flex items-start gap-3 mt-2 cursor-pointer group">
+            <div className="relative mt-0.5">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={e => setAgreedToTerms(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className={cn(
+                'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200',
+                agreedToTerms
+                  ? 'bg-arena-accent border-arena-accent'
+                  : 'border-arena-border/60 group-hover:border-arena-accent/40'
+              )}>
+                {agreedToTerms && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+              </div>
+            </div>
+            <span className="text-[12px] text-arena-text-muted leading-relaxed">
+              I agree to the{' '}
+              <button type="button" onClick={() => nav('terms-conditions')} className="text-arena-accent hover:underline">Terms &amp; Conditions</button>
+              {' '}and{' '}
+              <button type="button" onClick={() => nav('privacy-policy')} className="text-arena-accent hover:underline">Privacy Policy</button>
+            </span>
+          </label>
+
+          {/* Submit */}
+          <button type="submit" disabled={signupLoading || !agreedToTerms} className="w-full py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-1 active:scale-[0.98]">
+            {signupLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating Account...</> : <><Sparkles className="w-4 h-4" /> Create Account</>}
           </button>
 
           {/* Discord OAuth */}
-          <div className="relative flex items-center gap-3 my-2">
-            <div className="flex-1 h-px bg-arena-border" />
-            <span className="text-xs text-arena-text-muted">or sign up with</span>
-            <div className="flex-1 h-px bg-arena-border" />
+          <div className="relative flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-arena-border/50" />
+            <span className="text-[11px] text-arena-text-muted/60">or sign up with</span>
+            <div className="flex-1 h-px bg-arena-border/50" />
           </div>
           <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
-            className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
+            className="w-full py-3 h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98]">
             <DiscordIcon />
             Continue with Discord
           </button>
-          <p className="text-center text-sm text-arena-text-muted">
+          <p className="text-center text-[13px] text-arena-text-muted">
             Already have an account?{' '}
-            <button type="button" onClick={() => { setShowSignup(false); setShowLogin(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Log In</button>
+            <button type="button" onClick={() => { setShowSignup(false); setShowLogin(true); }} className="text-arena-accent hover:underline font-medium transition-colors duration-150">Log In</button>
           </p>
         </form>
       </ArenaModal>
