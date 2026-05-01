@@ -185,12 +185,12 @@ export async function POST(request: Request) {
               emailVerified: false,
               emailVerificationToken: crypto.randomBytes(32).toString('hex'),
               emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-            },
+            } as any,
           },
         },
         include: {
           credentials: {
-            select: { email: true, phone: true, emailVerificationToken: true },
+            select: { email: true, phone: true, emailVerificationToken: true } as any,
           },
         },
       })

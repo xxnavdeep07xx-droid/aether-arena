@@ -14,8 +14,9 @@ export async function GET(request: Request) {
 
   try {
     // Find the credential with this verification token
-    const credential = await db.accountCredential.findUnique({
-      where: { emailVerificationToken: token },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const credential: any = await db.accountCredential.findUnique({
+      where: { emailVerificationToken: token } as any,
     })
 
     if (!credential) {
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
         emailVerified: true,
         emailVerificationToken: null,
         emailVerificationExpires: null,
-      },
+      } as any,
     })
 
     return NextResponse.redirect(

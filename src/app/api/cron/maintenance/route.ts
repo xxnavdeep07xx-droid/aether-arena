@@ -86,11 +86,11 @@ export async function GET(request: Request) {
         emailVerificationToken: { not: null },
         emailVerificationExpires: { lt: new Date() },
         emailVerified: false,
-      },
+      } as any,
       data: {
         emailVerificationToken: null,
         emailVerificationExpires: null,
-      },
+      } as any,
     })
     results.push(`Expired email verification tokens cleaned: ${expiredTokens.count}`)
   } catch (e) {

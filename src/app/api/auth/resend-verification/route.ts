@@ -33,8 +33,10 @@ export async function POST(request: Request) {
       )
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c: any = credential;
     // Already verified
-    if (credential.emailVerified) {
+    if (c.emailVerified) {
       return NextResponse.json(
         { message: 'Email is already verified' },
         { status: 200 }
@@ -43,8 +45,8 @@ export async function POST(request: Request) {
 
     // Check cooldown: don't resend if last token was created < 60 seconds ago
     if (
-      credential.emailVerificationExpires &&
-      new Date(Date.now() - 60 * 1000) < new Date(credential.emailVerificationExpires.getTime() - 24 * 60 * 60 * 1000)
+      c.emailVerificationExpires &&
+      new Date(Date.now() - 60 * 1000) < new Date(c.emailVerificationExpires.getTime() - 24 * 60 * 60 * 1000)
     ) {
       return NextResponse.json(
         { error: 'Please wait 60 seconds before requesting another verification email.' },
@@ -61,7 +63,7 @@ export async function POST(request: Request) {
       data: {
         emailVerificationToken: verificationToken,
         emailVerificationExpires: verificationExpires,
-      },
+      } as any,
     })
 
     // Send the email

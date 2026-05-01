@@ -36,9 +36,9 @@ export function ArenaModal({ open, onClose, title, description, icon, size = 'md
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className={cn('bg-arena-card border border-arena-border rounded-2xl w-full shadow-xl shadow-arena-accent/5 overflow-hidden animate-fade-in-up', sizeClasses[size])} onClick={e => e.stopPropagation()}>
-        {showAccentBar && <div className="h-[3px] bg-gradient-to-r from-arena-accent via-arena-purple to-arena-accent" />}
-        <div className="p-6">
+      <div className={cn('bg-arena-card border border-arena-border rounded-2xl w-full shadow-xl shadow-arena-accent/5 overflow-hidden animate-fade-in-up max-h-[90vh] flex flex-col', sizeClasses[size])} onClick={e => e.stopPropagation()}>
+        {showAccentBar && <div className="h-[3px] bg-gradient-to-r from-arena-accent via-arena-purple to-arena-accent flex-shrink-0" />}
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           {(title || icon) && (
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">

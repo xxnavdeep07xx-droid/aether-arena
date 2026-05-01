@@ -31,7 +31,7 @@ export async function GET() {
         totalPrizeWon: true,
         scheduledDeletionAt: true,
         credentials: {
-          select: { email: true, phone: true, emailVerified: true },
+          select: { email: true, phone: true, emailVerified: true } as any,
         },
       },
     })
