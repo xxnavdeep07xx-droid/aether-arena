@@ -37,8 +37,10 @@ interface ApiPreferences {
 // ==================== SETTINGS VIEW ====================
 
 export function SettingsView() {
+  const [settingsTab, setSettingsTab] = useState(0);
+
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-4 max-w-2xl">
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-arena-accent/15 flex items-center justify-center">
           <Settings className="w-5 h-5 text-arena-accent" />
@@ -49,13 +51,46 @@ export function SettingsView() {
         </div>
       </div>
 
-      <ProfileSettingsSection />
-      <ConnectedAccountsSection />
-      <AppearanceSection />
-      <LanguageSection />
-      <NotificationSettingsSection />
-      <PrivacyDataSection />
-      <AccountSection />
+      {/* Tab Bar */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+        {[
+          { icon: User, label: 'Profile' },
+          { icon: Settings, label: 'Preferences' },
+          { icon: ShieldCheck, label: 'Privacy & Account' },
+        ].map((tab, i) => (
+          <button key={tab.label} onClick={() => setSettingsTab(i)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200',
+              settingsTab === i
+                ? 'bg-arena-accent/15 text-arena-accent border border-arena-accent/20'
+                : 'text-arena-text-muted hover:text-arena-text-secondary border border-transparent hover:border-arena-border/40'
+            )}>
+            <tab.icon className="w-3.5 h-3.5" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {settingsTab === 0 && (
+        <>
+          <ProfileSettingsSection />
+          <ConnectedAccountsSection />
+        </>
+      )}
+      {settingsTab === 1 && (
+        <>
+          <AppearanceSection />
+          <LanguageSection />
+          <NotificationSettingsSection />
+        </>
+      )}
+      {settingsTab === 2 && (
+        <>
+          <PrivacyDataSection />
+          <AccountSection />
+        </>
+      )}
     </div>
   );
 }

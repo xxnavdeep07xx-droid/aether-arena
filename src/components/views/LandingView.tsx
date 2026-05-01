@@ -142,7 +142,7 @@ export function LandingView() {
   const [showReferral, setShowReferral] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
-  const [signupStep, setSignupStep] = useState(0); // 0=Identity, 1=Security, 2=Finish
+  const [signupStep, setSignupStep] = useState(0); // 0=Identity, 1=Contact, 2=Security, 3=Finish
 
   // Handle OAuth error params from Discord callback redirect
   useEffect(() => {
@@ -311,24 +311,28 @@ export function LandingView() {
     : undefined;
 
   // Step validation
-  const isStep0Valid = signupForm.username.length >= 3 && usernameValid && usernameAvailable === true && signupForm.email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupForm.email);
-  const isStep1Valid = signupForm.password.length >= 8 && /[A-Z]/.test(signupForm.password) && /[a-z]/.test(signupForm.password) && /[0-9]/.test(signupForm.password) && signupForm.password === signupForm.confirmPassword;
-  const isStep2Valid = agreedToTerms;
+  const isStep0Valid = signupForm.username.length >= 3 && usernameValid && usernameAvailable === true;
+  const isStep1Valid = signupForm.email.length > 0 && /^\S+@\S+\.\S+$/.test(signupForm.email);
+  const isStep2Valid = signupForm.password.length >= 8 && /[A-Z]/.test(signupForm.password) && /[a-z]/.test(signupForm.password) && /[0-9]/.test(signupForm.password) && signupForm.password === signupForm.confirmPassword;
+  const isStep3Valid = agreedToTerms;
 
   const goNextStep = () => {
     if (signupStep === 0 && !isStep0Valid) {
       if (!signupForm.username || !usernameValid) toast.error('Please enter a valid username');
       else if (usernameAvailable !== true) toast.error('Username must be available');
-      else if (!signupForm.email) toast.error('Email is required');
-      else toast.error('Please fill all required fields');
       return;
     }
     if (signupStep === 1 && !isStep1Valid) {
+      if (!signupForm.email) toast.error('Email is required');
+      else toast.error('Please enter a valid email address');
+      return;
+    }
+    if (signupStep === 2 && !isStep2Valid) {
       if (signupForm.password.length < 8 || !/[A-Z]/.test(signupForm.password) || !/[a-z]/.test(signupForm.password) || !/[0-9]/.test(signupForm.password)) toast.error('Password must be 8+ chars with uppercase, lowercase, and number');
       else if (signupForm.password !== signupForm.confirmPassword) toast.error('Passwords do not match');
       return;
     }
-    setSignupStep(s => Math.min(s + 1, 2));
+    setSignupStep(s => Math.min(s + 1, 3));
   };
 
   const goPrevStep = () => setSignupStep(s => Math.max(s - 1, 0));
@@ -595,34 +599,35 @@ export function LandingView() {
       </ArenaModal>
 
       {/* ===== SIGNUP MODAL — MULTI-STEP WIZARD ===== */}
-      <ArenaModal open={showSignup} onClose={closeSignup} title="Create Account" description={signupStep === 0 ? 'Tell us who you are' : signupStep === 1 ? 'Secure your account' : 'Almost there!'} icon={<Sparkles className="w-5 h-5" />} size="lg">
+      <ArenaModal open={showSignup} onClose={closeSignup} title="Create Account" description={signupStep === 0 ? 'Tell us who you are' : signupStep === 1 ? 'How can we reach you?' : signupStep === 2 ? 'Secure your account' : 'Almost there!'} icon={<Sparkles className="w-5 h-5" />} size="lg">
         <form onSubmit={handleSignup} className="space-y-0">
 
           {/* ── Stepper Progress ─────────────────────── */}
-          <div className="flex items-center gap-2 mb-5">
+          <div className="flex items-center gap-1.5 mb-5">
             {[
               { icon: User, label: 'Identity' },
+              { icon: Mail, label: 'Contact' },
               { icon: Lock, label: 'Security' },
               { icon: Sparkles, label: 'Finish' },
             ].map((step, i) => (
               <div key={step.label} className="flex items-center flex-1">
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-1.5 flex-1">
                   <div className={cn(
-                    'w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300',
+                    'w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300',
                     i < signupStep ? 'bg-green-500/20 text-green-400' :
                     i === signupStep ? 'bg-arena-accent/20 text-arena-accent' :
                     'bg-arena-border/30 text-arena-text-muted/40'
                   )}>
-                    {i < signupStep ? <Check className="w-3.5 h-3.5" /> : <step.icon className="w-3.5 h-3.5" />}
+                    {i < signupStep ? <Check className="w-3 h-3" /> : <step.icon className="w-3 h-3" />}
                   </div>
                   <span className={cn(
-                    'text-[11px] font-medium hidden sm:inline transition-colors duration-300',
+                    'text-[10px] font-medium hidden sm:inline transition-colors duration-300',
                     i <= signupStep ? 'text-arena-text-primary' : 'text-arena-text-muted/40'
                   )}>{step.label}</span>
                 </div>
-                {i < 2 && (
+                {i < 3 && (
                   <div className={cn(
-                    'h-0.5 flex-1 mx-1 rounded-full transition-all duration-300',
+                    'h-0.5 flex-1 mx-0.5 rounded-full transition-all duration-300',
                     i < signupStep ? 'bg-green-500/40' : 'bg-arena-border/30'
                   )} />
                 )}
@@ -670,18 +675,6 @@ export function LandingView() {
                 </div>
               </FormField>
 
-              {/* Email */}
-              <FormField label="Email Address" required icon={<Mail className="w-4.5 h-4.5" />}>
-                <input
-                  type="email"
-                  required
-                  value={signupForm.email}
-                  onChange={e => setSignupForm({ ...signupForm, email: e.target.value })}
-                  className={inputWithIcon}
-                  placeholder="your@email.com"
-                />
-              </FormField>
-
               {/* Navigation */}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={goNextStep} disabled={!isStep0Valid}
@@ -704,8 +697,82 @@ export function LandingView() {
             </div>
           )}
 
-          {/* ── Step 1: Security ─────────────────────── */}
+          {/* ── Step 1: Contact ─────────────────────── */}
           {signupStep === 1 && (
+            <div className="space-y-3.5 animate-fade-in">
+              {/* Email */}
+              <FormField label="Email Address" required icon={<Mail className="w-4.5 h-4.5" />}>
+                <input
+                  type="email"
+                  required
+                  value={signupForm.email}
+                  onChange={e => setSignupForm({ ...signupForm, email: e.target.value })}
+                  className={inputWithIcon}
+                  placeholder="your@email.com"
+                  autoFocus
+                />
+              </FormField>
+
+              {/* Phone with OTP */}
+              <FormField label="Phone Number" optional icon={<Phone className="w-4.5 h-4.5" />}>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-arena-text-muted/60 font-medium">+91</div>
+                    <input
+                      type="tel"
+                      value={signupForm.phone}
+                      onChange={e => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      className={cn(inputBase, "pl-12 pr-4 py-3 h-12")}
+                      placeholder="9876543210"
+                    />
+                  </div>
+                  {!otpVerified && (
+                    <button type="button" onClick={handleSendOtp} disabled={!signupForm.phone || signupForm.phone.length !== 10}
+                      className="px-4 h-12 bg-arena-accent/15 text-arena-accent text-[12px] font-semibold rounded-xl hover:bg-arena-accent/25 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap border border-arena-accent/20">
+                      {otpSent ? 'Resend' : 'Send OTP'}
+                    </button>
+                  )}
+                  {otpVerified && (
+                    <div className="flex items-center gap-1.5 px-4 h-12 bg-green-500/10 border border-green-500/20 text-green-400 text-[12px] font-semibold rounded-xl">
+                      <Check className="w-4 h-4" /> Verified
+                    </div>
+                  )}
+                </div>
+                {/* OTP Input */}
+                {otpSent && !otpVerified && (
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className={cn(inputBase, "h-10 text-center tracking-[0.4em] font-mono text-base px-3 py-2")}
+                      placeholder="000000"
+                      maxLength={6}
+                    />
+                    <button type="button" onClick={handleVerifyOtp} disabled={otp.length !== 6}
+                      className="px-4 h-10 bg-green-500/15 border border-green-500/20 text-green-400 text-[12px] font-semibold rounded-xl hover:bg-green-500/25 active:scale-95 transition-all disabled:opacity-30">
+                      Verify
+                    </button>
+                  </div>
+                )}
+              </FormField>
+
+              {/* Navigation */}
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={goPrevStep}
+                  className="px-5 h-12 border border-arena-border hover:border-arena-accent/40 text-arena-text-secondary hover:text-arena-text-primary font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 active:scale-[0.98]">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="button" onClick={goNextStep} disabled={!isStep1Valid}
+                  className="flex-1 py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]">
+                  Continue <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 2: Security ─────────────────────── */}
+          {signupStep === 2 && (
             <div className="space-y-3.5 animate-fade-in">
               {/* Password */}
               <FormField label="Create Password" required icon={<Lock className="w-4.5 h-4.5" />}>
@@ -760,7 +827,7 @@ export function LandingView() {
                   className="px-5 h-12 border border-arena-border hover:border-arena-accent/40 text-arena-text-secondary hover:text-arena-text-primary font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 active:scale-[0.98]">
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
-                <button type="button" onClick={goNextStep} disabled={!isStep1Valid}
+                <button type="button" onClick={goNextStep} disabled={!isStep2Valid}
                   className="flex-1 py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]">
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
@@ -768,54 +835,9 @@ export function LandingView() {
             </div>
           )}
 
-          {/* ── Step 2: Finish ─────────────────────── */}
-          {signupStep === 2 && (
+          {/* ── Step 3: Finish ─────────────────────── */}
+          {signupStep === 3 && (
             <div className="space-y-3.5 animate-fade-in">
-              {/* Phone with OTP */}
-              <FormField label="Phone Number" optional icon={<Phone className="w-4.5 h-4.5" />}>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-arena-text-muted/60 font-medium">+91</div>
-                    <input
-                      type="tel"
-                      value={signupForm.phone}
-                      onChange={e => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                      className={cn(inputBase, "pl-12 pr-4 py-3 h-12")}
-                      placeholder="9876543210"
-                      autoFocus
-                    />
-                  </div>
-                  {!otpVerified && (
-                    <button type="button" onClick={handleSendOtp} disabled={!signupForm.phone || signupForm.phone.length !== 10}
-                      className="px-4 h-12 bg-arena-accent/15 text-arena-accent text-[12px] font-semibold rounded-xl hover:bg-arena-accent/25 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap border border-arena-accent/20">
-                      {otpSent ? 'Resend' : 'Send OTP'}
-                    </button>
-                  )}
-                  {otpVerified && (
-                    <div className="flex items-center gap-1.5 px-4 h-12 bg-green-500/10 border border-green-500/20 text-green-400 text-[12px] font-semibold rounded-xl">
-                      <Check className="w-4 h-4" /> Verified
-                    </div>
-                  )}
-                </div>
-                {/* OTP Input */}
-                {otpSent && !otpVerified && (
-                  <div className="flex gap-2 mt-2">
-                    <input
-                      type="text"
-                      value={otp}
-                      onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className={cn(inputBase, "h-10 text-center tracking-[0.4em] font-mono text-base px-3 py-2")}
-                      placeholder="000000"
-                      maxLength={6}
-                    />
-                    <button type="button" onClick={handleVerifyOtp} disabled={otp.length !== 6}
-                      className="px-4 h-10 bg-green-500/15 border border-green-500/20 text-green-400 text-[12px] font-semibold rounded-xl hover:bg-green-500/25 active:scale-95 transition-all disabled:opacity-30">
-                      Verify
-                    </button>
-                  </div>
-                )}
-              </FormField>
-
               {/* Referral Code — collapsible */}
               {!showReferral ? (
                 <button type="button" onClick={() => setShowReferral(true)} className="flex items-center gap-1.5 text-[12px] text-arena-accent/70 hover:text-arena-accent transition-colors">
@@ -830,6 +852,7 @@ export function LandingView() {
                     onChange={e => setSignupForm({ ...signupForm, referralCode: e.target.value })}
                     className={inputWithIcon}
                     placeholder="Enter referral code"
+                    autoFocus
                   />
                 </FormField>
               )}
