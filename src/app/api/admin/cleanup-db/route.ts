@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 // Temporary endpoint to clear all seed/demo data from the database.
@@ -7,8 +7,9 @@ import { db } from '@/lib/db'
 
 export async function DELETE() {
   // Require admin auth
-  const session = await requireAuth()
-  if (!session || session.role !== 'admin') {
+  try {
+    await requireAdmin()
+  } catch {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
   }
 
