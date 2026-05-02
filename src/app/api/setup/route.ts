@@ -14,7 +14,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 // Database setup endpoint — creates missing tables/columns.
-// DELETE handler clears all seed/demo data from tables.
+// DELETE handler clears all data from tables (for admin cleanup).
 // Protected by SETUP_SECRET to prevent unauthorized access.
 // This is needed because prisma db push cannot be run from Vercel.
 // All SQL is PgBouncer-safe: single statements only, no multi-command strings.
@@ -588,83 +588,6 @@ export async function GET(request: Request) {
       results.push(`Announcement table: ${msg}`)
     }
 
-    // ── AetherTask seed data ──────────────────────────────────
-    try {
-      const taskCount: { count: number }[] = await db.$queryRawUnsafe(`
-        SELECT COUNT(*)::int as count FROM "AetherTask"
-      `)
-      if (taskCount[0]?.count === 0) {
-        const tasks = [
-          // Daily tasks
-          { task_key: 'daily_login', title: 'Daily Login', description: 'Open the app today', reward_amount: 5, category: 'daily', reset_type: 'daily', affiliate_url: null, display_order: 1 },
-          { task_key: 'view_tournament', title: 'View Tournament', description: 'View any tournament details', reward_amount: 3, category: 'daily', reset_type: 'daily', affiliate_url: null, display_order: 2 },
-          { task_key: 'check_leaderboard', title: 'Check Leaderboard', description: 'Visit the leaderboard page', reward_amount: 3, category: 'daily', reset_type: 'daily', affiliate_url: null, display_order: 3 },
-          // Tournament tasks
-          { task_key: 'register_tournament', title: 'Register for Tournament', description: 'Register for any tournament', reward_amount: 10, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 4 },
-          { task_key: 'play_tournament', title: 'Play a Tournament', description: 'Complete a tournament match', reward_amount: 25, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 5 },
-          { task_key: 'win_tournament', title: 'Win a Tournament', description: 'Win 1st place in a tournament', reward_amount: 100, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 6 },
-          { task_key: 'win_2nd_place', title: 'Win 2nd Place', description: 'Get 2nd place in a tournament', reward_amount: 60, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 7 },
-          { task_key: 'win_3rd_place', title: 'Win 3rd Place', description: 'Get 3rd place in a tournament', reward_amount: 40, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 8 },
-          // Engagement tasks
-          { task_key: 'complete_profile', title: 'Complete Profile', description: 'Add bio and avatar to your profile', reward_amount: 15, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 9 },
-          { task_key: 'refer_friend', title: 'Refer a Friend', description: 'Share referral link, friend signs up', reward_amount: 30, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 10 },
-          { task_key: 'streak_7', title: '7-Day Streak', description: 'Log in 7 consecutive days', reward_amount: 50, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 11 },
-          { task_key: 'streak_30', title: '30-Day Streak', description: 'Log in 30 consecutive days', reward_amount: 200, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 12 },
-          // Affiliate tasks
-          { task_key: 'try_bgmi', title: 'Try BGMI', description: 'Download BGMI via our affiliate link', reward_amount: 20, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/bgmi', display_order: 13 },
-          { task_key: 'try_freefire', title: 'Try Free Fire', description: 'Download Free Fire via our affiliate link', reward_amount: 20, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/freefire', display_order: 14 },
-          { task_key: 'try_codm', title: 'Try COD Mobile', description: 'Download COD Mobile via our affiliate link', reward_amount: 20, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/call-of-duty-mobile', display_order: 15 },
-          { task_key: 'try_clashroyale', title: 'Try Clash Royale', description: 'Download Clash Royale via our affiliate link', reward_amount: 15, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/clash-royale', display_order: 16 },
-          { task_key: 'try_valorant', title: 'Try Valorant Mobile', description: 'Download Valorant Mobile via our affiliate link', reward_amount: 15, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/valorant-mobile', display_order: 17 },
-        ]
-
-        for (const t of tasks) {
-          await db.$executeRawUnsafe(`
-            INSERT INTO "AetherTask" ("task_key", "title", "description", "reward_amount", "category", "reset_type", "affiliate_url", "display_order")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          `, t.task_key, t.title, t.description, t.reward_amount, t.category, t.reset_type, t.affiliate_url, t.display_order)
-        }
-        results.push(`AetherTask seed: inserted ${tasks.length} tasks`)
-      } else {
-        results.push('AetherTask seed: already has data, skipping')
-      }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'error'
-      results.push(`AetherTask seed: ${msg}`)
-    }
-
-    // ── PlatformSetting seed data (social links & defaults) ─────
-    try {
-      const defaultSettings: { key: string; value: string }[] = [
-        { key: 'youtube_channel_url', value: 'https://www.youtube.com/@Aether-Arena' },
-        { key: 'instagram_url', value: 'https://www.instagram.com/aetherarena?igsh=dGRreWFvOW5xMjlp' },
-        { key: 'discord_invite_url', value: 'https://discord.gg/NpWrVkyBB' },
-        { key: 'whatsapp_channel_url', value: 'https://whatsapp.com/channel/0029Vb7fpsUAYlUJ7Fhq7e26' },
-        { key: 'gpay_number', value: '9158396121' },
-        { key: 'razorpay_coming_soon', value: 'true' },
-      ]
-
-      let seeded = 0
-      for (const s of defaultSettings) {
-        // Only insert if the key doesn't already exist
-        const existing: { count: number }[] = await db.$queryRawUnsafe(
-          `SELECT COUNT(*)::int as count FROM "PlatformSetting" WHERE "key" = $1`,
-          s.key
-        )
-        if (existing[0]?.count === 0) {
-          await db.$executeRawUnsafe(
-            `INSERT INTO "PlatformSetting" ("key", "value") VALUES ($1, $2)`,
-            s.key, s.value
-          )
-          seeded++
-        }
-      }
-      results.push(`PlatformSetting seed: ${seeded > 0 ? `inserted ${seeded} defaults` : 'already exists, skipping'}`)
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'error'
-      results.push(`PlatformSetting seed: ${msg}`)
-    }
-
     return NextResponse.json({ success: true, results })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -672,8 +595,8 @@ export async function GET(request: Request) {
   }
 }
 
-// DELETE /api/setup — Clear ALL seed/demo data from every data table.
-// Keeps only the first admin user profile (real user) and their credentials.
+// DELETE /api/setup — Clear ALL data from every data table.
+// Keeps only real user profiles (those with AccountCredential) and their credentials.
 export async function DELETE(request: Request) {
   // Always require setup secret
   if (!SETUP_SECRET) {
