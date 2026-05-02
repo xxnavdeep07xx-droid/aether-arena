@@ -188,11 +188,11 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
   // Fetch GPay number from platform settings
   const { data: settings } = useQuery({
     queryKey: ['platform-settings-public'],
-    queryFn: () => fetch('/api/admin/settings').then(r => r.ok ? r.json() : {}).then(d => d.settings || {}),
+    queryFn: () => fetch('/api/admin/settings').then(r => r.ok ? r.json() : {}).then((d: Record<string, any>) => d.settings || {}),
   });
 
-  const gpayNumber = settings?.gpay_number || '9158396121';
-  const gpayUpiId = settings?.gpay_upi_id || '';
+  const gpayNumber = (settings as Record<string, string>)?.gpay_number || '9158396121';
+  const gpayUpiId = (settings as Record<string, string>)?.gpay_upi_id || '';
 
   if (tournament.entryFee === 0) {
     return (
