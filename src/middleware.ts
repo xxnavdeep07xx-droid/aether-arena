@@ -27,9 +27,17 @@ export function middleware(request: NextRequest) {
     // Block if origin/referer exists but doesn't match our domain
     const sourceUrl = origin || referer
     if (sourceUrl && host) {
-      const allowedOrigins = [host, `.${host}`] // exact match and subdomain match
-      const isValidOrigin = allowedOrigins.some(allowed => sourceUrl.includes(allowed))
-      if (!isValidOrigin) {
+      // Parse the origin to extract the hostname for strict comparison
+      // This prevents bypasses like evil-aether-arena.com matching aether-arena.com
+      try {
+        const sourceHost = new URL(sourceUrl).hostname
+        const isExactMatch = sourceHost === host
+        const isSubdomainMatch = sourceHost.endsWith(`.${host}`)
+        if (!isExactMatch && !isSubdomainMatch) {
+          return NextResponse.json({ error: 'CSRF check failed' }, { status: 403 })
+        }
+      } catch {
+        // Invalid URL in origin/referer header — block it
         return NextResponse.json({ error: 'CSRF check failed' }, { status: 403 })
       }
     }

@@ -7,7 +7,8 @@ import { updateSettingsSchema, formatZodError } from '@/lib/validations'
 const SENSITIVE_KEYS = new Set([
   'razorpay_key_secret',
   'razorpay_webhook_secret',
-  'gpay_upi_id', // semi-sensitive — only shown to admin
+  'gpay_number',   // Sensitive — only shown to admin via redacted indicator
+  'gpay_upi_id',   // Sensitive — only shown to admin via redacted indicator
 ])
 
 export async function GET(request: Request) {

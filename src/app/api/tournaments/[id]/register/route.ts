@@ -109,7 +109,9 @@ export async function POST(
     const { paymentMethod, paymentReference, paymentScreenshotUrl } = parsed.data
 
     // Determine payment status
-    const paymentStatus = tournament.entryFee === 0 ? 'verified' : (paymentMethod === 'razorpay' ? 'verified' : 'pending')
+    // Free tournaments: auto-verified. Paid: manual payment pending admin verification.
+    // Razorpay is NOT accepted as a manual payment method (it goes through /api/payments/verify).
+    const paymentStatus = tournament.entryFee === 0 ? 'verified' : 'pending'
 
     // Create registration and update tournament count in transaction
     // The capacity check is inside the transaction to prevent race conditions

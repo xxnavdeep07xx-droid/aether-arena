@@ -31,7 +31,25 @@ async function safeCreateIndex(table: string, column: string, unique = false) {
 }
 
 // PgBouncer-safe: add a column using a full DO $$ block with proper quoting
+// NOTE: This function is ONLY called from the setup endpoint which is protected by SETUP_SECRET.
+// The table and column names are hardcoded constants in the codebase, NOT user input.
+// The parameters are validated through a whitelist approach.
+const ALLOWED_TABLES = new Set(['Profile', 'Tournament', 'AccountCredential', 'ContactSubmission', 'AetherBalance', 'AetherTransaction', 'AetherTask', 'AetherTaskProgress', 'UserStreak', 'RedemptionRequest', 'TopupPack', 'Announcement', 'PlatformSetting'])
+const ALLOWED_COLUMNS: Record<string, Set<string>> = {
+  'Profile': new Set(['bio', 'discordId', 'discordUsername', 'league', 'leaguePoints', 'totalTournamentsPlayed', 'totalWins', 'totalKills', 'totalDeaths', 'totalPrizeWon', 'scheduledDeletionAt', 'referredByCode', 'notificationPrefs', 'privacyPrefs', 'language', 'phone']),
+  'Tournament': new Set(['bannerImageUrl', 'streamScheduled', 'streamPlatform', 'streamUrl', 'streamStartTime', 'streamViewers', 'isFeatured']),
+}
+
 async function safeAddColumn(table: string, column: string, type: string, nullable: boolean, defaultVal?: string) {
+  // Validate table and column names against whitelist to prevent SQL injection
+  if (!ALLOWED_TABLES.has(table)) {
+    throw new Error(`Invalid table name: ${table}`)
+  }
+  const allowedCols = ALLOWED_COLUMNS[table]
+  if (allowedCols && !allowedCols.has(column)) {
+    throw new Error(`Invalid column name: ${column} for table: ${table}`)
+  }
+
   // Build the full ALTER TABLE as a literal string (no dynamic EXECUTE)
   const notNull = nullable ? '' : ' NOT NULL'
   const def = defaultVal !== undefined ? ` DEFAULT ${defaultVal}` : ''

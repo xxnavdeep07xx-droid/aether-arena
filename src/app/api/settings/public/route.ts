@@ -35,6 +35,9 @@ if (typeof setInterval !== 'undefined') {
 }
 
 // Public settings that are safe to expose without authentication
+// NOTE: gpay_number and gpay_upi_id are NOT included here — they are only
+// visible to authenticated admins via /api/admin/settings. Users see
+// payment instructions without any bank/account details as per privacy policy.
 const PUBLIC_KEYS = new Set([
   'site_name',
   'youtube_channel_url',
@@ -42,8 +45,7 @@ const PUBLIC_KEYS = new Set([
   'discord_invite_url',
   'whatsapp_channel_url',
   'twitter_url',
-  'gpay_number',
-  'gpay_upi_id',
+  'gpay_payment_enabled',  // boolean flag — whether GPay payments are active
   'razorpay_coming_soon',
   'maintenance_mode',
   'maintenance_message',
@@ -71,7 +73,18 @@ export async function GET(request: Request) {
 
     const settingsMap: Record<string, string> = {}
     for (const setting of settings) {
+      // Extra safety: never leak payment credentials even if somehow in the DB result
+      if (setting.key === 'gpay_number' || setting.key === 'gpay_upi_id' || setting.key === 'razorpay_key_secret' || setting.key === 'razorpay_key_id') {
+        continue
+      }
       settingsMap[setting.key] = setting.value
+    }
+
+    // Default: if gpay_payment_enabled is not set, check if gpay_number exists
+    // to determine if GPay is available (without exposing the number)
+    if (!settingsMap['gpay_payment_enabled']) {
+      const gpayNumber = await db.platformSetting.findUnique({ where: { key: 'gpay_number' } })
+      settingsMap['gpay_payment_enabled'] = gpayNumber?.value ? 'true' : 'false'
     }
 
     return NextResponse.json({ settings: settingsMap })

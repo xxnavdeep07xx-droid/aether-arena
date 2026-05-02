@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
-import { authLimiter } from '@/lib/rate-limit'
+import { authLimiter, strictLimiter } from '@/lib/rate-limit'
 import { sendVerificationEmail } from '@/lib/email'
 import crypto from 'crypto'
 
@@ -19,6 +19,15 @@ export async function POST(request: Request) {
   if (!rateLimitOk) {
     return NextResponse.json(
       { error: 'Too many registration attempts. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
+  // Anti-abuse: limit to 3 accounts per IP per 24-hour window
+  const { success: dailyLimitOk } = await strictLimiter(`register_daily:${clientIp}`);
+  if (!dailyLimitOk) {
+    return NextResponse.json(
+      { error: 'Daily registration limit reached. Please try again tomorrow.' },
       { status: 429 }
     );
   }
