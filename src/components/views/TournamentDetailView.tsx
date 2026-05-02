@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star, CircleDot, Calendar, MonitorPlay, Gamepad2,
-  Shield, Copy, CheckCircle2, Smartphone, Clock, AlertCircle
+  Shield, Copy, CheckCircle2, Smartphone, Clock, AlertCircle, ChevronRight
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
