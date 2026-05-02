@@ -1,5 +1,17 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import crypto from 'crypto'
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8')
+  const bufB = Buffer.from(b, 'utf8')
+  if (bufA.length !== bufB.length) {
+    // Still perform a comparison to avoid leaking length via timing
+    crypto.timingSafeEqual(bufA, bufA)
+    return false
+  }
+  return crypto.timingSafeEqual(bufA, bufB)
+}
 
 // Vercel Cron: Runs every 6 hours to clean up expired sessions and process account deletions
 // Protected by CRON_SECRET env var to prevent unauthorized calls
@@ -7,7 +19,7 @@ import { db } from '@/lib/db'
 export async function GET(request: Request) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!timingSafeEqual(authHeader || '', `Bearer ${process.env.CRON_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

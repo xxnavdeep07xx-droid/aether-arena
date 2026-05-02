@@ -9,6 +9,12 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Request body size limit
+  const contentLength = parseInt(request.headers.get('content-length') || '0')
+  if (contentLength > 100_000) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
+
   // Rate limiting
   const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
   const { success: rateLimitOk } = await apiLimiter(`register:${clientIp}`);

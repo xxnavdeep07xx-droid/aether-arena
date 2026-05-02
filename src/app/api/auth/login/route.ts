@@ -12,6 +12,12 @@ const ACCOUNT_LOCKOUT_MS = 15 * 60 * 1000 // 15 minutes
 const INVALID_CREDENTIALS_MSG = 'Invalid credentials. Please check your login details and try again.'
 
 export async function POST(request: Request) {
+  // Request body size limit
+  const contentLength = parseInt(request.headers.get('content-length') || '0')
+  if (contentLength > 100_000) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
+
   // Rate limiting per IP
   const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
   const { success: rateLimitOk } = await authLimiter(`login:${clientIp}`);

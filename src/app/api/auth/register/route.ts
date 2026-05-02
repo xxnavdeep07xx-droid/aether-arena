@@ -7,6 +7,12 @@ import { sendVerificationEmail } from '@/lib/email'
 import crypto from 'crypto'
 
 export async function POST(request: Request) {
+  // Request body size limit
+  const contentLength = parseInt(request.headers.get('content-length') || '0')
+  if (contentLength > 100_000) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
+
   // Rate limiting
   const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
   const { success: rateLimitOk } = await authLimiter(`register:${clientIp}`);
@@ -165,8 +171,8 @@ export async function POST(request: Request) {
 
     // Create profile with credential atomically
     const profile = await db.$transaction(async (tx) => {
-      const userCount = await tx.profile.count()
-      const isAdmin = userCount === 0
+      const initialized = await tx.platformSetting.findUnique({ where: { key: 'system_initialized' } })
+      const isAdmin = !initialized
 
       const created = tx.profile.create({
         data: {
@@ -197,6 +203,15 @@ export async function POST(request: Request) {
 
       // Wait for the profile to be created before creating related records
       const profile = await created
+
+      // Mark system as initialized so no future user gets admin
+      if (isAdmin) {
+        await tx.platformSetting.upsert({
+          where: { key: 'system_initialized' },
+          create: { key: 'system_initialized', value: 'true' },
+          update: { value: 'true' },
+        })
+      }
 
       // Create AetherBalance with 50 welcome bonus
       await tx.aetherBalance.create({

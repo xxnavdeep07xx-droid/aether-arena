@@ -1,5 +1,17 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import crypto from 'crypto'
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8')
+  const bufB = Buffer.from(b, 'utf8')
+  if (bufA.length !== bufB.length) {
+    // Still perform a comparison to avoid leaking length via timing
+    crypto.timingSafeEqual(bufA, bufA)
+    return false
+  }
+  return crypto.timingSafeEqual(bufA, bufB)
+}
 
 // Database setup endpoint — creates missing tables/columns.
 // DELETE handler clears all seed/demo data from tables.
@@ -44,7 +56,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Setup secret not configured. Set SETUP_SECRET env variable.' }, { status: 401 });
   }
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${SETUP_SECRET}`) {
+  if (!timingSafeEqual(authHeader || '', `Bearer ${SETUP_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -650,7 +662,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Setup secret not configured. Set SETUP_SECRET env variable.' }, { status: 401 });
   }
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${SETUP_SECRET}`) {
+  if (!timingSafeEqual(authHeader || '', `Bearer ${SETUP_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

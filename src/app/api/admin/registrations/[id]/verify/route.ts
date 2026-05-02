@@ -29,9 +29,16 @@ export async function POST(
       )
     }
 
-    const updated = await db.tournamentRegistration.update({
-      where: { id },
-      data: { paymentStatus: 'verified' },
+    const updated = await db.$transaction(async (tx) => {
+      const reg = await tx.tournamentRegistration.update({
+        where: { id },
+        data: { paymentStatus: 'verified' },
+      })
+      await tx.tournament.update({
+        where: { id: registration.tournamentId },
+        data: { registeredPlayers: { increment: 1 } },
+      })
+      return reg
     })
 
     // Notify the player

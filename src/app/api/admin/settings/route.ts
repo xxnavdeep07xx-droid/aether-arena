@@ -40,6 +40,12 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    // Request body size limit
+    const contentLength = parseInt(request.headers.get('content-length') || '0')
+    if (contentLength > 100_000) {
+      return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+    }
+
     const auth = await requireAdmin(request)
     const body = await request.json()
 
