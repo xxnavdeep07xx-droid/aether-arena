@@ -127,7 +127,7 @@ export async function POST(request: Request) {
     })
     if (existingCred) {
       return NextResponse.json(
-        { error: 'Email already registered' },
+        { error: 'An account with this email already exists. Try logging in instead.' },
         { status: 409 }
       )
     }
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     })
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Username already taken' },
+        { error: 'This username is not available. Please choose a different one.' },
         { status: 409 }
       )
     }
@@ -325,18 +325,10 @@ export async function POST(request: Request) {
 
     // Only catch known unique constraint violations — everything else surfaces the real error
     if (msg.includes('Unique constraint')) {
-      // Determine which field caused the constraint violation
-      if (msg.includes('email')) {
-        return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
-      }
-      if (msg.includes('username')) {
-        return NextResponse.json({ error: 'Username already taken' }, { status: 409 })
-      }
-      if (msg.includes('phone')) {
-        return NextResponse.json({ error: 'Phone number already registered' }, { status: 409 })
-      }
+      // Generic message — avoid revealing which specific field caused the conflict
+      // to prevent account enumeration attacks
       return NextResponse.json(
-        { error: 'Email, username, or phone already exists' },
+        { error: 'Registration failed. The email, username, or phone you entered is already in use. Try logging in or use different details.' },
         { status: 409 }
       )
     }

@@ -2,7 +2,7 @@
 
 import { useAppStore } from '@/lib/store';
 import { useState } from 'react';
-import { MessageSquare, Mail, Clock } from 'lucide-react';
+import { MessageSquare, Mail, Clock, Youtube, Instagram, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -290,32 +290,38 @@ export function ContactView() {
       <h1 className="text-2xl md:text-3xl font-bold mb-2">📩 Contact Us</h1>
       <p className="text-arena-text-secondary text-sm mb-8">Have a question, issue, or suggestion? We&apos;d love to hear from you.</p>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
+      <div className="grid md:grid-cols-4 gap-6 mb-8">
         {[
+          { icon: Youtube, title: 'YouTube', desc: 'Watch highlights & tutorials', value: 'Subscribe', color: 'text-red-500', bg: 'bg-red-500/10', href: 'https://youtube.com/@aetherarena' },
+          { icon: Instagram, title: 'Instagram', desc: 'Follow us for updates', value: 'Follow', color: 'text-pink-500', bg: 'bg-pink-500/10', href: 'https://instagram.com/aetherarena' },
           { icon: MessageSquare, title: 'Discord', desc: 'Join our Discord server for instant support', value: 'Join Server', color: 'text-[#5865F2]', bg: 'bg-[#5865F2]/10', href: 'https://discord.gg/aetherarena' },
+          { icon: Smartphone, title: 'WhatsApp', desc: 'Get updates on WhatsApp', value: 'Join Channel', color: 'text-green-500', bg: 'bg-green-500/10', href: 'https://whatsapp.com/channel/YOUR_CHANNEL' },
+        ].map(item => (
+          <a key={item.title} href={item.href} target="_blank" rel="noopener noreferrer"
+            className="bg-arena-card border border-arena-border rounded-xl p-4 text-center hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3', item.bg)}>
+              <item.icon className={cn('w-5 h-5', item.color)} />
+            </div>
+            <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
+            <p className="text-xs text-arena-text-muted mb-2">{item.desc}</p>
+            <p className={cn('text-xs font-medium', item.color)}>{item.value}</p>
+          </a>
+        ))}
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        {[
           { icon: Mail, title: 'Email', desc: 'For business inquiries only', value: 'support@aetherarena.com', color: 'text-arena-accent', bg: 'bg-arena-accent/10' },
           { icon: Clock, title: 'Response Time', desc: 'We typically reply within', value: '24-48 hours', color: 'text-arena-warning', bg: 'bg-arena-warning/10' },
         ].map(item => (
-          (item as any).href ? (
-            <a key={item.title} href={(item as any).href} target="_blank" rel="noopener noreferrer"
-              className="bg-arena-card border border-arena-border rounded-xl p-4 text-center hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
-              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3', item.bg)}>
-                <item.icon className={cn('w-5 h-5', item.color)} />
-              </div>
-              <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
-              <p className="text-xs text-arena-text-muted mb-2">{item.desc}</p>
-              <p className={cn('text-xs font-medium', item.color)}>{item.value}</p>
-            </a>
-          ) : (
-            <div key={item.title} className="bg-arena-card border border-arena-border rounded-xl p-4 text-center">
-              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3', item.bg)}>
-                <item.icon className={cn('w-5 h-5', item.color)} />
-              </div>
-              <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
-              <p className="text-xs text-arena-text-muted mb-2">{item.desc}</p>
-              <p className={cn('text-xs font-medium', item.color)}>{item.value}</p>
+          <div key={item.title} className="bg-arena-card border border-arena-border rounded-xl p-4 text-center">
+            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3', item.bg)}>
+              <item.icon className={cn('w-5 h-5', item.color)} />
             </div>
-          )
+            <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
+            <p className="text-xs text-arena-text-muted mb-2">{item.desc}</p>
+            <p className={cn('text-xs font-medium', item.color)}>{item.value}</p>
+          </div>
         ))}
       </div>
 

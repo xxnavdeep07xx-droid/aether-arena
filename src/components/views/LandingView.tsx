@@ -437,7 +437,7 @@ export function LandingView() {
         <div className="grid md:grid-cols-3 gap-8">
           {[
             { step: '01', title: 'Find a Tournament', desc: 'Browse upcoming tournaments for your favorite games. Filter by game, format, or entry fee.', icon: Search },
-            { step: '02', title: 'Register & Pay', desc: 'Sign up instantly. Free tournaments need no payment. Paid ones use secure Razorpay checkout.', icon: User },
+            { step: '02', title: 'Register & Pay', desc: 'Sign up instantly. Free tournaments need no payment. Paid ones use secure Google Pay (UPI) with quick admin verification.', icon: User },
             { step: '03', title: 'Compete & Win', desc: 'Join the match room, compete against players, and win real prize money!', icon: Trophy },
           ].map((item) => (
             <div key={item.step} className="bg-arena-card border border-arena-border rounded-2xl p-6 hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5">
@@ -543,10 +543,10 @@ export function LandingView() {
             </div>
             <div className="flex items-center gap-4">
               {[
-                { name: 'Twitter', url: 'https://twitter.com/aetherarena' },
-                { name: 'Discord', url: 'https://discord.gg/aetherarena' },
                 { name: 'YouTube', url: 'https://youtube.com/@aetherarena' },
                 { name: 'Instagram', url: 'https://instagram.com/aetherarena' },
+                { name: 'Discord', url: 'https://discord.gg/aetherarena' },
+                { name: 'WhatsApp', url: 'https://whatsapp.com/channel/YOUR_CHANNEL' },
               ].map(s => (
                 <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150">
                   {s.name}

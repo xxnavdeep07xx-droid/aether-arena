@@ -49,7 +49,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#0f0f14" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)" />
         <link rel="manifest" href="/manifest.json" />
-        <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+        {/* Razorpay — Coming Soon. Uncomment when ready: <script src="https://checkout.razorpay.com/v1/checkout.js" async></script> */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

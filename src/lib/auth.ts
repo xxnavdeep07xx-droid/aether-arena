@@ -2,7 +2,7 @@ import { db } from '@/lib/db'
 import { cookies } from 'next/headers'
 
 const SESSION_COOKIE_NAME = 'aether_session'
-const SESSION_MAX_AGE_DAYS = 30
+const SESSION_MAX_AGE_DAYS = 14
 
 export interface AuthUser {
   userId: string

@@ -8,7 +8,7 @@ import {
   Eye, Trash2, Gamepad2, Pencil, X, Tv, ExternalLink, Link2,
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
   ChevronRight, AlertTriangle, Wallet,
-  Share2, Calendar, Globe, Gift, Bell
+  Share2, Calendar, Globe, Gift, Bell, Smartphone
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { AetherIcon } from '@/components/ui/aether-icon';
@@ -1032,20 +1032,56 @@ export function AdminSettingsView() {
             </div>
           )}
 
-          {/* Tab 1: Payments — Razorpay Payment Gateway */}
+          {/* Tab 1: Payments — Google Pay + Razorpay */}
           {settingsTab === 1 && (
             <div className="space-y-6">
-              <div className="bg-arena-card border border-arena-border rounded-2xl p-6">
+              {/* Google Pay Configuration */}
+              <div className="bg-arena-card border border-green-500/20 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold flex items-center gap-2">
+                      Google Pay (Manual Verification)
+                      <span className="text-[10px] bg-green-500/20 text-green-400 font-medium px-2 py-0.5 rounded-full">Active</span>
+                    </h2>
+                    <p className="text-xs text-arena-text-muted">Users pay via GPay and submit UTR for admin verification</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">GPay Number *</label>
+                    <input type="tel" value={settings.gpay_number || ''} onChange={e => setLocalSettings({ ...settings, gpay_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      placeholder="9876543210" className={inputClass} maxLength={10} />
+                    <p className="text-[10px] text-arena-text-muted mt-1">This number will be shown to users for payment. Only the number is visible — no account holder name or bank details.</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">UPI ID (Optional)</label>
+                    <input type="text" value={settings.gpay_upi_id || ''} onChange={e => setLocalSettings({ ...settings, gpay_upi_id: e.target.value })}
+                      placeholder="name@okbank" className={inputClass} />
+                    <p className="text-[10px] text-arena-text-muted mt-1">If set, users can also pay via UPI ID</p>
+                  </div>
+                  <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+                    {saving ? 'Saving...' : 'Save GPay Settings'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Razorpay — Coming Soon */}
+              <div className="bg-arena-card border border-arena-border rounded-2xl p-6 opacity-60">
                 <div className="flex items-center gap-3 mb-4">
                   <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', rzpConfigured ? 'bg-arena-success/10' : 'bg-arena-warning/10')}>
                     <span className={cn('text-lg', rzpConfigured ? 'text-arena-success' : 'text-arena-warning')}>{rzpConfigured ? '✓' : '!'}</span>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-lg font-bold flex items-center gap-2">
                       Razorpay Payment Gateway
-                      {rzpConfigured && <span className="text-[10px] bg-arena-success/20 text-arena-success font-medium px-2 py-0.5 rounded-full">Connected</span>}
+                      <span className="text-[10px] bg-arena-warning/20 text-arena-warning font-medium px-2 py-0.5 rounded-full">Coming Soon</span>
+                      {rzpConfigured && <span className="text-[10px] bg-arena-success/20 text-arena-success font-medium px-2 py-0.5 rounded-full">Configured</span>}
                     </h2>
-                    <p className="text-xs text-arena-text-muted">Configure Razorpay to accept online payments for tournaments</p>
+                    <p className="text-xs text-arena-text-muted">Automated payment gateway — coming soon!</p>
                   </div>
                 </div>
 
@@ -1053,48 +1089,20 @@ export function AdminSettingsView() {
                   <div>
                     <label className="text-xs text-arena-text-secondary mb-1 block">Razorpay Key ID</label>
                     <input type="text" value={rzpKeyId} onChange={e => { setRzpKeyId(e.target.value); setRzpConfirmStep(0); }}
-                      placeholder="rzp_live_xxxxxxxxxxxxxxx" className={inputClass} />
+                      placeholder="rzp_live_xxxxxxxxxxxxxxx" className={inputClass} disabled />
                   </div>
                   <div>
                     <label className="text-xs text-arena-text-secondary mb-1 block">Razorpay Key Secret</label>
                     <div className="relative">
                       <input type={showSecret ? 'text' : 'password'} value={rzpKeySecret} onChange={e => { setRzpKeySecret(e.target.value); setRzpConfirmStep(0); }}
-                        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className={inputClass} />
-                      <button type="button" onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-arena-text-muted hover:text-arena-text-primary">
-                        {showSecret ? 'Hide' : 'Show'}
-                      </button>
+                        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className={inputClass} disabled />
                     </div>
                   </div>
-                  <div>
-                    <label className="text-xs text-arena-text-secondary mb-1 block">Webhook Secret (Optional)</label>
-                    <input type="text" value={rzpWebhookSecret} onChange={e => { setRzpWebhookSecret(e.target.value); setRzpConfirmStep(0); }}
-                      placeholder="whsec_xxxxxxxxxxxxxxxx" className={inputClass} />
+
+                  <div className="rounded-xl p-3 bg-arena-warning/10 border border-arena-warning/30">
+                    <p className="font-medium text-arena-warning text-sm">Coming Soon</p>
+                    <p className="text-xs text-arena-text-secondary">Razorpay integration is under development. Currently, all payments are processed via Google Pay with manual admin verification.</p>
                   </div>
-
-                  {/* Double Confirmation UI */}
-                  {rzpConfirmStep > 0 && (
-                    <div className={cn('rounded-xl p-3 text-sm', rzpConfirmStep === 1 ? 'bg-arena-warning/10 border border-arena-warning/30' : 'bg-arena-success/10 border border-arena-success/30')}>
-                      {rzpConfirmStep === 1 ? (
-                        <>
-                          <p className="font-medium text-arena-warning mb-1">Step 1: Confirm Changes</p>
-                          <p className="text-xs text-arena-text-secondary">You are about to update Razorpay credentials. This affects all payment processing. Click save again to confirm.</p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="font-medium text-arena-success mb-1">Step 2: Final Confirmation</p>
-                          <p className="text-xs text-arena-text-secondary">Last chance! Click save one more time to apply changes permanently.</p>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  <button onClick={handleRzpSave} disabled={rzpSaving || (!rzpKeyId.trim() && !rzpKeySecret.trim())}
-                    className={cn('w-full py-2.5 h-11 font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 flex items-center justify-center gap-2',
-                      rzpConfirmStep === 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' :
-                      rzpConfirmStep === 1 ? 'bg-arena-warning hover:bg-arena-warning/80 text-white' :
-                      'bg-arena-success hover:bg-arena-success/80 text-white')}>
-                    {rzpSaving ? 'Saving...' : rzpConfirmStep === 0 ? 'Save Razorpay Credentials' : rzpConfirmStep === 1 ? 'Click Again to Confirm' : 'Final Click to Apply'}
-                  </button>
                 </div>
               </div>
             </div>
@@ -1116,24 +1124,29 @@ export function AdminSettingsView() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-arena-text-secondary mb-1 block">Instagram URL</label>
-                    <input type="url" value={settings.social_instagram || ''} onChange={e => setLocalSettings({ ...settings, social_instagram: e.target.value })}
-                      placeholder="https://instagram.com/aetherarena" className={inputClass} />
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Discord Server Invite URL</label>
+                    <input type="url" value={settings.discord_invite_url || ''} onChange={e => setLocalSettings({ ...settings, discord_invite_url: e.target.value })}
+                      placeholder="https://discord.gg/aetherarena" className={inputClass} />
                   </div>
                   <div>
-                    <label className="text-xs text-arena-text-secondary mb-1 block">Twitter / X URL</label>
-                    <input type="url" value={settings.social_twitter || ''} onChange={e => setLocalSettings({ ...settings, social_twitter: e.target.value })}
-                      placeholder="https://x.com/aetherarena" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className="text-xs text-arena-text-secondary mb-1 block">YouTube URL</label>
-                    <input type="url" value={settings.social_youtube || ''} onChange={e => setLocalSettings({ ...settings, social_youtube: e.target.value })}
+                    <label className="text-xs text-arena-text-secondary mb-1 block">YouTube Channel URL</label>
+                    <input type="url" value={settings.youtube_channel_url || ''} onChange={e => setLocalSettings({ ...settings, youtube_channel_url: e.target.value })}
                       placeholder="https://youtube.com/@aetherarena" className={inputClass} />
                   </div>
                   <div>
-                    <label className="text-xs text-arena-text-secondary mb-1 block">Telegram URL</label>
-                    <input type="url" value={settings.social_telegram || ''} onChange={e => setLocalSettings({ ...settings, social_telegram: e.target.value })}
-                      placeholder="https://t.me/aetherarena" className={inputClass} />
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Instagram URL</label>
+                    <input type="url" value={settings.instagram_url || ''} onChange={e => setLocalSettings({ ...settings, instagram_url: e.target.value })}
+                      placeholder="https://instagram.com/aetherarena" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">WhatsApp Channel URL</label>
+                    <input type="url" value={settings.whatsapp_channel_url || ''} onChange={e => setLocalSettings({ ...settings, whatsapp_channel_url: e.target.value })}
+                      placeholder="https://whatsapp.com/channel/your-channel" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Twitter / X URL</label>
+                    <input type="url" value={settings.twitter_url || ''} onChange={e => setLocalSettings({ ...settings, twitter_url: e.target.value })}
+                      placeholder="https://x.com/aetherarena" className={inputClass} />
                   </div>
                 </div>
                 <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">

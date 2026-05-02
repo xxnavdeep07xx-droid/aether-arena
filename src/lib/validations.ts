@@ -29,7 +29,7 @@ export const verifyPaymentSchema = z.object({
 // ─── Tournament Registration ──────────────────────────────────
 
 export const registerTournamentSchema = z.object({
-  paymentMethod: z.enum(['razorpay', 'upi', 'manual']).optional(),
+  paymentMethod: z.enum(['razorpay', 'upi', 'manual', 'gpay']).optional(),
   paymentReference: z.string().max(200).optional(),
   paymentScreenshotUrl: z.string().url().max(2000).optional(),
 })
@@ -48,6 +48,10 @@ export const ALLOWED_SETTINGS_KEYS = new Set([
   'youtube_channel_url',
   'instagram_url',
   'twitter_url',
+  'whatsapp_channel_url',
+  'gpay_number',
+  'gpay_upi_id',
+  'razorpay_coming_soon',
 ])
 
 export const updateSettingsSchema = z.object({

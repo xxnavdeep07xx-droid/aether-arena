@@ -45,8 +45,7 @@ export async function GET(request: Request) {
   if (process.env.DATABASE_URL) {
     results.database_url_set = 'yes'
     // Mask the DB host to avoid full exposure even for admins
-    const dbHost = process.env.DATABASE_URL.match(/@([^:/]+)/)?.[1]
-    results.database_host = dbHost ? `${dbHost.slice(0, 4)}***` : 'configured'
+    results.database_host = process.env.DATABASE_URL ? 'configured' : 'not configured'
     results.has_sslmode = process.env.DATABASE_URL.includes('sslmode') ? 'yes' : 'NO'
   } else {
     results.database_url_set = 'NO — DATABASE_URL environment variable is missing!'

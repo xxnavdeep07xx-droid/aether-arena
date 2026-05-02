@@ -3,6 +3,13 @@ import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 import { updateSettingsSchema, formatZodError } from '@/lib/validations'
 
+// Keys whose values should never be returned in GET responses (sensitive credentials)
+const SENSITIVE_KEYS = new Set([
+  'razorpay_key_secret',
+  'razorpay_webhook_secret',
+  'gpay_upi_id', // semi-sensitive — only shown to admin
+])
+
 export async function GET(request: Request) {
   try {
     await requireAdmin(request)
@@ -11,10 +18,14 @@ export async function GET(request: Request) {
       orderBy: { key: 'asc' },
     })
 
-    // Convert to key-value object
+    // Convert to key-value object, redacting sensitive values
     const settingsMap: Record<string, string> = {}
     for (const setting of settings) {
-      settingsMap[setting.key] = setting.value
+      if (SENSITIVE_KEYS.has(setting.key)) {
+        settingsMap[setting.key] = setting.value ? '••••••••' : '' // redact but indicate if set
+      } else {
+        settingsMap[setting.key] = setting.value
+      }
     }
 
     return NextResponse.json({ settings: settingsMap })
