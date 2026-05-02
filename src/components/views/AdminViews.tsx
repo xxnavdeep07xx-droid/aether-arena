@@ -8,7 +8,7 @@ import {
   Eye, Trash2, Gamepad2, Pencil, X, Tv, ExternalLink, Link2,
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
   ChevronRight, AlertTriangle, Wallet,
-  Share2, Calendar, Globe, Gift, Bell, Smartphone
+  Share2, Calendar, Globe, Gift, Bell, Smartphone, Image as ImageIcon
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { AetherIcon } from '@/components/ui/aether-icon';
@@ -767,25 +767,28 @@ export function AdminAffiliatesView() {
             {/* Step Progress Indicator */}
             <div className="flex items-center gap-2 mb-4">
               {[
-                { label: 'Details' },
-                { label: 'Pricing' },
+                { icon: ShoppingBag, label: 'Details' },
+                { icon: DollarSign, label: 'Pricing' },
+                { icon: Eye, label: 'Display' },
               ].map((s, i) => (
                 <div key={i} className="flex items-center flex-1">
-                  <div className={cn(
-                    'w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-300',
-                    i < affiliateStep ? 'bg-green-500/20 text-green-400' :
-                    i === affiliateStep ? 'bg-arena-accent/20 text-arena-accent' :
-                    'bg-arena-border/30 text-arena-text-muted/40'
-                  )}>
-                    {i < affiliateStep ? <Check className="w-3 h-3" /> : <span className="text-[10px] font-bold">{i + 1}</span>}
-                  </div>
-                  <span className={cn(
-                    'text-[10px] font-medium ml-1.5 transition-colors duration-300',
-                    i <= affiliateStep ? 'text-arena-text-primary' : 'text-arena-text-muted/40'
-                  )}>{s.label}</span>
-                  {i < 1 && (
+                  <div className="flex items-center gap-1.5 flex-1">
                     <div className={cn(
-                      'h-0.5 flex-1 mx-2 rounded-full transition-all duration-300',
+                      'w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-300',
+                      i < affiliateStep ? 'bg-green-500/20 text-green-400' :
+                      i === affiliateStep ? 'bg-arena-accent/20 text-arena-accent' :
+                      'bg-arena-border/30 text-arena-text-muted/40'
+                    )}>
+                      {i < affiliateStep ? <Check className="w-3 h-3" /> : <s.icon className="w-3 h-3" />}
+                    </div>
+                    <span className={cn(
+                      'text-[10px] font-medium hidden sm:inline transition-colors duration-300',
+                      i <= affiliateStep ? 'text-arena-text-primary' : 'text-arena-text-muted/40'
+                    )}>{s.label}</span>
+                  </div>
+                  {i < 2 && (
+                    <div className={cn(
+                      'h-0.5 flex-1 mx-0.5 rounded-full transition-all duration-300',
                       i < affiliateStep ? 'bg-green-500/40' : 'bg-arena-border/30'
                     )} />
                   )}
@@ -796,16 +799,40 @@ export function AdminAffiliatesView() {
             {/* Step 0 — Details */}
             {affiliateStep === 0 && (
               <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <ShoppingBag className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Details</h3>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className="text-xs text-arena-text-secondary mb-1 block">Name *</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="Product name" /></div>
                   <div><label className="text-xs text-arena-text-secondary mb-1 block">Slug *</label><input type="text" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.replace(/\s/g, '-').toLowerCase() })} className={inputClass} placeholder="product-slug" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className="text-xs text-arena-text-secondary mb-1 block">Platform</label><input type="text" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className={inputClass} placeholder="Amazon" /></div>
-                  <div><label className="text-xs text-arena-text-secondary mb-1 block">Category</label><input type="text" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass} placeholder="Gaming" /></div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Category</label>
+                    <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass}>
+                      <option value="">Select category</option>
+                      <option value="gaming_gear">Gaming Gear</option>
+                      <option value="gift_card">Gift Card</option>
+                      <option value="in_game_currency">In-Game Currency</option>
+                      <option value="subscription">Subscription</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
                 </div>
                 <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Product description" /></div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">URL *</label><input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className={inputClass} placeholder="https://amazon.in/..." /></div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">URL *</label>
+                  <div className="flex gap-2">
+                    <input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className={cn(inputClass, 'flex-1')} placeholder="https://amazon.in/..." />
+                    {form.url && (
+                      <button type="button" onClick={() => window.open(form.url, '_blank', 'noopener,noreferrer')} className="px-2.5 h-[38px] border border-arena-border rounded-xl hover:border-arena-accent/50 hover:bg-arena-accent/10 transition-all duration-150 flex items-center justify-center flex-shrink-0" title="Open link in new tab">
+                        <ExternalLink className="w-4 h-4 text-arena-text-muted" />
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setAffiliateStep(1)} disabled={!form.name.trim() || !form.slug.trim()} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed">Continue</button>
                   <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
@@ -813,14 +840,51 @@ export function AdminAffiliatesView() {
               </div>
             )}
 
-            {/* Step 1 — Pricing & Display */}
+            {/* Step 1 — Pricing */}
             {affiliateStep === 1 && (
               <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <DollarSign className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Pricing</h3>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className="text-xs text-arena-text-secondary mb-1 block">Price (₹ paise)</label><input type="number" min={0} value={form.price} onChange={e => setForm({ ...form, price: parseInt(e.target.value) || 0 })} className={inputClass} placeholder="49900 = ₹499" /></div>
                   <div><label className="text-xs text-arena-text-secondary mb-1 block">Original Price (₹ paise)</label><input type="number" min={0} value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: parseInt(e.target.value) || 0 })} className={inputClass} placeholder="99900 = ₹999" /></div>
                 </div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Image URL</label><input type="url" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setAffiliateStep(0)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+                  <button type="button" onClick={() => setAffiliateStep(2)} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm">Continue</button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2 — Display */}
+            {affiliateStep === 2 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <Eye className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Display</h3>
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Image URL</label>
+                  <div className="flex gap-3 items-start">
+                    <div className="flex-1">
+                      <input type="url" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} className={inputClass} placeholder="https://..." />
+                      <p className="text-[10px] text-arena-text-muted mt-1">Paste an image URL or leave blank for default icon. Recommended: 200×200px, PNG/WebP</p>
+                    </div>
+                    <div className="w-16 h-16 rounded-xl border border-arena-border bg-arena-dark flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                      {form.imageUrl && (
+                        <img
+                          src={form.imageUrl}
+                          alt="Preview"
+                          className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      )}
+                      <ImageIcon className="w-6 h-6 text-arena-text-muted/40" />
+                    </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
@@ -829,7 +893,7 @@ export function AdminAffiliatesView() {
                   <div><label className="text-xs text-arena-text-secondary mb-1 block">Sort Order</label><input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className={inputClass} /></div>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setAffiliateStep(0)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+                  <button type="button" onClick={() => setAffiliateStep(1)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
                   <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
                 </div>
               </div>
@@ -1429,25 +1493,28 @@ export function AdminTopupView() {
             {/* Step Progress Indicator */}
             <div className="flex items-center gap-2 mb-4">
               {[
-                { label: 'Pack Info' },
-                { label: 'Pricing' },
+                { icon: Zap, label: 'Details' },
+                { icon: DollarSign, label: 'Pricing' },
+                { icon: Eye, label: 'Display' },
               ].map((s, i) => (
                 <div key={i} className="flex items-center flex-1">
-                  <div className={cn(
-                    'w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-300',
-                    i < topupStep ? 'bg-green-500/20 text-green-400' :
-                    i === topupStep ? 'bg-arena-accent/20 text-arena-accent' :
-                    'bg-arena-border/30 text-arena-text-muted/40'
-                  )}>
-                    {i < topupStep ? <Check className="w-3 h-3" /> : <span className="text-[10px] font-bold">{i + 1}</span>}
-                  </div>
-                  <span className={cn(
-                    'text-[10px] font-medium ml-1.5 transition-colors duration-300',
-                    i <= topupStep ? 'text-arena-text-primary' : 'text-arena-text-muted/40'
-                  )}>{s.label}</span>
-                  {i < 1 && (
+                  <div className="flex items-center gap-1.5 flex-1">
                     <div className={cn(
-                      'h-0.5 flex-1 mx-2 rounded-full transition-all duration-300',
+                      'w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-300',
+                      i < topupStep ? 'bg-green-500/20 text-green-400' :
+                      i === topupStep ? 'bg-arena-accent/20 text-arena-accent' :
+                      'bg-arena-border/30 text-arena-text-muted/40'
+                    )}>
+                      {i < topupStep ? <Check className="w-3 h-3" /> : <s.icon className="w-3 h-3" />}
+                    </div>
+                    <span className={cn(
+                      'text-[10px] font-medium hidden sm:inline transition-colors duration-300',
+                      i <= topupStep ? 'text-arena-text-primary' : 'text-arena-text-muted/40'
+                    )}>{s.label}</span>
+                  </div>
+                  {i < 2 && (
+                    <div className={cn(
+                      'h-0.5 flex-1 mx-0.5 rounded-full transition-all duration-300',
                       i < topupStep ? 'bg-green-500/40' : 'bg-arena-border/30'
                     )} />
                   )}
@@ -1455,9 +1522,13 @@ export function AdminTopupView() {
               ))}
             </div>
 
-            {/* Step 0 — Pack Info */}
+            {/* Step 0 — Details */}
             {topupStep === 0 && (
               <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <Zap className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Details</h3>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-arena-text-secondary mb-1 block">Game Name *</label>
@@ -1476,10 +1547,6 @@ export function AdminTopupView() {
                   <label className="text-xs text-arena-text-secondary mb-1 block">Description</label>
                   <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="Basic currency pack" />
                 </div>
-                <div>
-                  <label className="text-xs text-arena-text-secondary mb-1 block">Image URL</label>
-                  <input type="url" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="https://..." />
-                </div>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setTopupStep(1)} disabled={!form.gameName.trim() || !form.gameSlug.trim() || !form.packName.trim()} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed">Continue</button>
                   <button type="button" onClick={() => setShowCreate(false)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
@@ -1487,9 +1554,13 @@ export function AdminTopupView() {
               </div>
             )}
 
-            {/* Step 1 — Pricing & Visibility */}
+            {/* Step 1 — Pricing */}
             {topupStep === 1 && (
               <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <DollarSign className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Pricing</h3>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-arena-text-secondary mb-1 block">Price (₹ paise) *</label>
@@ -1502,7 +1573,48 @@ export function AdminTopupView() {
                 </div>
                 <div>
                   <label className="text-xs text-arena-text-secondary mb-1 block">Affiliate URL (Codashop)</label>
-                  <input type="url" value={form.affiliateUrl} onChange={e => setForm({ ...form, affiliateUrl: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="https://www.codashop.com/in/bgmi" />
+                  <div className="flex gap-2">
+                    <input type="url" value={form.affiliateUrl} onChange={e => setForm({ ...form, affiliateUrl: e.target.value })} className="flex-1 bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="https://www.codashop.com/in/bgmi" />
+                    {form.affiliateUrl && (
+                      <button type="button" onClick={() => window.open(form.affiliateUrl, '_blank', 'noopener,noreferrer')} className="px-2.5 h-[38px] border border-arena-border rounded-xl hover:border-arena-accent/50 hover:bg-arena-accent/10 transition-all duration-150 flex items-center justify-center flex-shrink-0" title="Open link in new tab">
+                        <ExternalLink className="w-4 h-4 text-arena-text-muted" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setTopupStep(0)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+                  <button type="button" onClick={() => setTopupStep(2)} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm">Continue</button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2 — Display */}
+            {topupStep === 2 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <Eye className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Display</h3>
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Image URL</label>
+                  <div className="flex gap-3 items-start">
+                    <div className="flex-1">
+                      <input type="url" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="https://..." />
+                      <p className="text-[10px] text-arena-text-muted mt-1">Paste an image URL or leave blank for default icon. Recommended: 200×200px, PNG/WebP</p>
+                    </div>
+                    <div className="w-16 h-16 rounded-xl border border-arena-border bg-arena-dark flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                      {form.imageUrl && (
+                        <img
+                          src={form.imageUrl}
+                          alt="Preview"
+                          className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      )}
+                      <ImageIcon className="w-6 h-6 text-arena-text-muted/40" />
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="flex items-center gap-2">
@@ -1519,7 +1631,7 @@ export function AdminTopupView() {
                   </div>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setTopupStep(0)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+                  <button type="button" onClick={() => setTopupStep(1)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
                   <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editingPack ? 'Update' : 'Create'}</button>
                 </div>
               </div>

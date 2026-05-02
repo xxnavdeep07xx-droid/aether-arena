@@ -672,6 +672,99 @@
   animation-delay: 0.4s;
 }
 
+/* ===== LANDING PAGE ANIMATIONS ===== */
+
+/* Floating game icons bob */
+@keyframes game-icon-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.game-icon-float {
+  animation: game-icon-bob 3s ease-in-out infinite;
+}
+
+.game-icon-float:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.game-icon-float:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+.game-icon-float:nth-child(4) {
+  animation-delay: 1.2s;
+}
+
+/* Shimmer effect for game cards */
+@keyframes card-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.game-card-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.game-card-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 75, 92, 0.04) 25%,
+    rgba(255, 75, 92, 0.08) 50%,
+    rgba(255, 75, 92, 0.04) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: card-shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Hero grid pattern */
+.hero-grid-pattern {
+  background-image:
+    linear-gradient(rgba(255, 75, 92, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 75, 92, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Connecting line gradient for How It Works */
+@keyframes flow-gradient {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+.steps-connecting-line {
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 75, 92, 0.3) 0px,
+    rgba(255, 75, 92, 0.3) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  background-size: 200% 100%;
+  animation: flow-gradient 3s linear infinite;
+}
+
+/* Stats icon circle glow pulse */
+@keyframes icon-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(255, 75, 92, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(255, 75, 92, 0.4);
+  }
+}
+
+.stat-icon-circle {
+  animation: icon-glow-pulse 3s ease-in-out infinite;
+}
+
 /* Prefers reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .logo-energy,

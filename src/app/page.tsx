@@ -7,7 +7,8 @@ import {
   Trophy, Zap, Shield, ChevronRight,
   Tv, BarChart3, User, Home, LogOut,
   Bell, Menu, X, Search, Settings, FileText,
-  ShieldCheck, Mail, HelpCircle, Wallet
+  ShieldCheck, Mail, HelpCircle, Wallet,
+  ShoppingBag, Crown
 } from 'lucide-react';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,8 @@ const HomeView = lazy(() => import('@/components/views/HomeView').then(m => ({ d
 const TournamentsView = lazy(() => import('@/components/views/TournamentsView').then(m => ({ default: m.TournamentsView })));
 const TournamentDetailView = lazy(() => import('@/components/views/TournamentDetailView').then(m => ({ default: m.TournamentDetailView })));
 const LeaderboardView = lazy(() => import('@/components/views/LeaderboardView').then(m => ({ default: m.LeaderboardView })));
+const LeagueView = lazy(() => import('@/components/views/LeagueView').then(m => ({ default: m.LeagueView })));
+const GameStoreView = lazy(() => import('@/components/views/GameStoreView').then(m => ({ default: m.GameStoreView })));
 const StreamsView = lazy(() => import('@/components/views/StreamsView').then(m => ({ default: m.StreamsView })));
 const ProfileView = lazy(() => import('@/components/views/ProfileView').then(m => ({ default: m.ProfileView })));
 const NotificationsView = lazy(() => import('@/components/views/NotificationsView').then(m => ({ default: m.NotificationsView })));
@@ -171,6 +174,8 @@ function ViewRenderer() {
     'tournaments': <ErrorBoundary><Suspense fallback={<TournamentsSkeleton />}><TournamentsView /></Suspense></ErrorBoundary>,
     'tournament-detail': <ErrorBoundary><Suspense fallback={<TournamentDetailSkeleton />}><TournamentDetailView /></Suspense></ErrorBoundary>,
     'leaderboard': <ErrorBoundary><Suspense fallback={<LeaderboardSkeleton />}><LeaderboardView /></Suspense></ErrorBoundary>,
+    'league': <ErrorBoundary><Suspense fallback={<ViewFallback />}><LeagueView /></Suspense></ErrorBoundary>,
+    'store': <ErrorBoundary><Suspense fallback={<ViewFallback />}><GameStoreView /></Suspense></ErrorBoundary>,
     'streams': <ErrorBoundary><Suspense fallback={<StreamsSkeleton />}><StreamsView /></Suspense></ErrorBoundary>,
     'profile': <ErrorBoundary><Suspense fallback={<ProfileSkeleton />}><ProfileView /></Suspense></ErrorBoundary>,
     'notifications': <ErrorBoundary><Suspense fallback={<NotificationsSkeleton />}><NotificationsView /></Suspense></ErrorBoundary>,
@@ -242,6 +247,8 @@ export default function Page() {
     { view: 'home' as ViewName, icon: Home, label: t('nav.home') },
     { view: 'tournaments' as ViewName, icon: Trophy, label: t('nav.tournaments') },
     { view: 'leaderboard' as ViewName, icon: BarChart3, label: t('nav.leaderboard') },
+    { view: 'league' as ViewName, icon: Crown, label: 'League' },
+    { view: 'store' as ViewName, icon: ShoppingBag, label: 'Store' },
     { view: 'streams' as ViewName, icon: Tv, label: t('nav.streams') },
     { view: 'aether' as ViewName, icon: Wallet, label: t('nav.aether') },
     { view: 'profile' as ViewName, icon: User, label: t('nav.profile') },
@@ -252,6 +259,8 @@ export default function Page() {
   const mobileMenuItems = [
     { view: 'notifications' as ViewName, icon: Bell, label: t('nav.notifications') },
     { view: 'settings' as ViewName, icon: Settings, label: t('nav.settings') },
+    { view: 'league' as ViewName, icon: Crown, label: 'League' },
+    { view: 'store' as ViewName, icon: ShoppingBag, label: 'Store' },
     { view: 'aether' as ViewName, icon: Wallet, label: t('nav.aether') },
     { view: 'contact' as ViewName, icon: Mail, label: t('nav.contact') },
     ...(isAdmin ? [
@@ -266,7 +275,7 @@ export default function Page() {
   ];
 
   // Views that show the main top bar (with hamburger on mobile)
-  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'profile', 'notifications', 'settings', 'admin-dashboard', 'contact', 'aether'];
+  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'league', 'store', 'streams', 'profile', 'notifications', 'settings', 'admin-dashboard', 'contact', 'aether'];
 
   // Views where the search bar is useful and functional
   const searchableViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams'];
@@ -276,6 +285,8 @@ export default function Page() {
     'admin-dashboard': { title: t('section.adminPanel'), icon: Shield },
     'contact': { title: t('section.contactUs'), icon: Mail },
     'aether': { title: t('nav.aether'), icon: Wallet },
+    'league': { title: 'League', icon: Crown },
+    'store': { title: 'Game Store', icon: ShoppingBag },
   };
 
   const currentSection = sectionTitles[currentView];

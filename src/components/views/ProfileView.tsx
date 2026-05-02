@@ -5,10 +5,11 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import { Pencil, Trophy, Crown, Target, Coins, LogOut, Wallet, ChevronRight } from 'lucide-react';
-import { cn, paiseToRupee, formatDate, LEAGUE_CONFIG } from '@/lib/utils';
+import { cn, paiseToRupee, formatDate, LEAGUE_CONFIG, getLeagueForPoints } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ProfileSkeleton } from './Skeletons';
 import { apiFetch } from '@/lib/api';
+import { LeagueBadge } from '@/components/ui/league-badge';
 
 export function ProfileView() {
   const { user, isAuthenticated, setUser, logout } = useAuthStore();
@@ -21,7 +22,7 @@ export function ProfileView() {
 
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: viewingOtherUser ? ['other-profile', viewParams.username] : ['my-profile'],
-    queryFn: () => apiFetch<{ displayName?: string; bio?: string; avatarUrl?: string; username?: string; league?: string; totalTournamentsPlayed?: number; totalWins?: number; totalKills?: number; totalPrizeWon?: number }>(viewingOtherUser ? `/api/profiles/${viewParams.username}` : '/api/profiles/me'),
+    queryFn: () => apiFetch<{ displayName?: string; bio?: string; avatarUrl?: string; username?: string; league?: string; leaguePoints?: number; totalTournamentsPlayed?: number; totalWins?: number; totalKills?: number; totalPrizeWon?: number }>(viewingOtherUser ? `/api/profiles/${viewParams.username}` : '/api/profiles/me'),
     enabled: isAuthenticated || viewingOtherUser,
   });
 
@@ -68,23 +69,49 @@ export function ProfileView() {
   if (!viewingOtherUser && isLoading) return <ProfileSkeleton />;
 
   const p = (profile || user) as NonNullable<typeof profile>;
-  const league = LEAGUE_CONFIG[p?.league || 'bronze'] || LEAGUE_CONFIG.bronze;
+  const leagueKey = p?.league || getLeagueForPoints(p?.leaguePoints || 0);
+  const league = LEAGUE_CONFIG[leagueKey] || LEAGUE_CONFIG.bronze;
+  const currentLP = p?.leaguePoints || 0;
+
+  // Calculate league progress
+  const sortedLeagues = Object.entries(LEAGUE_CONFIG).sort((a, b) => a[1].minPoints - b[1].minPoints);
+  const currentLeagueIndex = sortedLeagues.findIndex(([key]) => key === leagueKey);
+  const nextLeague = currentLeagueIndex < sortedLeagues.length - 1 ? sortedLeagues[currentLeagueIndex + 1] : null;
+  const isMaxRank = !nextLeague;
+
+  const progressPercent = isMaxRank
+    ? 100
+    : Math.min(100, Math.max(0, ((currentLP - league.minPoints) / ((nextLeague![1].minPoints) - league.minPoints)) * 100));
+  const lpToNext = isMaxRank ? 0 : nextLeague![1].minPoints - currentLP;
 
   return (
     <div>
       {/* Profile Header */}
       <div className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden mb-6">
-        <div className="h-28 bg-gradient-to-br from-arena-accent/20 via-arena-purple/15 to-arena-surface" />
+        {/* Banner with hero image */}
+        <div className="h-32 md:h-36 relative overflow-hidden">
+          <Image
+            src="/images/hero-banner.webp"
+            alt="Profile banner"
+            fill
+            className="object-cover opacity-20"
+            unoptimized
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/20 via-arena-purple/15 to-arena-surface" />
+          <div className="absolute inset-0 bg-gradient-to-t from-arena-card via-transparent to-transparent" />
+        </div>
         <div className="px-6 pb-6 -mt-10">
           <div className="flex items-end gap-4 mb-4">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 border-4 border-arena-card flex items-center justify-center text-2xl font-bold overflow-hidden">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 border-4 border-arena-card flex items-center justify-center text-2xl font-bold overflow-hidden relative">
               {p?.avatarUrl ? <Image src={p.avatarUrl} alt={`${p.username}'s avatar`} width={80} height={80} className="w-full h-full object-cover" unoptimized /> : (p?.username || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold">{p?.displayName || p?.username}</h1>
-                <span className="text-sm font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: league.color + '20', color: league.color }}>
-                  {league.icon} {league.label}
+                <span className="text-sm font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1.5" style={{ backgroundColor: league.color + '20', color: league.color }}>
+                  <LeagueBadge league={leagueKey} size="sm" animated={false} />
+                  {league.label}
                 </span>
               </div>
               <p className="text-sm text-arena-text-muted">@{p?.username}</p>
@@ -94,6 +121,29 @@ export function ProfileView() {
                 <Pencil className="w-4 h-4 text-arena-text-secondary" />
               </button>
             )}
+          </div>
+
+          {/* League Progress Bar */}
+          <div className="mb-4 bg-arena-surface rounded-xl p-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-arena-text-secondary flex items-center gap-1.5">
+                <LeagueBadge league={leagueKey} size="sm" animated={false} />
+                {league.label} — {currentLP} LP
+              </span>
+              <span className="text-xs font-medium" style={{ color: isMaxRank ? league.color : 'var(--color-arena-text-muted)' }}>
+                {isMaxRank ? '✨ Max Rank!' : `${lpToNext} LP to ${nextLeague![1].label}`}
+              </span>
+            </div>
+            <div className="w-full bg-arena-dark rounded-full h-2 overflow-hidden">
+              <div
+                className="h-2 rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${progressPercent}%`,
+                  backgroundColor: league.color,
+                  boxShadow: isMaxRank ? `0 0 8px ${league.color}60` : undefined,
+                }}
+              />
+            </div>
           </div>
 
           {/* Edit Form (only for own profile) */}
@@ -124,8 +174,8 @@ export function ProfileView() {
               { label: 'Kills', value: p?.totalKills || 0, icon: Target },
               { label: 'Prize Won', value: paiseToRupee(p?.totalPrizeWon || 0), icon: Coins },
             ].map(stat => (
-              <div key={stat.label} className="bg-arena-surface rounded-xl p-3 text-center">
-                <stat.icon className="w-4 h-4 text-arena-accent mx-auto mb-1" />
+              <div key={stat.label} className="bg-arena-surface rounded-xl p-3 text-center border" style={{ borderColor: league.color + '25' }}>
+                <stat.icon className="w-4 h-4 mx-auto mb-1" style={{ color: league.color }} />
                 <div className="text-lg font-bold">{stat.value}</div>
                 <div className="text-[10px] text-arena-text-muted">{stat.label}</div>
               </div>

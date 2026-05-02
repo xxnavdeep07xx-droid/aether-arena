@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore, useAuthStore } from '@/lib/store';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import {
@@ -110,6 +110,59 @@ function FormField({
       {hint && !error && <p className="text-[11px] text-arena-text-muted/60 mt-1">{hint}</p>}
     </div>
   );
+}
+
+// Animated counter — counts up from 0 to target value
+function AnimatedCounter({ value }: { value: string }) {
+  const [display, setDisplay] = useState(() => value === '...' ? '...' : '0');
+  const hasAnimated = useRef(false);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (value === '...' || hasAnimated.current) return;
+
+    // Extract numeric part
+    const numericStr = value.replace(/[^0-9.]/g, '');
+    const numVal = parseFloat(numericStr);
+    if (isNaN(numVal)) return;
+
+    hasAnimated.current = true;
+    const duration = 1500;
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(numVal * eased);
+
+      // Reconstruct the formatted value
+      let formatted: string;
+      if (value.includes('₹')) {
+        formatted = `₹${current.toLocaleString('en-IN')}`;
+      } else if (value.includes(',') || numVal > 999) {
+        formatted = current.toLocaleString();
+      } else {
+        formatted = String(current);
+      }
+
+      if (progress < 1) {
+        setDisplay(formatted);
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplay(value);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [value]);
+
+  return <div>{display}</div>;
 }
 
 export function LandingView() {
@@ -358,7 +411,12 @@ export function LandingView() {
 
       {/* Hero */}
       <section className="relative pt-16 overflow-hidden">
+        {/* Dramatic multi-layer background */}
         <div className="absolute inset-0 bg-gradient-to-b from-arena-accent/5 via-transparent to-transparent" />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 80% 20%, rgba(255,75,92,0.08) 0%, transparent 60%)' }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 50% at 10% 80%, rgba(139,92,246,0.06) 0%, transparent 60%)' }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,75,92,0.04) 0%, transparent 50%)' }} />
+        <div className="absolute inset-0 hero-grid-pattern opacity-40" />
         <div className="absolute inset-0 opacity-10">
           <Image src="/images/hero-banner.webp" alt="" fill className="object-cover" unoptimized priority />
         </div>
@@ -384,6 +442,22 @@ export function LandingView() {
                 <button onClick={() => setShowLogin(true)} className="px-8 py-3 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-semibold rounded-xl transition-all duration-200">
                   Log In
                 </button>
+              </div>
+              {/* Floating Game Icons */}
+              <div className="flex items-center justify-center lg:justify-start gap-5 mt-10 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+                {[
+                  { src: '/images/games/bgmi.webp', name: 'BGMI', color: 'from-orange-500/20 to-orange-600/10' },
+                  { src: '/images/games/freefire.webp', name: 'Free Fire', color: 'from-yellow-500/20 to-orange-500/10' },
+                  { src: '/images/games/codm.webp', name: 'CODM', color: 'from-green-500/20 to-emerald-600/10' },
+                  { src: '/images/games/clash-royale.webp', name: 'Clash Royale', color: 'from-blue-500/20 to-purple-600/10' },
+                ].map((game) => (
+                  <div key={game.name} className="game-icon-float flex flex-col items-center gap-1.5">
+                    <div className={cn('w-12 h-12 rounded-full bg-gradient-to-br flex items-center justify-center overflow-hidden shadow-lg', game.color)} style={{ boxShadow: '0 0 16px rgba(255,75,92,0.15)' }}>
+                      <Image src={game.src} alt={game.name} width={36} height={36} className="w-9 h-9 rounded-full object-cover" unoptimized loading="lazy" />
+                    </div>
+                    <span className="text-[10px] text-arena-text-muted font-medium">{game.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -418,17 +492,19 @@ export function LandingView() {
 
       {/* Stats */}
       <section className="border-y border-arena-border bg-arena-surface/50">
-        <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { icon: Users, label: 'Players', value: stats?.players != null ? stats.players.toLocaleString() : '...' },
-            { icon: Trophy, label: 'Tournaments', value: stats?.tournaments != null ? stats.tournaments.toLocaleString() : '...' },
-            { icon: Coins, label: 'Prizes Won', value: stats?.prizesWon != null ? `₹${(stats.prizesWon / 100).toLocaleString('en-IN')}` : '...' },
-            { icon: Gamepad2, label: 'Games', value: stats?.games != null ? String(stats.games) : '...' },
+            { icon: Users, label: 'Players', value: stats?.players != null ? stats.players.toLocaleString() : '...', color: 'bg-arena-accent/10 text-arena-accent' },
+            { icon: Trophy, label: 'Tournaments', value: stats?.tournaments != null ? stats.tournaments.toLocaleString() : '...', color: 'bg-arena-purple/10 text-arena-purple' },
+            { icon: Coins, label: 'Prizes Won', value: stats?.prizesWon != null ? `₹${(stats.prizesWon / 100).toLocaleString('en-IN')}` : '...', color: 'bg-yellow-500/10 text-yellow-400' },
+            { icon: Gamepad2, label: 'Games', value: stats?.games != null ? String(stats.games) : '...', color: 'bg-green-500/10 text-green-400' },
           ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <stat.icon className="w-6 h-6 text-arena-accent mx-auto mb-2" />
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="text-sm text-arena-text-secondary">{stat.label}</div>
+            <div key={stat.label} className="text-center flex flex-col items-center">
+              <div className={cn('w-12 h-12 rounded-full flex items-center justify-center mb-3 stat-icon-circle', stat.color)}>
+                <stat.icon className="w-5 h-5" />
+              </div>
+              <div className="text-2xl font-bold"><AnimatedCounter value={stat.value} /></div>
+              <div className="text-sm text-arena-text-secondary mt-0.5">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -437,17 +513,25 @@ export function LandingView() {
       {/* How It Works */}
       <section className="max-w-7xl mx-auto px-6 py-20">
         <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="relative grid md:grid-cols-3 gap-8">
+          {/* Connecting lines — visible on md+ */}
+          <div className="hidden md:block absolute top-[52px] left-[16.67%] right-[16.67%] h-[2px] steps-connecting-line z-0" />
           {[
             { step: '01', title: 'Find a Tournament', desc: 'Browse upcoming tournaments for your favorite games. Filter by game, format, or entry fee.', icon: Search },
             { step: '02', title: 'Register & Pay', desc: 'Sign up instantly. Free tournaments need no payment. Paid ones use secure Google Pay (UPI) with quick admin verification.', icon: User },
             { step: '03', title: 'Compete & Win', desc: 'Join the match room, compete against players, and win real prize money!', icon: Trophy },
-          ].map((item) => (
-            <div key={item.step} className="bg-arena-card border border-arena-border rounded-2xl p-6 hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5">
+          ].map((item, idx) => (
+            <div key={item.step} className="relative z-10 bg-arena-card border border-arena-border rounded-2xl p-6 hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5">
               <div className="text-4xl font-black text-arena-accent/20 mb-4">{item.step}</div>
               <item.icon className="w-8 h-8 text-arena-accent mb-4" />
               <h3 className="text-lg font-semibold mb-2 leading-tight">{item.title}</h3>
               <p className="text-arena-text-secondary text-sm leading-relaxed">{item.desc}</p>
+              {/* Arrow indicator between steps on mobile */}
+              {idx < 2 && (
+                <div className="md:hidden flex justify-center mt-4">
+                  <ChevronRight className="w-5 h-5 text-arena-accent/30 rotate-90" />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -497,15 +581,15 @@ export function LandingView() {
           <h2 className="text-3xl font-bold text-center mb-12">Supported Games</h2>
           <div className="flex flex-wrap justify-center gap-4">
             {games.map((g: any) => (
-              <div key={g.id} className="bg-arena-card border border-arena-border rounded-2xl p-4 flex items-center gap-3 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer">
-                <div className="w-10 h-10 bg-arena-accent/10 rounded-xl flex items-center justify-center overflow-hidden">
+              <div key={g.id} className="game-card-shimmer bg-arena-card border border-arena-border rounded-2xl p-5 flex flex-col items-center gap-3 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-w-[120px]">
+                <div className="w-12 h-12 rounded-2xl bg-arena-accent/10 flex items-center justify-center overflow-hidden" style={{ boxShadow: '0 0 12px rgba(255,75,92,0.1)' }}>
                   {g.iconUrl ? (
-                    <Image src={g.iconUrl} alt={g.name} width={40} height={40} className="w-full h-full object-cover" unoptimized loading="lazy" />
+                    <Image src={g.iconUrl} alt={g.name} width={48} height={48} className="w-12 h-12 object-cover" unoptimized loading="lazy" />
                   ) : (
-                    <Gamepad2 className="w-5 h-5 text-arena-accent" />
+                    <Gamepad2 className="w-6 h-6 text-arena-accent" />
                   )}
                 </div>
-                <span className="font-medium">{g.name}</span>
+                <span className="font-medium text-sm">{g.name}</span>
               </div>
             ))}
           </div>
@@ -533,7 +617,7 @@ export function LandingView() {
             <div>
               <h4 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Support</h4>
               <ul className="space-y-2">
-                <li><a href="https://discord.gg/aetherarena" target="_blank" rel="noopener noreferrer" className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Discord</a></li>
+                <li><a href="https://discord.gg/NpWrVkyBB" target="_blank" rel="noopener noreferrer" className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Discord</a></li>
                 <li><button onClick={() => nav('terms-conditions')} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">FAQ</button></li>
                 <li><button onClick={() => nav('contact')} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Contact</button></li>
               </ul>
@@ -554,10 +638,10 @@ export function LandingView() {
             </div>
             <div className="flex items-center gap-4">
               {[
-                { name: 'YouTube', url: 'https://youtube.com/@aetherarena' },
+                { name: 'YouTube', url: 'https://www.youtube.com/@Aether-Arena' },
                 { name: 'Instagram', url: 'https://instagram.com/aetherarena' },
-                { name: 'Discord', url: 'https://discord.gg/aetherarena' },
-                { name: 'WhatsApp', url: 'https://whatsapp.com/channel/YOUR_CHANNEL' },
+                { name: 'Discord', url: 'https://discord.gg/NpWrVkyBB' },
+                { name: 'WhatsApp', url: 'https://whatsapp.com/channel/0029VagJkEJLNSc4f8sC8q2m' },
               ].map(s => (
                 <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150">
                   {s.name}
