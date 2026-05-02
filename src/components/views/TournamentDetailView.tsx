@@ -185,14 +185,13 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
   const [step, setStep] = useState<0 | 1 | 2>(0); // 0=instructions, 1=payment proof, 2=submitted
   const { isAuthenticated } = useAuthStore();
 
-  // Fetch GPay number from platform settings
+  // Fetch GPay number from public platform settings (no admin auth required)
   const { data: settings } = useQuery({
     queryKey: ['platform-settings-public'],
-    queryFn: () => fetch('/api/admin/settings').then(r => r.ok ? r.json() : {}).then((d: Record<string, any>) => d.settings || {}),
+    queryFn: () => fetch('/api/settings/public').then(r => r.ok ? r.json() : {}).then((d: Record<string, any>) => d.settings || {}),
   });
 
   const gpayNumber = (settings as Record<string, string>)?.gpay_number || '9158396121';
-  const gpayUpiId = (settings as Record<string, string>)?.gpay_upi_id || '';
 
   if (tournament.entryFee === 0) {
     return (
@@ -250,49 +249,36 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
             <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-arena-warning/15 text-arena-warning">Coming Soon</span>
           </div>
 
-          {/* GPay Payment Option */}
+          {/* GPay Payment Option - UPI Deep Link */}
           <div className="border border-green-500/30 rounded-xl p-4 bg-green-500/5">
             <div className="flex items-center gap-2 mb-3">
               <Smartphone className="w-4 h-4 text-green-400" />
               <span className="text-sm font-semibold text-green-400">Pay via Google Pay</span>
             </div>
-            <p className="text-xs text-arena-text-secondary mb-3 leading-relaxed">
-              Send the exact entry fee via Google Pay using the number below. After payment, enter your UTR/Transaction ID for verification.
+            <p className="text-xs text-arena-text-secondary mb-4 leading-relaxed">
+              Click the button below to open Google Pay with the exact amount pre-filled. Complete the payment, then come back and enter your UTR number.
             </p>
 
-            {/* GPay Number - Copyable */}
-            <div className="flex items-center gap-2 bg-arena-dark rounded-lg p-3 mb-3">
-              <div className="flex-1">
-                <p className="text-[10px] text-arena-text-muted">Pay to this number</p>
-                <p className="text-base font-mono font-bold text-arena-text-primary tracking-wider">{gpayNumber}</p>
-              </div>
-              <button
-                onClick={() => { navigator.clipboard.writeText(gpayNumber); toast.success('Number copied!'); }}
-                className="p-2 rounded-lg hover:bg-arena-surface transition-colors duration-150"
-                title="Copy number"
-              >
-                <Copy className="w-4 h-4 text-arena-text-muted hover:text-arena-accent" />
-              </button>
+            {/* UPI Pay Button */}
+            <a
+              href={`upi://pay?pa=${gpayNumber}@upi&pn=Aether%20Arena&am=${(tournament.entryFee / 100).toFixed(2)}&cu=INR&tn=Aether%20Arena%20Tournament`}
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 mb-3"
+            >
+              <Smartphone className="w-4 h-4" />
+              Open Google Pay to Pay {paiseToRupee(tournament.entryFee)}
+            </a>
+
+            {/* Desktop fallback note */}
+            <div className="flex items-start gap-2 text-xs text-arena-text-muted bg-arena-dark rounded-lg p-3">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-arena-info" />
+              <span>
+                On mobile, tapping the button above will open Google Pay directly. 
+                On desktop, send the exact amount <strong className="text-arena-text-primary">{paiseToRupee(tournament.entryFee)}</strong> via Google Pay from your phone.
+              </span>
             </div>
 
-            {gpayUpiId && (
-              <div className="flex items-center gap-2 bg-arena-dark rounded-lg p-3 mb-3">
-                <div className="flex-1">
-                  <p className="text-[10px] text-arena-text-muted">UPI ID</p>
-                  <p className="text-sm font-mono text-arena-text-primary">{gpayUpiId}</p>
-                </div>
-                <button
-                  onClick={() => { navigator.clipboard.writeText(gpayUpiId); toast.success('UPI ID copied!'); }}
-                  className="p-2 rounded-lg hover:bg-arena-surface transition-colors duration-150"
-                  title="Copy UPI ID"
-                >
-                  <Copy className="w-4 h-4 text-arena-text-muted hover:text-arena-accent" />
-                </button>
-              </div>
-            )}
-
             {/* Important Note */}
-            <div className="flex items-start gap-2 text-xs text-arena-warning">
+            <div className="flex items-start gap-2 text-xs text-arena-warning mt-3">
               <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
               <span>Send exactly <strong>{paiseToRupee(tournament.entryFee)}</strong>. Payments with incorrect amounts may be rejected.</span>
             </div>
@@ -301,7 +287,7 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
           <div className="flex gap-3">
             <button onClick={onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
             <button onClick={() => setStep(1)} className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2">
-              I&apos;ve Paid <ChevronRight className="w-4 h-4" />
+              I&apos;ve Completed Payment <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useAppStore } from '@/lib/store';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MessageSquare, Mail, Clock, Youtube, Instagram, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -260,6 +261,12 @@ export function ContactView() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [sending, setSending] = useState(false);
 
+  const { data: publicSettings } = useQuery({
+    queryKey: ['public-settings'],
+    queryFn: () => fetch('/api/settings/public').then(r => r.ok ? r.json() : {}).then((d: any) => d.settings || {}),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.message) {
@@ -292,10 +299,10 @@ export function ContactView() {
 
       <div className="grid md:grid-cols-4 gap-6 mb-8">
         {[
-          { icon: Youtube, title: 'YouTube', desc: 'Watch highlights & tutorials', value: 'Subscribe', color: 'text-red-500', bg: 'bg-red-500/10', href: 'https://youtube.com/@aetherarena' },
-          { icon: Instagram, title: 'Instagram', desc: 'Follow us for updates', value: 'Follow', color: 'text-pink-500', bg: 'bg-pink-500/10', href: 'https://instagram.com/aetherarena' },
-          { icon: MessageSquare, title: 'Discord', desc: 'Join our Discord server for instant support', value: 'Join Server', color: 'text-[#5865F2]', bg: 'bg-[#5865F2]/10', href: 'https://discord.gg/aetherarena' },
-          { icon: Smartphone, title: 'WhatsApp', desc: 'Get updates on WhatsApp', value: 'Join Channel', color: 'text-green-500', bg: 'bg-green-500/10', href: 'https://whatsapp.com/channel/YOUR_CHANNEL' },
+          { icon: Youtube, title: 'YouTube', desc: 'Watch highlights & tutorials', value: 'Subscribe', color: 'text-red-500', bg: 'bg-red-500/10', href: publicSettings?.youtube_channel_url || 'https://www.youtube.com/@Aether-Arena' },
+          { icon: Instagram, title: 'Instagram', desc: 'Follow us for updates', value: 'Follow', color: 'text-pink-500', bg: 'bg-pink-500/10', href: publicSettings?.instagram_url || 'https://www.instagram.com/aetherarena?igsh=dGRreWFvOW5xMjlp' },
+          { icon: MessageSquare, title: 'Discord', desc: 'Join our Discord server for instant support', value: 'Join Server', color: 'text-[#5865F2]', bg: 'bg-[#5865F2]/10', href: publicSettings?.discord_invite_url || 'https://discord.gg/NpWrVkyBB' },
+          { icon: Smartphone, title: 'WhatsApp', desc: 'Get updates on WhatsApp', value: 'Join Channel', color: 'text-green-500', bg: 'bg-green-500/10', href: publicSettings?.whatsapp_channel_url || 'https://whatsapp.com/channel/0029Vb7fpsUAYlUJ7Fhq7e26' },
         ].map(item => (
           <a key={item.title} href={item.href} target="_blank" rel="noopener noreferrer"
             className="bg-arena-card border border-arena-border rounded-xl p-4 text-center hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5">

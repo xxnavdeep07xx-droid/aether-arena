@@ -603,6 +603,38 @@ export async function GET(request: Request) {
       results.push(`AetherTask seed: ${msg}`)
     }
 
+    // ── PlatformSetting seed data (social links & defaults) ─────
+    try {
+      const defaultSettings: { key: string; value: string }[] = [
+        { key: 'youtube_channel_url', value: 'https://www.youtube.com/@Aether-Arena' },
+        { key: 'instagram_url', value: 'https://www.instagram.com/aetherarena?igsh=dGRreWFvOW5xMjlp' },
+        { key: 'discord_invite_url', value: 'https://discord.gg/NpWrVkyBB' },
+        { key: 'whatsapp_channel_url', value: 'https://whatsapp.com/channel/0029Vb7fpsUAYlUJ7Fhq7e26' },
+        { key: 'gpay_number', value: '9158396121' },
+        { key: 'razorpay_coming_soon', value: 'true' },
+      ]
+
+      let seeded = 0
+      for (const s of defaultSettings) {
+        // Only insert if the key doesn't already exist
+        const existing: { count: number }[] = await db.$queryRawUnsafe(
+          `SELECT COUNT(*)::int as count FROM "PlatformSetting" WHERE "key" = $1`,
+          s.key
+        )
+        if (existing[0]?.count === 0) {
+          await db.$executeRawUnsafe(
+            `INSERT INTO "PlatformSetting" ("key", "value") VALUES ($1, $2)`,
+            s.key, s.value
+          )
+          seeded++
+        }
+      }
+      results.push(`PlatformSetting seed: ${seeded > 0 ? `inserted ${seeded} defaults` : 'already exists, skipping'}`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`PlatformSetting seed: ${msg}`)
+    }
+
     return NextResponse.json({ success: true, results })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
