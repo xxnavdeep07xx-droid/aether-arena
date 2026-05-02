@@ -271,8 +271,12 @@ function AffiliateCarouselSection() {
         {visible.map((a: any) => (
           <a key={a.id} href={a.url || '#'} target="_blank" rel="noopener noreferrer" onClick={() => handleClick(a)}
             className="group bg-arena-surface border border-arena-border rounded-2xl p-4 md:p-5 flex gap-4 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5 block">
-            <div className="w-16 h-16 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
-              <Gamepad2 className="w-8 h-8 text-arena-accent/60" />
+            <div className="w-16 h-16 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {a.imageUrl ? (
+                <Image src={a.imageUrl} alt={a.name} width={64} height={64} className="w-full h-full object-cover" unoptimized loading="lazy" />
+              ) : (
+                <Gamepad2 className="w-8 h-8 text-arena-accent/60" />
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-sm font-semibold truncate group-hover:text-arena-accent transition-colors duration-150">{a.name}</h3>
@@ -374,8 +378,12 @@ function TopupCarouselSection() {
                 <div className="absolute top-0 right-0 bg-arena-accent text-white text-[9px] font-bold px-2.5 py-0.5 rounded-bl-lg">🔥 POPULAR</div>
               )}
               <div className="flex items-center gap-2 mb-2.5">
-                <div className="w-9 h-9 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
-                  <Zap className="w-4 h-4 text-arena-accent" />
+                <div className="w-9 h-9 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {pack.imageUrl ? (
+                    <Image src={pack.imageUrl} alt={pack.packName} width={36} height={36} className="w-full h-full object-cover" unoptimized loading="lazy" />
+                  ) : (
+                    <Zap className="w-4 h-4 text-arena-accent" />
+                  )}
                 </div>
                 <div className="min-w-0">
                   <div className="text-[10px] font-medium text-arena-text-muted">{pack.gameName}</div>
@@ -498,8 +506,12 @@ function CountdownTimer({ startTime }: { startTime: string | Date }) {
 export function TournamentCard({ tournament: t, onClick }: { tournament: any; onClick: () => void }) {
   return (
     <div onClick={onClick} className="bg-arena-card border border-arena-border rounded-xl overflow-hidden hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20">
-      <div className="h-28 bg-gradient-to-br from-arena-accent/15 via-arena-purple/10 to-arena-surface flex items-center justify-center relative">
-        <Gamepad2 className="w-10 h-10 text-arena-text-muted/50" />
+      <div className="h-28 bg-gradient-to-br from-arena-accent/15 via-arena-purple/10 to-arena-surface flex items-center justify-center relative overflow-hidden">
+        {t.game?.slug ? (
+          <Image src={`/images/games/${t.game.slug}.webp`} alt={t.game?.name || 'Game'} fill className="object-cover opacity-60" unoptimized loading="lazy" />
+        ) : (
+          <Gamepad2 className="w-10 h-10 text-arena-text-muted/50" />
+        )}
         <div className="absolute top-3 left-3 flex gap-2">
           {t.isFeatured && <span className="bg-arena-gold/20 text-arena-gold text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"><Star className="w-3 h-3" /> Featured</span>}
           {t?.status === 'in_progress' && <span className="bg-arena-accent text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"><CircleDot className="w-3 h-3 animate-pulse" /> LIVE</span>}

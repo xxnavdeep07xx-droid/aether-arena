@@ -359,6 +359,9 @@ export function LandingView() {
       {/* Hero */}
       <section className="relative pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-arena-accent/5 via-transparent to-transparent" />
+        <div className="absolute inset-0 opacity-10">
+          <Image src="/images/hero-banner.webp" alt="" fill className="object-cover" unoptimized priority />
+        </div>
         <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
             {/* Left - Text */}
@@ -463,8 +466,12 @@ export function LandingView() {
             {featuredTournaments.slice(0, 3).map((t: any) => (
               <div key={t.id} className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
                 onClick={() => nav('tournament-detail', { id: t.id })}>
-                <div className="h-32 bg-gradient-to-br from-arena-accent/20 to-arena-purple/20 flex items-center justify-center">
-                  <Gamepad2 className="w-12 h-12 text-arena-text-muted" />
+                <div className="h-32 bg-gradient-to-br from-arena-accent/20 to-arena-purple/20 flex items-center justify-center relative overflow-hidden">
+                  {t.game?.slug ? (
+                    <Image src={`/images/games/${t.game.slug}.webp`} alt={t.game?.name || 'Game'} fill className="object-cover opacity-60" unoptimized loading="lazy" />
+                  ) : (
+                    <Gamepad2 className="w-12 h-12 text-arena-text-muted" />
+                  )}
                 </div>
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -491,8 +498,12 @@ export function LandingView() {
           <div className="flex flex-wrap justify-center gap-4">
             {games.map((g: any) => (
               <div key={g.id} className="bg-arena-card border border-arena-border rounded-2xl p-4 flex items-center gap-3 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer">
-                <div className="w-10 h-10 bg-arena-accent/10 rounded-xl flex items-center justify-center">
-                  <Gamepad2 className="w-5 h-5 text-arena-accent" />
+                <div className="w-10 h-10 bg-arena-accent/10 rounded-xl flex items-center justify-center overflow-hidden">
+                  {g.iconUrl ? (
+                    <Image src={g.iconUrl} alt={g.name} width={40} height={40} className="w-full h-full object-cover" unoptimized loading="lazy" />
+                  ) : (
+                    <Gamepad2 className="w-5 h-5 text-arena-accent" />
+                  )}
                 </div>
                 <span className="font-medium">{g.name}</span>
               </div>
