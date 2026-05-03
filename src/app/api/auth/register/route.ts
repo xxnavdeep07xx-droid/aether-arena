@@ -6,6 +6,44 @@ import { authLimiter, strictLimiter } from '@/lib/rate-limit'
 import { sendVerificationEmail } from '@/lib/email'
 import crypto from 'crypto'
 
+// Ensure AetherTask seed data exists (idempotent)
+async function ensureAetherTaskSeed() {
+  try {
+    const taskCount = await db.aetherTask.count()
+    if (taskCount === 0) {
+      const tasks = [
+        { taskKey: 'daily_login', title: 'Daily Login', description: 'Open the app today', rewardAmount: 5, category: 'daily', resetType: 'daily', affiliateUrl: null, displayOrder: 1 },
+        { taskKey: 'view_tournament', title: 'View Tournament', description: 'View any tournament details', rewardAmount: 3, category: 'daily', resetType: 'daily', affiliateUrl: null, displayOrder: 2 },
+        { taskKey: 'check_leaderboard', title: 'Check Leaderboard', description: 'Visit the leaderboard page', rewardAmount: 3, category: 'daily', resetType: 'daily', affiliateUrl: null, displayOrder: 3 },
+        { taskKey: 'register_tournament', title: 'Register for Tournament', description: 'Register for any tournament', rewardAmount: 10, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 4 },
+        { taskKey: 'play_tournament', title: 'Play a Tournament', description: 'Complete a tournament match', rewardAmount: 25, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 5 },
+        { taskKey: 'win_tournament', title: 'Win a Tournament', description: 'Win 1st place in a tournament', rewardAmount: 100, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 6 },
+        { taskKey: 'win_2nd_place', title: 'Win 2nd Place', description: 'Get 2nd place in a tournament', rewardAmount: 60, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 7 },
+        { taskKey: 'win_3rd_place', title: 'Win 3rd Place', description: 'Get 3rd place in a tournament', rewardAmount: 40, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 8 },
+        { taskKey: 'complete_profile', title: 'Complete Profile', description: 'Add bio and avatar to your profile', rewardAmount: 15, category: 'engagement', resetType: 'one_time', affiliateUrl: null, displayOrder: 9 },
+        { taskKey: 'refer_friend', title: 'Refer a Friend', description: 'Share referral link, friend signs up', rewardAmount: 30, category: 'engagement', resetType: 'one_time', affiliateUrl: null, displayOrder: 10 },
+        { taskKey: 'streak_7', title: '7-Day Streak', description: 'Log in 7 consecutive days', rewardAmount: 50, category: 'engagement', resetType: 'one_time', affiliateUrl: null, displayOrder: 11 },
+        { taskKey: 'streak_30', title: '30-Day Streak', description: 'Log in 30 consecutive days', rewardAmount: 200, category: 'engagement', resetType: 'one_time', affiliateUrl: null, displayOrder: 12 },
+        { taskKey: 'try_bgmi', title: 'Try BGMI', description: 'Download BGMI via our affiliate link', rewardAmount: 20, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/bgmi', displayOrder: 13 },
+        { taskKey: 'try_freefire', title: 'Try Free Fire', description: 'Download Free Fire via our affiliate link', rewardAmount: 20, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/freefire', displayOrder: 14 },
+        { taskKey: 'try_codm', title: 'Try COD Mobile', description: 'Download COD Mobile via our affiliate link', rewardAmount: 20, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/call-of-duty-mobile', displayOrder: 15 },
+        { taskKey: 'try_clashroyale', title: 'Try Clash Royale', description: 'Download Clash Royale via our affiliate link', rewardAmount: 15, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/clash-royale', displayOrder: 16 },
+        { taskKey: 'try_valorant', title: 'Try Valorant Mobile', description: 'Download Valorant Mobile via our affiliate link', rewardAmount: 15, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/valorant-mobile', displayOrder: 17 },
+      ]
+      for (const t of tasks) {
+        await db.aetherTask.upsert({
+          where: { taskKey: t.taskKey },
+          create: t,
+          update: {},
+        })
+      }
+      console.log('[Register] Seeded AetherTask data (first registration)')
+    }
+  } catch (err) {
+    console.error('[Register] Failed to seed AetherTask data:', err)
+  }
+}
+
 export async function POST(request: Request) {
   // Request body size limit
   const contentLength = parseInt(request.headers.get('content-length') || '0')
@@ -135,6 +173,9 @@ export async function POST(request: Request) {
   // Resolve referral code (accept both referralCode and ref)
   const resolvedRefCode = referralCode || ref || null;
 
+  // Ensure AetherTask seed data exists before the transaction
+  await ensureAetherTaskSeed()
+
   try {
     // Check if email already exists
     const existingCred = await db.accountCredential.findUnique({
@@ -254,23 +295,33 @@ export async function POST(request: Request) {
         },
       })
 
-      // Auto-complete daily_login task for today
-      const now = new Date()
-      const istOffset = 5.5 * 60 * 60 * 1000
-      const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000
-      const ist = new Date(utc + istOffset)
-      ist.setHours(0, 0, 0, 0)
+      // Auto-complete daily_login task for today (best-effort — skip if AetherTask not seeded)
+      try {
+        const dailyTask = await tx.aetherTask.findUnique({ where: { taskKey: 'daily_login' } })
+        if (dailyTask) {
+          const now = new Date()
+          const istOffset = 5.5 * 60 * 60 * 1000
+          const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000
+          const ist = new Date(utc + istOffset)
+          ist.setHours(0, 0, 0, 0)
 
-      await tx.aetherTaskProgress.create({
-        data: {
-          userId: profile.id,
-          taskKey: 'daily_login',
-          completed: true,
-          completedAt: new Date(),
-          resetDate: ist,
-          timesCompleted: 1,
-        },
-      })
+          await tx.aetherTaskProgress.create({
+            data: {
+              userId: profile.id,
+              taskKey: 'daily_login',
+              completed: true,
+              completedAt: new Date(),
+              resetDate: ist,
+              timesCompleted: 1,
+            },
+          })
+        } else {
+          console.warn('[Register] daily_login AetherTask not found — skipping task progress creation')
+        }
+      } catch (taskErr) {
+        // Non-critical: don't fail registration over task progress
+        console.error('[Register] Failed to create daily_login task progress (non-critical):', taskErr)
+      }
 
       // Handle referral: if ref code provided, award 30 Aether to the referrer
       if (resolvedRefCode && resolvedRefCode.trim().length > 0) {
@@ -357,8 +408,13 @@ export async function POST(request: Request) {
       )
     }
 
+    // Return more descriptive error for debugging (strip in production later)
+    const debugMsg = process.env.NODE_ENV === 'development'
+      ? `Registration failed: ${msg}`
+      : 'Registration failed. Please try again later.'
+
     return NextResponse.json(
-      { error: 'Registration failed. Please try again later.' },
+      { error: debugMsg },
       { status: 500 }
     )
   }

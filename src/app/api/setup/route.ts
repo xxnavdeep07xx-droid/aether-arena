@@ -94,6 +94,12 @@ export async function GET(request: Request) {
       await safeAddColumn('Profile', 'totalDeaths', 'INTEGER', false, '0')
       await safeAddColumn('Profile', 'totalPrizeWon', 'INTEGER', false, '0')
       await safeAddColumn('Profile', 'scheduledDeletionAt', 'TIMESTAMP(3)', true)
+      await safeAddColumn('Profile', 'phone', 'TEXT', true)
+      await safeAddColumn('Profile', 'phoneVerified', 'BOOLEAN', false, 'false')
+      await safeAddColumn('Profile', 'referredByCode', 'TEXT', true)
+      await safeAddColumn('Profile', 'notification_prefs', 'JSONB', false, "'{\"pushEnabled\":true,\"tournamentAlerts\":true,\"resultUpdates\":true,\"promoOffers\":false,\"communityUpdates\":true}'")
+      await safeAddColumn('Profile', 'privacy_prefs', 'JSONB', false, "'{\"profileVisibility\":\"public\",\"showLeaderboard\":true,\"showActivity\":true}'")
+      await safeAddColumn('Profile', 'language', 'TEXT', false, "'en'")
       results.push('Profile columns: OK')
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
@@ -141,6 +147,31 @@ export async function GET(request: Request) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
       results.push(`AccountCredential indexes: ${msg}`)
+    }
+
+    // ── AccountCredential columns: phone, phoneVerified ──────────
+    try {
+      await safeAddColumn('AccountCredential', 'phone', 'TEXT', true)
+      await safeAddColumn('AccountCredential', 'phoneVerified', 'BOOLEAN', false, 'false')
+      await safeAddColumn('AccountCredential', 'emailVerified', 'BOOLEAN', false, 'false')
+      await safeAddColumn('AccountCredential', 'emailVerificationToken', 'TEXT', true)
+      await safeAddColumn('AccountCredential', 'emailVerificationExpires', 'TIMESTAMP(3)', true)
+      results.push('AccountCredential phone/email verification columns: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AccountCredential columns: ${msg}`)
+    }
+
+    // ── AccountCredential phone unique index ────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "AccountCredential_phone_key" ON "AccountCredential"("phone") WHERE "phone" IS NOT NULL
+      `)
+      await safeCreateIndex('AccountCredential', 'phone')
+      results.push('AccountCredential phone indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AccountCredential phone indexes: ${msg}`)
     }
 
     // ── AccountCredential FK → Profile ──────────────────────────
@@ -195,21 +226,20 @@ export async function GET(request: Request) {
       results.push(`ContactSubmission indexes: ${msg}`)
     }
 
-    // ── Profile column: referredByCode ────────────────────────
-    try {
-      await safeAddColumn('Profile', 'referredByCode', 'TEXT', true)
-      results.push('Profile column referredByCode: OK')
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'error'
-      results.push(`Profile column referredByCode: ${msg}`)
-    }
-
+    // ── Profile indexes (new columns) ──────────────────────────
     try {
       await safeCreateIndex('Profile', 'referredByCode')
-      results.push('Profile referredByCode index: OK')
+      await safeCreateIndex('Profile', 'league')
+      await safeCreateIndex('Profile', 'leaguePoints')
+      await safeCreateIndex('Profile', 'phone')
+      // Phone unique index (allows NULL)
+      await db.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "Profile_phone_key" ON "Profile"("phone") WHERE "phone" IS NOT NULL
+      `)
+      results.push('Profile extra indexes: OK')
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
-      results.push(`Profile referredByCode index: ${msg}`)
+      results.push(`Profile extra indexes: ${msg}`)
     }
 
     // ── AetherBalance table ───────────────────────────────────
@@ -430,6 +460,26 @@ export async function GET(request: Request) {
       results.push(`AetherTaskProgress FK → AetherTask: ${msg}`)
     }
 
+    // ── AetherTaskProgress unique constraint ─────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "AetherTaskProgress_user_id_task_key_reset_date_key" ON "AetherTaskProgress"("user_id", "task_key", "reset_date")
+      `)
+      results.push('AetherTaskProgress unique constraint: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTaskProgress unique constraint: ${msg}`)
+    }
+
+    // ── AetherTaskProgress missing columns ───────────────────
+    try {
+      await safeAddColumn('AetherTaskProgress', 'reset_date', 'DATE', true)
+      results.push('AetherTaskProgress reset_date column: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTaskProgress reset_date column: ${msg}`)
+    }
+
     // ── UserStreak table ──────────────────────────────────────
     try {
       await db.$executeRawUnsafe(`
@@ -551,10 +601,11 @@ export async function GET(request: Request) {
           "gameName" TEXT NOT NULL DEFAULT '',
           "gameSlug" TEXT NOT NULL DEFAULT '',
           "packName" TEXT NOT NULL DEFAULT '',
-          "description" TEXT,
+          "description" TEXT NOT NULL DEFAULT '',
           "price" INTEGER NOT NULL DEFAULT 0,
           "originalPrice" INTEGER NOT NULL DEFAULT 0,
-          "affiliateUrl" TEXT,
+          "imageUrl" TEXT NOT NULL DEFAULT '',
+          "affiliateUrl" TEXT NOT NULL DEFAULT '',
           "iconUrl" TEXT,
           "isPopular" BOOLEAN NOT NULL DEFAULT false,
           "sortOrder" INTEGER NOT NULL DEFAULT 0,
@@ -567,6 +618,29 @@ export async function GET(request: Request) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
       results.push(`TopupPack table: ${msg}`)
+    }
+
+    // ── TopupPack missing columns (for existing tables) ────────
+    try {
+      await safeAddColumn('TopupPack', 'imageUrl', 'TEXT', false, "''")
+      await safeAddColumn('TopupPack', 'affiliateUrl', 'TEXT', false, "''")
+      await safeAddColumn('TopupPack', 'description', 'TEXT', false, "''")
+      await safeAddColumn('TopupPack', 'originalPrice', 'INTEGER', false, '0')
+      results.push('TopupPack extra columns: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`TopupPack extra columns: ${msg}`)
+    }
+
+    // ── TopupPack indexes ──────────────────────────────────────
+    try {
+      await safeCreateIndex('TopupPack', 'gameSlug')
+      await safeCreateIndex('TopupPack', 'isActive')
+      await safeCreateIndex('TopupPack', 'sortOrder')
+      results.push('TopupPack indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`TopupPack indexes: ${msg}`)
     }
 
     // ── Announcement table ────────────────────────────────────
@@ -586,6 +660,130 @@ export async function GET(request: Request) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
       results.push(`Announcement table: ${msg}`)
+    }
+
+    // ── Announcement missing columns ─────────────────────────
+    try {
+      await safeAddColumn('Announcement', 'createdById', 'TEXT', true)
+      await safeAddColumn('Announcement', 'expiresAt', 'TIMESTAMP(3)', true)
+      await safeCreateIndex('Announcement', 'isActive')
+      await safeCreateIndex('Announcement', 'createdAt')
+      results.push('Announcement extra columns/indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`Announcement extra columns: ${msg}`)
+    }
+
+    // ── AffiliateLink table ───────────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "AffiliateLink" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "name" TEXT NOT NULL,
+          "platform" TEXT NOT NULL DEFAULT '',
+          "url" TEXT NOT NULL,
+          "slug" TEXT NOT NULL,
+          "description" TEXT NOT NULL DEFAULT '',
+          "category" TEXT NOT NULL DEFAULT '',
+          "imageUrl" TEXT NOT NULL DEFAULT '',
+          "price" INTEGER NOT NULL DEFAULT 0,
+          "originalPrice" INTEGER NOT NULL DEFAULT 0,
+          "clicks" INTEGER NOT NULL DEFAULT 0,
+          "isActive" BOOLEAN NOT NULL DEFAULT true,
+          "sortOrder" INTEGER NOT NULL DEFAULT 0,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "AffiliateLink_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('AffiliateLink table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AffiliateLink table: ${msg}`)
+    }
+
+    try {
+      await safeCreateIndex('AffiliateLink', 'slug', true)
+      await safeCreateIndex('AffiliateLink', 'isActive')
+      await safeCreateIndex('AffiliateLink', 'category')
+      await safeCreateIndex('AffiliateLink', 'sortOrder')
+      results.push('AffiliateLink indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AffiliateLink indexes: ${msg}`)
+    }
+
+    // ── PhoneVerification table ──────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "PhoneVerification" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "phone" TEXT NOT NULL,
+          "otp" TEXT NOT NULL,
+          "purpose" TEXT NOT NULL DEFAULT 'signup',
+          "verified" BOOLEAN NOT NULL DEFAULT false,
+          "expiresAt" TIMESTAMP(3) NOT NULL,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "PhoneVerification_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('PhoneVerification table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`PhoneVerification table: ${msg}`)
+    }
+
+    try {
+      await safeCreateIndex('PhoneVerification', 'phone')
+      await safeCreateIndex('PhoneVerification', 'expiresAt')
+      results.push('PhoneVerification indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`PhoneVerification indexes: ${msg}`)
+    }
+
+    // ── AetherTask seed data ──────────────────────────────────
+    try {
+      const taskCount: { count: number }[] = await db.$queryRawUnsafe(`
+        SELECT COUNT(*)::int as count FROM "AetherTask"
+      `)
+      if (taskCount[0]?.count === 0) {
+        const tasks = [
+          // Daily tasks
+          { task_key: 'daily_login', title: 'Daily Login', description: 'Open the app today', reward_amount: 5, category: 'daily', reset_type: 'daily', affiliate_url: null, display_order: 1 },
+          { task_key: 'view_tournament', title: 'View Tournament', description: 'View any tournament details', reward_amount: 3, category: 'daily', reset_type: 'daily', affiliate_url: null, display_order: 2 },
+          { task_key: 'check_leaderboard', title: 'Check Leaderboard', description: 'Visit the leaderboard page', reward_amount: 3, category: 'daily', reset_type: 'daily', affiliate_url: null, display_order: 3 },
+          // Tournament tasks
+          { task_key: 'register_tournament', title: 'Register for Tournament', description: 'Register for any tournament', reward_amount: 10, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 4 },
+          { task_key: 'play_tournament', title: 'Play a Tournament', description: 'Complete a tournament match', reward_amount: 25, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 5 },
+          { task_key: 'win_tournament', title: 'Win a Tournament', description: 'Win 1st place in a tournament', reward_amount: 100, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 6 },
+          { task_key: 'win_2nd_place', title: 'Win 2nd Place', description: 'Get 2nd place in a tournament', reward_amount: 60, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 7 },
+          { task_key: 'win_3rd_place', title: 'Win 3rd Place', description: 'Get 3rd place in a tournament', reward_amount: 40, category: 'tournament', reset_type: 'one_time', affiliate_url: null, display_order: 8 },
+          // Engagement tasks
+          { task_key: 'complete_profile', title: 'Complete Profile', description: 'Add bio and avatar to your profile', reward_amount: 15, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 9 },
+          { task_key: 'refer_friend', title: 'Refer a Friend', description: 'Share referral link, friend signs up', reward_amount: 30, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 10 },
+          { task_key: 'streak_7', title: '7-Day Streak', description: 'Log in 7 consecutive days', reward_amount: 50, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 11 },
+          { task_key: 'streak_30', title: '30-Day Streak', description: 'Log in 30 consecutive days', reward_amount: 200, category: 'engagement', reset_type: 'one_time', affiliate_url: null, display_order: 12 },
+          // Affiliate tasks
+          { task_key: 'try_bgmi', title: 'Try BGMI', description: 'Download BGMI via our affiliate link', reward_amount: 20, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/bgmi', display_order: 13 },
+          { task_key: 'try_freefire', title: 'Try Free Fire', description: 'Download Free Fire via our affiliate link', reward_amount: 20, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/freefire', display_order: 14 },
+          { task_key: 'try_codm', title: 'Try COD Mobile', description: 'Download COD Mobile via our affiliate link', reward_amount: 20, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/call-of-duty-mobile', display_order: 15 },
+          { task_key: 'try_clashroyale', title: 'Try Clash Royale', description: 'Download Clash Royale via our affiliate link', reward_amount: 15, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/clash-royale', display_order: 16 },
+          { task_key: 'try_valorant', title: 'Try Valorant Mobile', description: 'Download Valorant Mobile via our affiliate link', reward_amount: 15, category: 'affiliate', reset_type: 'one_time', affiliate_url: 'https://www.codashop.com/in/valorant-mobile', display_order: 17 },
+        ]
+
+        for (const t of tasks) {
+          await db.$executeRawUnsafe(`
+            INSERT INTO "AetherTask" ("task_key", "title", "description", "reward_amount", "category", "reset_type", "affiliate_url", "display_order")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `, t.task_key, t.title, t.description, t.reward_amount, t.category, t.reset_type, t.affiliate_url, t.display_order)
+        }
+        results.push(`AetherTask seed: inserted ${tasks.length} tasks`)
+      } else {
+        results.push('AetherTask seed: already has data, skipping')
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTask seed: ${msg}`)
     }
 
     return NextResponse.json({ success: true, results })
