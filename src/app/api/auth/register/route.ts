@@ -44,6 +44,67 @@ async function ensureAetherTaskSeed() {
   }
 }
 
+// PgBouncer-safe: add a column if it doesn't exist
+async function safeAddColumn(table: string, column: string, type: string, nullable: boolean, defaultVal?: string) {
+  const notNull = nullable ? '' : ' NOT NULL'
+  const def = defaultVal !== undefined ? ` DEFAULT ${defaultVal}` : ''
+  const alterSql = `ALTER TABLE "${table}" ADD COLUMN "${column}" ${type}${notNull}${def}`
+  await db.$executeRawUnsafe(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = '${table}' AND column_name = '${column}'
+      ) THEN
+        ${alterSql};
+      END IF;
+    END $$
+  `)
+}
+
+// Ensure critical database columns exist (runs on every registration)
+// Uses a cached flag to avoid repeated checks
+let schemaChecked = false
+async function ensureDatabaseSchema() {
+  if (schemaChecked) return
+  try {
+    // AccountCredential columns
+    await safeAddColumn('AccountCredential', 'phone', 'TEXT', true)
+    await safeAddColumn('AccountCredential', 'phoneVerified', 'BOOLEAN', false, 'false')
+    await safeAddColumn('AccountCredential', 'emailVerified', 'BOOLEAN', false, 'false')
+    await safeAddColumn('AccountCredential', 'emailVerificationToken', 'TEXT', true)
+    await safeAddColumn('AccountCredential', 'emailVerificationExpires', 'TIMESTAMP(3)', true)
+
+    // Profile columns
+    await safeAddColumn('Profile', 'phone', 'TEXT', true)
+    await safeAddColumn('Profile', 'phoneVerified', 'BOOLEAN', false, 'false')
+    await safeAddColumn('Profile', 'referredByCode', 'TEXT', true)
+    await safeAddColumn('Profile', 'notification_prefs', 'JSONB', false, "'{\"pushEnabled\":true,\"tournamentAlerts\":true,\"resultUpdates\":true,\"promoOffers\":false,\"communityUpdates\":true}'")
+    await safeAddColumn('Profile', 'privacy_prefs', 'JSONB', false, "'{\"profileVisibility\":\"public\",\"showLeaderboard\":true,\"showActivity\":true}'")
+    await safeAddColumn('Profile', 'language', 'TEXT', false, "'en'")
+
+    // AetherTaskProgress columns
+    await safeAddColumn('AetherTaskProgress', 'reset_date', 'DATE', true)
+
+    // TopupPack columns
+    await safeAddColumn('TopupPack', 'imageUrl', 'TEXT', false, "''")
+    await safeAddColumn('TopupPack', 'affiliateUrl', 'TEXT', false, "''")
+    await safeAddColumn('TopupPack', 'description', 'TEXT', false, "''")
+    await safeAddColumn('TopupPack', 'originalPrice', 'INTEGER', false, '0')
+
+    // Announcement columns
+    await safeAddColumn('Announcement', 'createdById', 'TEXT', true)
+    await safeAddColumn('Announcement', 'expiresAt', 'TIMESTAMP(3)', true)
+
+    schemaChecked = true
+    console.log('[Register] Database schema check completed')
+  } catch (err) {
+    console.error('[Register] Database schema check failed (non-critical):', err)
+    // Don't block registration — the column might already exist
+    schemaChecked = true
+  }
+}
+
 export async function POST(request: Request) {
   // Request body size limit
   const contentLength = parseInt(request.headers.get('content-length') || '0')
@@ -173,6 +234,8 @@ export async function POST(request: Request) {
   // Resolve referral code (accept both referralCode and ref)
   const resolvedRefCode = referralCode || ref || null;
 
+  // Ensure database schema is up-to-date (auto-setup on first registration)
+  await ensureDatabaseSchema()
   // Ensure AetherTask seed data exists before the transaction
   await ensureAetherTaskSeed()
 
