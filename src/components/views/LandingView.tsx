@@ -191,6 +191,9 @@ export function LandingView() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpVerified, setOtpVerified] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0); // countdown in seconds
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
@@ -212,6 +215,13 @@ export function LandingView() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  // OTP countdown timer
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const interval = setInterval(() => setOtpTimer(t => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [otpTimer]);
 
   // Username availability check (debounced)
   const checkUsername = useCallback(async (username: string) => {
@@ -278,21 +288,56 @@ export function LandingView() {
   };
 
   const handleSendOtp = async () => {
-    if (!signupForm.phone || !/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) {
-      toast.error('Enter a valid 10-digit Indian phone number');
+    if (!signupForm.email || !/^\S+@\S+\.\S+$/.test(signupForm.email)) {
+      toast.error('Enter a valid email address first');
       return;
     }
-    toast.success('OTP sent to your phone! (Demo: use any 6-digit code)');
-    setOtpSent(true);
+    setOtpSending(true);
+    try {
+      const res = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupForm.email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOtpSent(true);
+        setOtpTimer(300); // 5 minutes
+        setOtpVerified(false);
+        setOtp('');
+        toast.success('OTP sent to your email!');
+      } else {
+        toast.error(data.error || 'Failed to send OTP');
+      }
+    } catch {
+      toast.error('Failed to send OTP');
+    }
+    setOtpSending(false);
   };
 
-  const handleVerifyOtp = () => {
-    if (otp.length === 6) {
-      setOtpVerified(true);
-      toast.success('Phone number verified!');
-    } else {
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) {
       toast.error('Enter a valid 6-digit OTP');
+      return;
     }
+    setOtpVerifying(true);
+    try {
+      const res = await fetch('/api/auth/verify-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupForm.email, otp }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOtpVerified(true);
+        toast.success('Email verified!');
+      } else {
+        toast.error(data.error || 'Invalid OTP');
+      }
+    } catch {
+      toast.error('OTP verification failed');
+    }
+    setOtpVerifying(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -315,9 +360,15 @@ export function LandingView() {
       return;
     }
 
-    // Validate phone if provided
-    if (signupForm.phone && !/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) {
-      toast.error('Enter a valid 10-digit Indian phone number');
+    // Validate displayName
+    if (!signupForm.displayName || signupForm.displayName.trim().length < 2) {
+      toast.error('Display name is required (min 2 characters)');
+      return;
+    }
+
+    // Validate phone (required now)
+    if (!signupForm.phone || !/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) {
+      toast.error('A valid 10-digit Indian phone number is required');
       return;
     }
 
@@ -330,9 +381,10 @@ export function LandingView() {
           email: signupForm.email,
           username: signupForm.username,
           displayName: signupForm.displayName,
-          phone: signupForm.phone || undefined,
+          phone: signupForm.phone,
           password: signupForm.password,
           referralCode: signupForm.referralCode || undefined,
+          emailOtpVerified: true,
         }),
       });
       const data = await res.json();
@@ -364,20 +416,25 @@ export function LandingView() {
     : undefined;
 
   // Step validation
-  const isStep0Valid = signupForm.username.length >= 3 && usernameValid && usernameAvailable === true;
-  const isStep1Valid = signupForm.email.length > 0 && /^\S+@\S+\.\S+$/.test(signupForm.email);
+  const isStep0Valid = signupForm.displayName.trim().length >= 2 && signupForm.username.length >= 3 && usernameValid && usernameAvailable === true;
+  const isStep1Valid = signupForm.email.length > 0 && /^\S+@\S+\.\S+$/.test(signupForm.email) && otpVerified && signupForm.phone.trim().length > 0 && /^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''));
   const isStep2Valid = signupForm.password.length >= 8 && /[A-Z]/.test(signupForm.password) && /[a-z]/.test(signupForm.password) && /[0-9]/.test(signupForm.password) && signupForm.password === signupForm.confirmPassword;
   const isStep3Valid = agreedToTerms;
 
   const goNextStep = () => {
     if (signupStep === 0 && !isStep0Valid) {
-      if (!signupForm.username || !usernameValid) toast.error('Please enter a valid username');
+      if (!signupForm.displayName.trim()) toast.error('Display name is required');
+      else if (signupForm.displayName.trim().length < 2) toast.error('Display name must be at least 2 characters');
+      else if (!signupForm.username || !usernameValid) toast.error('Please enter a valid username');
       else if (usernameAvailable !== true) toast.error('Username must be available');
       return;
     }
     if (signupStep === 1 && !isStep1Valid) {
       if (!signupForm.email) toast.error('Email is required');
-      else toast.error('Please enter a valid email address');
+      else if (!/^\S+@\S+\.\S+$/.test(signupForm.email)) toast.error('Please enter a valid email address');
+      else if (!otpVerified) toast.error('Please verify your email with OTP');
+      else if (!signupForm.phone.trim()) toast.error('Phone number is required');
+      else if (!/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) toast.error('Enter a valid 10-digit Indian phone number');
       return;
     }
     if (signupStep === 2 && !isStep2Valid) {
@@ -392,7 +449,7 @@ export function LandingView() {
 
   // Reset step when modal opens/closes
   const openSignup = () => { setSignupStep(0); setShowSignup(true); };
-  const closeSignup = () => { setShowSignup(false); setSignupStep(0); };
+  const closeSignup = () => { setShowSignup(false); setSignupStep(0); setOtpSent(false); setOtpVerified(false); setOtp(''); setOtpTimer(0); };
 
   return (
     <div className="min-h-screen bg-arena-dark">
@@ -734,7 +791,7 @@ export function LandingView() {
           {signupStep === 0 && (
             <div className="space-y-3.5 animate-fade-in">
               {/* Display Name */}
-              <FormField label="Display Name" optional icon={<User className="w-4.5 h-4.5" />}>
+              <FormField label="Display Name" required icon={<User className="w-4.5 h-4.5" />}>
                 <input
                   type="text"
                   value={signupForm.displayName}
@@ -795,71 +852,112 @@ export function LandingView() {
           {/* ── Step 1: Contact ─────────────────────── */}
           {signupStep === 1 && (
             <div className="space-y-3.5 animate-fade-in">
-              {/* Email */}
+              {/* Email with OTP */}
               <FormField label="Email Address" required icon={<Mail className="w-4.5 h-4.5" />}>
-                <input
-                  type="email"
-                  required
-                  value={signupForm.email}
-                  onChange={e => setSignupForm({ ...signupForm, email: e.target.value })}
-                  className={inputWithIcon}
-                  placeholder="your@email.com"
-                  autoFocus
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={signupForm.email}
+                    onChange={e => { setSignupForm({ ...signupForm, email: e.target.value }); if (otpVerified) { setOtpVerified(false); setOtpSent(false); setOtp(''); setOtpTimer(0); } }}
+                    className={cn(inputBase, "pl-10 flex-1 h-12")}
+                    placeholder="your@email.com"
+                    disabled={otpVerified}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={!signupForm.email || !/^\S+@\S+\.\S+$/.test(signupForm.email) || otpSending || otpVerified}
+                    className="px-3 h-12 bg-arena-accent/20 text-arena-accent text-xs font-semibold rounded-xl hover:bg-arena-accent/30 transition-all duration-200 disabled:opacity-40 whitespace-nowrap flex items-center gap-1.5"
+                  >
+                    {otpSending ? <Loader2 className="w-3 h-3 animate-spin" /> : otpVerified ? <Check className="w-3 h-3" /> : null}
+                    {otpVerified ? 'Verified' : otpSending ? 'Sending...' : otpSent ? 'Resend' : 'Send OTP'}
+                  </button>
+                </div>
               </FormField>
 
-              {/* Phone with OTP */}
-              <FormField label="Phone Number" optional icon={<Phone className="w-4.5 h-4.5" />}>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-arena-text-muted/60 font-medium">+91</div>
-                    <input
-                      type="tel"
-                      value={signupForm.phone}
-                      onChange={e => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                      className={cn(inputBase, "pl-12 pr-4 py-3 h-12")}
-                      placeholder="9876543210"
-                    />
-                  </div>
-                  {!otpVerified && (
-                    <button type="button" onClick={handleSendOtp} disabled={!signupForm.phone || signupForm.phone.length !== 10}
-                      className="px-4 h-12 bg-arena-accent/15 text-arena-accent text-[12px] font-semibold rounded-xl hover:bg-arena-accent/25 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap border border-arena-accent/20">
-                      {otpSent ? 'Resend' : 'Send OTP'}
-                    </button>
-                  )}
-                  {otpVerified && (
-                    <div className="flex items-center gap-1.5 px-4 h-12 bg-green-500/10 border border-green-500/20 text-green-400 text-[12px] font-semibold rounded-xl">
-                      <Check className="w-4 h-4" /> Verified
+              {/* OTP Input with Timer - shows after OTP sent */}
+              {otpSent && !otpVerified && (
+                <div className="animate-fade-in space-y-2 pl-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      {[0,1,2,3,4,5].map(i => (
+                        <input
+                          key={i}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={otp[i] || ''}
+                          onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            const newOtp = otp.split('');
+                            newOtp[i] = val;
+                            setOtp(newOtp.join(''));
+                            // Auto-focus next input
+                            if (val && i < 5) {
+                              const next = e.target.nextElementSibling as HTMLInputElement;
+                              if (next) next.focus();
+                            }
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Backspace' && !otp[i] && i > 0) {
+                              const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement;
+                              if (prev) prev.focus();
+                            }
+                          }}
+                          className="w-10 h-12 text-center text-lg font-bold bg-arena-surface/50 border border-arena-border/60 rounded-xl text-arena-text-primary focus:outline-none focus:border-arena-accent/70 focus:ring-2 focus:ring-arena-accent/10 transition-all duration-200"
+                        />
+                      ))}
                     </div>
-                  )}
-                </div>
-                {/* OTP Input */}
-                {otpSent && !otpVerified && (
-                  <div className="flex gap-2 mt-2">
-                    <input
-                      type="text"
-                      value={otp}
-                      onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className={cn(inputBase, "h-10 text-center tracking-[0.4em] font-mono text-base px-3 py-2")}
-                      placeholder="000000"
-                      maxLength={6}
-                    />
-                    <button type="button" onClick={handleVerifyOtp} disabled={otp.length !== 6}
-                      className="px-4 h-10 bg-green-500/15 border border-green-500/20 text-green-400 text-[12px] font-semibold rounded-xl hover:bg-green-500/25 active:scale-95 transition-all disabled:opacity-30">
+                    <button
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      disabled={otp.length !== 6 || otpVerifying}
+                      className="px-4 py-2.5 h-12 bg-green-500/20 text-green-400 text-xs font-semibold rounded-xl hover:bg-green-500/30 transition-all duration-200 disabled:opacity-40 flex items-center gap-1.5"
+                    >
+                      {otpVerifying ? <Loader2 className="w-3 h-3 animate-spin" /> : <Shield className="w-3 h-3" />}
                       Verify
                     </button>
                   </div>
-                )}
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] text-arena-text-muted/60">
+                      {otpTimer > 0 ? `OTP expires in ${Math.floor(otpTimer / 60)}:${String(otpTimer % 60).padStart(2, '0')}` : 'OTP expired. Click Resend to get a new one.'}
+                    </p>
+                    {otpTimer > 0 && (
+                      <div className="w-16 h-1 bg-arena-border/30 rounded-full overflow-hidden">
+                        <div className="h-full bg-arena-accent/60 rounded-full transition-all duration-1000" style={{ width: `${(otpTimer / 300) * 100}%` }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Verified indicator */}
+              {otpVerified && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-xl animate-fade-in">
+                  <Check className="w-4 h-4 text-green-400" />
+                  <span className="text-xs text-green-400 font-medium">Email verified successfully</span>
+                </div>
+              )}
+
+              {/* Phone Number - Required */}
+              <FormField label="Phone Number" required icon={<Phone className="w-4.5 h-4.5" />} hint="10-digit Indian mobile number">
+                <input
+                  type="tel"
+                  value={signupForm.phone}
+                  onChange={e => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                  className={inputWithIcon}
+                  placeholder="9876543210"
+                  maxLength={10}
+                />
               </FormField>
 
-              {/* Navigation */}
+              {/* Navigation buttons */}
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={goPrevStep}
-                  className="px-5 h-12 border border-arena-border hover:border-arena-accent/40 text-arena-text-secondary hover:text-arena-text-primary font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 active:scale-[0.98]">
+                <button type="button" onClick={goPrevStep} className="px-6 py-3 h-12 border border-arena-border hover:border-arena-text-primary text-arena-text-secondary font-medium rounded-xl transition-all duration-200 flex items-center gap-1.5 text-sm">
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
-                <button type="button" onClick={goNextStep} disabled={!isStep1Valid}
-                  className="flex-1 py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]">
+                <button type="button" onClick={goNextStep} disabled={!isStep1Valid} className="flex-1 py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

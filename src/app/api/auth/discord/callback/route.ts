@@ -28,8 +28,9 @@ async function exchangeCode(code: string, redirectUri: string, clientId: string,
   })
 
   if (!tokenRes.ok) {
-    const err = await tokenRes.text()
-    throw new Error(`Token exchange failed: ${err}`)
+    const errText = await tokenRes.text()
+    console.error('[Discord Callback] Token exchange failed:', tokenRes.status, errText)
+    throw new Error(`Token exchange failed: ${errText}`)
   }
 
   return tokenRes.json()

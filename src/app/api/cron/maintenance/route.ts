@@ -17,10 +17,24 @@ function timingSafeEqual(a: string, b: string): boolean {
 // Protected by CRON_SECRET env var to prevent unauthorized calls
 
 export async function GET(request: Request) {
-  // Verify cron secret
+  // Verify cron secret — multiple methods supported:
+  // 1. Authorization: Bearer <CRON_SECRET> header
+  // 2. ?secret=<CRON_SECRET> query param
+  // 3. Vercel cron requests are identified by x-vercel-cron header
+  const isVercelCron = request.headers.get('x-vercel-cron') === '1'
   const authHeader = request.headers.get('authorization')
-  if (!timingSafeEqual(authHeader || '', `Bearer ${process.env.CRON_SECRET}`)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const urlSecret = new URL(request.url).searchParams.get('secret')
+  const cronSecret = process.env.CRON_SECRET
+
+  if (!isVercelCron) {
+    // Not a Vercel cron — require manual auth
+    if (cronSecret) {
+      const headerToken = authHeader?.replace('Bearer ', '')
+      const provided = headerToken || urlSecret
+      if (!provided || !timingSafeEqual(provided, cronSecret)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    }
   }
 
   const results: string[] = []

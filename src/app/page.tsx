@@ -132,7 +132,7 @@ function ViewFallback() {
 function ViewRenderer() {
   const { currentView } = useAppStore();
   const { isLoading, user } = useAuthStore();
-  const isAdmin = user?.isAdmin;
+  const isAdmin = user?.isAdmin === true;
 
   // Admin-only views - redirect non-admins
   const adminViews: ViewName[] = [
@@ -218,7 +218,7 @@ export default function Page() {
   const { currentView, navigate, mobileMenuOpen, setMobileMenuOpen, rightPanelCollapsed, setRightPanelCollapsed } = useAppStore();
   const { isAuthenticated, user, logout, aetherBalance, setAetherBalance } = useAuthStore();
   const isLanding = currentView === 'landing';
-  const isAdmin = user?.isAdmin;
+  const isAdmin = user?.isAdmin === true;
   const [searchFocused, setSearchFocused] = useState(false);
 
   // Fetch aether balance for header display

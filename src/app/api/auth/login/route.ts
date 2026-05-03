@@ -155,7 +155,7 @@ export async function POST(request: Request) {
         avatarUrl: cred.user.avatarUrl,
         email: cred.email,
         phone: cred.user.phone || cred.phone,
-        isAdmin: cred.user.isAdmin,
+        isAdmin: Boolean(cred.user.isAdmin),
         emailVerified: cred.emailVerified ?? false,
       },
     })

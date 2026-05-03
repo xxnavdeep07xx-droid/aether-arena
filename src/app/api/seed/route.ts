@@ -5,7 +5,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const secret = body.secret || request.headers.get('x-seed-secret');
-    if (secret !== 'aether-arena-seed-2026') {
+    const expectedSecret = process.env.SEED_SECRET || process.env.SETUP_SECRET;
+    if (!expectedSecret || secret !== expectedSecret) {
       return NextResponse.json({ error: 'Invalid seed secret' }, { status: 403 });
     }
 

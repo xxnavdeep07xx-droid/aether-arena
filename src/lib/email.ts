@@ -133,3 +133,72 @@ export async function sendVerificationEmail(
     return { success: false, error: 'Failed to send email' }
   }
 }
+
+// ─── Send OTP Email ───────────────────────────────────────────
+
+export async function sendOtpEmail(
+  toEmail: string,
+  otp: string
+): Promise<{ success: boolean; error?: string }> {
+  const transporter = getGmailTransporter()
+
+  if (!transporter) {
+    console.warn('[Email] GMAIL_USER / GMAIL_APP_PASSWORD not set — skipping OTP email')
+    return { success: false, error: 'Email service not configured' }
+  }
+
+  try {
+    await transporter.sendMail({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject: 'Your Aether Arena Verification Code',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #0f0f23; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #0f0f23; min-height: 100vh;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="500" cellpadding="0" cellspacing="0" style="background-color: #1a1a3e; border-radius: 16px; border: 1px solid #2a2a5a; overflow: hidden;">
+                  <tr>
+                    <td align="center" style="padding: 40px 40px 20px 40px;">
+                      <h1 style="margin: 0; color: #a78bfa; font-size: 28px; font-weight: 700;">Aether Arena</h1>
+                      <p style="margin: 8px 0 0 0; color: #8888aa; font-size: 14px;">Your Esports Battlefield</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 20px 40px 30px 40px;">
+                      <p style="margin: 0 0 16px 0; color: #b0b0cc; font-size: 15px; line-height: 1.6;">
+                        Use the verification code below to complete your registration. This code expires in <strong style="color: #e0e0ff;">5 minutes</strong>.
+                      </p>
+                      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                        <tr>
+                          <td align="center" style="background-color: #0f0f23; border-radius: 12px; border: 2px dashed #7c3aed; padding: 20px 40px;">
+                            <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #a78bfa; font-family: 'Courier New', monospace;">${otp}</span>
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="margin: 24px 0 0 0; color: #8888aa; font-size: 13px; line-height: 1.5; text-align: center;">
+                        If you didn&apos;t request this code, you can safely ignore this email.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('[Email] Failed to send OTP email:', error)
+    return { success: false, error: 'Failed to send email' }
+  }
+}

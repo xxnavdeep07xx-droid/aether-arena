@@ -140,6 +140,7 @@ export async function POST(request: Request) {
     phone?: string;
     referralCode?: string;
     ref?: string;
+    emailOtpVerified?: boolean;
   }
   try {
     body = await request.json()
@@ -150,12 +151,28 @@ export async function POST(request: Request) {
     )
   }
 
-  const { email, password, username, displayName, phone, referralCode, ref } = body
+  const { email, password, username, displayName, phone, referralCode, ref, emailOtpVerified } = body
 
   // Validate required fields
-  if (!email || !password || !username) {
+  if (!email || !password || !username || !displayName) {
     return NextResponse.json(
-      { error: 'Email, password, and username are required' },
+      { error: 'Email, password, username, and display name are required' },
+      { status: 400 }
+    )
+  }
+
+  // Validate displayName length
+  if (displayName.trim().length < 2) {
+    return NextResponse.json(
+      { error: 'Display name must be at least 2 characters' },
+      { status: 400 }
+    )
+  }
+
+  // Validate phone (required now)
+  if (!phone || !phone.trim()) {
+    return NextResponse.json(
+      { error: 'Phone number is required' },
       { status: 400 }
     )
   }
@@ -204,8 +221,8 @@ export async function POST(request: Request) {
     )
   }
 
-  // Validate displayName length if provided
-  if (displayName && displayName.length > 50) {
+  // Validate displayName length
+  if (displayName.length > 50) {
     return NextResponse.json(
       { error: 'Display name must be 50 characters or less' },
       { status: 400 }
@@ -220,8 +237,8 @@ export async function POST(request: Request) {
     )
   }
 
-  // Validate phone if provided
-  if (phone && phone.trim().length > 0) {
+  // Validate phone format
+  if (phone) {
     const phoneRegex = /^[6-9]\d{9}$/
     if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
       return NextResponse.json(
@@ -235,9 +252,19 @@ export async function POST(request: Request) {
   const resolvedRefCode = referralCode || ref || null;
 
   // Ensure database schema is up-to-date (auto-setup on first registration)
-  await ensureDatabaseSchema()
+  try {
+    await ensureDatabaseSchema()
+  } catch (err) {
+    console.error('[Register] Schema check error (non-blocking):', err)
+    // Don't block registration
+  }
   // Ensure AetherTask seed data exists before the transaction
-  await ensureAetherTaskSeed()
+  try {
+    await ensureAetherTaskSeed()
+  } catch (err) {
+    console.error('[Register] Seed check error (non-blocking):', err)
+    // Don't block registration
+  }
 
   try {
     // Check if email already exists
@@ -262,25 +289,23 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if phone already exists (if provided)
-    if (phone && phone.trim().length > 0) {
-      const cleanPhone = phone.replace(/\D/g, '');
-      const existingPhone = await db.profile.findUnique({
-        where: { phone: cleanPhone },
-      })
-      if (existingPhone) {
-        return NextResponse.json(
-          { error: 'Phone number already registered' },
-          { status: 409 }
-        )
-      }
+    // Check if phone already exists
+    const cleanPhone = phone.replace(/\D/g, '');
+    const existingPhone = await db.profile.findUnique({
+      where: { phone: cleanPhone },
+    })
+    if (existingPhone) {
+      return NextResponse.json(
+        { error: 'Phone number already registered' },
+        { status: 409 }
+      )
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Clean phone number
-    const cleanPhone = phone && phone.trim().length > 0 ? phone.replace(/\D/g, '') : null;
+    // Clean phone number (already validated above)
+    // cleanPhone is defined above
 
     // Create profile with credential atomically
     const profile = await db.$transaction(async (tx) => {
@@ -290,7 +315,7 @@ export async function POST(request: Request) {
       const created = tx.profile.create({
         data: {
           username,
-          displayName: displayName || username,
+          displayName,
           phone: cleanPhone,
           phoneVerified: false,
           isAdmin,
@@ -301,9 +326,9 @@ export async function POST(request: Request) {
               password: hashedPassword,
               phone: cleanPhone,
               phoneVerified: false,
-              emailVerified: false,
-              emailVerificationToken: crypto.randomBytes(32).toString('hex'),
-              emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+              emailVerified: emailOtpVerified ? true : false,
+              emailVerificationToken: emailOtpVerified ? null : crypto.randomBytes(32).toString('hex'),
+              emailVerificationExpires: emailOtpVerified ? null : new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
             }
           },
         },
@@ -425,7 +450,8 @@ export async function POST(request: Request) {
     const token = await createSession(profile.id)
 
     // Send verification email (non-blocking — don't fail registration if email fails)
-    if (profile.credentials?.emailVerificationToken) {
+    // Skip if email was already verified via OTP
+    if (!emailOtpVerified && profile.credentials?.emailVerificationToken) {
       sendVerificationEmail(
         profile.credentials.email,
         profile.username,
@@ -444,8 +470,8 @@ export async function POST(request: Request) {
         avatarUrl: profile.avatarUrl,
         email: profile.credentials?.email,
         phone: profile.credentials?.phone || profile.phone,
-        isAdmin: profile.isAdmin,
-        emailVerified: false,
+        isAdmin: Boolean(profile.isAdmin),
+        emailVerified: emailOtpVerified ? true : false,
       },
     })
 

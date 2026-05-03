@@ -32,9 +32,20 @@ async function safeCreateIndex(table: string, column: string, unique = false) {
  *
  * SAFE: This endpoint only adds missing columns and seed data.
  * It never drops or alters existing data.
- * No authentication required — it's idempotent and safe to call.
+ * Protected by SETUP_SECRET to prevent abuse.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  // Verify setup secret (same as /api/setup)
+  const authHeader = request.headers.get('authorization')
+  const urlSecret = new URL(request.url).searchParams.get('secret')
+  const expectedSecret = process.env.SETUP_SECRET
+
+  if (expectedSecret) {
+    const providedSecret = authHeader?.replace('Bearer ', '') || urlSecret
+    if (providedSecret !== expectedSecret) {
+      return NextResponse.json({ error: 'Unauthorized. Provide SETUP_SECRET via Authorization header or ?secret= param.' }, { status: 401 })
+    }
+  }
   const results: string[] = []
 
   try {

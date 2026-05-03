@@ -52,6 +52,7 @@ export async function GET() {
         email: profile.credentials?.email || null,
         phone: profile.phone || profile.credentials?.phone || null,
         emailVerified: profile.credentials?.emailVerified ?? false,
+        isAdmin: Boolean(profile.isAdmin),
         credentials: undefined,
       },
     })
