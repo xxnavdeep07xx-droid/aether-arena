@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================
@@ -46,6 +47,7 @@ model Account {
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 // ============================================
@@ -57,6 +59,8 @@ model Profile {
   displayName            String?
   avatarUrl              String?
   bio                    String              @default("")
+  phone                  String?             @unique
+  phoneVerified          Boolean             @default(false)
   discordId              String?
   discordUsername        String?
   isAdmin                Boolean             @default(false)
@@ -68,6 +72,7 @@ model Profile {
   totalKills             Int                 @default(0)
   totalDeaths            Int                 @default(0)
   totalPrizeWon          Int                 @default(0)
+  scheduledDeletionAt    DateTime?
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
 
@@ -82,9 +87,20 @@ model Profile {
   announcements             Announcement[]
   createdStreamSchedules    StreamSchedule[]
   updatedPlatformSettings   PlatformSetting[]
+  aetherBalance             AetherBalance?
+  aetherTransactions        AetherTransaction[]
+  userStreak                UserStreak?
+  redemptionRequests        RedemptionRequest[]
+  aetherTaskProgress        AetherTaskProgress[]
+  notificationPrefs        Json                @default("{\"pushEnabled\":true,\"tournamentAlerts\":true,\"resultUpdates\":true,\"promoOffers\":false,\"communityUpdates\":true}") @map("notification_prefs")
+  privacyPrefs             Json                @default("{\"profileVisibility\":\"public\",\"showLeaderboard\":true,\"showActivity\":true}") @map("privacy_prefs")
+  language                 String              @default("en")
+  referredByCode            String?
 
   @@index([league])
   @@index([leaguePoints])
+  @@index([referredByCode])
+  @@index([phone])
 }
 
 // ============================================
@@ -144,8 +160,8 @@ model Tournament {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  game           Game                   @relation(fields: [gameId], references: [id])
-  createdBy      Profile?               @relation("TournamentCreator", fields: [createdById], references: [id])
+  game           Game                   @relation(fields: [gameId], references: [id], onDelete: Restrict)
+  createdBy      Profile?               @relation("TournamentCreator", fields: [createdById], references: [id], onDelete: SetNull)
   registrations  TournamentRegistration[]
   matches        Match[]
   streamSchedules StreamSchedule[]
@@ -175,6 +191,7 @@ model TournamentRegistration {
   player     Profile    @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, playerId])
+  @@index([tournamentId])
   @@index([playerId])
   @@index([paymentStatus])
 }
@@ -282,10 +299,11 @@ model Announcement {
   createdAt   DateTime  @default(now())
   expiresAt   DateTime?
 
-  createdBy Profile @relation(fields: [createdById], references: [id])
+  createdBy Profile @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([createdAt])
+  @@index([createdById])
 }
 
 // ============================================
@@ -309,11 +327,12 @@ model StreamSchedule {
   createdAt      DateTime  @default(now())
 
   tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  createdBy  Profile     @relation(fields: [createdById], references: [id])
+  createdBy  Profile     @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([scheduledStart])
   @@index([isFeatured])
+  @@index([createdById])
 }
 
 // ============================================
@@ -349,22 +368,171 @@ model PlatformSetting {
   updatedAt  DateTime @updatedAt
   updatedById String?
 
-  updatedBy Profile? @relation(fields: [updatedById], references: [id])
+  updatedBy Profile? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
 }
 
 // ============================================
 // AccountCredential (simple email/password)
 // ============================================
 model AccountCredential {
-  id         String  @id @default(cuid())
-  userId     String  @unique
-  email      String  @unique
-  password   String
-  createdAt  DateTime @default(now())
+  id                          String    @id @default(cuid())
+  userId                      String    @unique
+  email                       String    @unique
+  password                    String
+  phone                       String?   @unique
+  phoneVerified               Boolean   @default(false)
+  emailVerified               Boolean   @default(false)
+  emailVerificationToken      String?   @unique
+  emailVerificationExpires    DateTime?
+  createdAt                   DateTime  @default(now())
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email])
+  @@index([phone])
+  @@index([emailVerificationToken])
+}
+
+// ============================================
+// PhoneVerification (OTP for signup/login)
+// ============================================
+model PhoneVerification {
+  id         String   @id @default(cuid())
+  phone      String
+  otp        String
+  purpose    String   @default("signup") // signup | login
+  verified   Boolean  @default(false)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([phone])
+  @@index([expiresAt])
+}
+
+// ============================================
+// AetherBalance
+// ============================================
+model AetherBalance {
+  userId        String   @id @map("user_id")
+  balance       Int      @default(0)
+  totalEarned   Int      @default(0) @map("total_earned")
+  totalRedeemed Int      @default(0) @map("total_redeemed")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  user          Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  AetherTransaction[]
+  redemptions   RedemptionRequest[]
+
+  @@map("AetherBalance")
+}
+
+// ============================================
+// AetherTransaction
+// ============================================
+model AetherTransaction {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  type         String
+  source       String?
+  description  String
+  amount       Int
+  balanceAfter Int      @map("balance_after")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      AetherBalance @relation(fields: [userId], references: [userId], map: "AetherTransaction_balance_fkey")
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("AetherTransaction")
+}
+
+// ============================================
+// AetherTask
+// ============================================
+model AetherTask {
+  id            String   @id @default(uuid())
+  taskKey       String   @unique @map("task_key")
+  title         String
+  description   String
+  rewardAmount  Int      @map("reward_amount")
+  category      String
+  resetType     String   @map("reset_type")
+  affiliateUrl  String?  @map("affiliate_url")
+  isActive      Boolean  @default(true) @map("is_active")
+  displayOrder  Int      @default(0) @map("display_order")
+  progress      AetherTaskProgress[]
+
+  @@map("AetherTask")
+}
+
+// ============================================
+// AetherTaskProgress
+// ============================================
+model AetherTaskProgress {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  taskKey        String    @map("task_key")
+  completed      Boolean   @default(false)
+  completedAt    DateTime? @map("completed_at")
+  resetDate      DateTime? @map("reset_date")
+  timesCompleted Int       @default(0) @map("times_completed")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  user           Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task           AetherTask @relation(fields: [taskKey], references: [taskKey], onDelete: Cascade)
+
+  @@unique([userId, taskKey, resetDate])
+  @@index([userId])
+  @@map("AetherTaskProgress")
+}
+
+// ============================================
+// UserStreak
+// ============================================
+model UserStreak {
+  userId        String    @id @map("user_id")
+  currentStreak Int       @default(0) @map("current_streak")
+  longestStreak Int       @default(0) @map("longest_streak")
+  lastLoginDate DateTime? @map("last_login_date")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  user          Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("UserStreak")
+}
+
+// ============================================
+// RedemptionRequest
+// ============================================
+model RedemptionRequest {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  amountAether Int       @map("amount_aether")
+  amountInr    Int       @map("amount_inr")  // stored in paise (₹1 = 100)
+  upiId        String    @map("upi_id")
+  status       String    @default("pending")
+  adminNote    String?   @map("admin_note")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  processedAt  DateTime? @map("processed_at")
+  user         Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      AetherBalance @relation(fields: [userId], references: [userId], map: "RedemptionRequest_balance_fkey")
+
+  @@index([userId])
+  @@index([status])
+  @@map("RedemptionRequest")
+}
+
+// ============================================
+// ContactSubmission
+// ============================================
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 // ============================================

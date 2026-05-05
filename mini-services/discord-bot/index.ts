@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, Interaction } from 'discord.js'
-import { PrismaClient } from '@prisma/client'
+import { db } from './lib/db'
 
 import { data as tournamentsData, execute as tournamentsExecute } from './commands/tournaments'
 import { data as leaderboardData, execute as leaderboardExecute } from './commands/leaderboard'
@@ -20,9 +20,6 @@ if (!CLIENT_ID) {
   console.error('[ERROR] CLIENT_ID environment variable is required.')
   process.exit(1)
 }
-
-// ─── Prisma ──────────────────────────────────────────────
-const db = new PrismaClient()
 
 // ─── Commands Map ────────────────────────────────────────
 const commands: { data: any; execute: (interaction: any) => Promise<void> }[] = [

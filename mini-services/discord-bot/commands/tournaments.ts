@@ -6,9 +6,7 @@ import {
   CommandInteraction,
   ComponentType,
 } from 'discord.js'
-import { PrismaClient } from '@prisma/client'
-
-const db = new PrismaClient()
+import { db } from '../lib/db'
 const BRAND_COLOR = 0x9333ea
 const BASE_URL = process.env.BASE_URL || 'https://aether-arena.vercel.app'
 
