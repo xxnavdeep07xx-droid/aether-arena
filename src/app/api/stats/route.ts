@@ -34,6 +34,8 @@ export async function GET(request: Request) {
       games: gameCount,
       activeTournaments,
       liveStreams,
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
     })
   } catch {
     return NextResponse.json(

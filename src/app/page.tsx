@@ -450,8 +450,8 @@ export default function Page() {
 
             {/* Content + Right Panel */}
             <div className="flex flex-1 overflow-hidden">
-              {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
+              {/* Scrollable Content — contain:layout for GPU-rendered scrolling */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6" style={{ contain: 'layout style' }}>
                 <ViewRenderer />
               </div>
 

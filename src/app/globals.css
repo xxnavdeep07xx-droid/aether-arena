@@ -200,14 +200,17 @@
 
 .animate-slide-in-left {
   animation: slide-in-left 0.3s ease;
+  will-change: transform;
 }
 
 .animate-fade-in-up {
   animation: fade-in-up 0.4s ease;
+  will-change: opacity, transform;
 }
 
 .animate-fade-in {
   animation: fade-in 0.3s ease;
+  will-change: opacity;
 }
 
 /* Hide scrollbar utility for carousels */
@@ -351,12 +354,14 @@
 .logo-energy {
   animation: energy-pulse 3s ease-in-out infinite;
   border-radius: 50%;
+  will-change: box-shadow;
 }
 
 /* Hero logo full energy */
 .logo-hero-energy {
   animation: crystal-pulse 2.5s ease-in-out infinite;
   border-radius: 50%;
+  will-change: transform, filter;
 }
 
 /* Energy ring container */
@@ -367,6 +372,7 @@
   border-radius: 50%;
   border: 2px solid transparent;
   pointer-events: none;
+  will-change: transform;
 }
 
 .energy-ring-1 {
@@ -398,6 +404,7 @@
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 .energy-particle-1 {
@@ -457,6 +464,7 @@
   pointer-events: none;
   background: linear-gradient(to bottom, transparent, rgba(255, 75, 92, 0.6), transparent);
   transform-origin: center;
+  will-change: transform, opacity;
 }
 
 .energy-streak-1 {
@@ -485,6 +493,7 @@
   background: radial-gradient(circle, rgba(255, 75, 92, 0.08) 0%, rgba(255, 75, 92, 0.02) 40%, transparent 70%);
   animation: aura-pulse 4s ease-in-out infinite, aura-rotate 20s linear infinite;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 /* Hero energy container */
@@ -522,6 +531,7 @@
   );
   animation: swirl-energy 8s linear infinite;
   pointer-events: none;
+  will-change: transform;
 }
 
 .energy-swirl-2 {
@@ -778,11 +788,46 @@
   .splash-ring,
   .splash-text,
   .splash-bg-glow,
-  .splash-loading-dot {
+  .splash-loading-dot,
+  .animate-pulse-glow,
+  .animate-pulse-dot,
+  .animate-fade-in-up,
+  .animate-fade-in,
+  .animate-slide-in-left,
+  .game-icon-float,
+  .game-card-shimmer::after,
+  .steps-connecting-line,
+  .stat-icon-circle,
+  .aether-icon-animated,
+  .aether-sparkle-overlay {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* Reduce heavy animations on mobile for smoother scroll */
+@media (max-width: 768px) {
+  .energy-aura,
+  .energy-swirl,
+  .energy-swirl-2 {
+    animation: none !important;
+  }
+  .energy-particle-4,
+  .energy-particle-5,
+  .energy-particle-6 {
+    display: none !important;
+  }
+  .energy-streak-3 {
+    display: none !important;
+  }
+  .stat-icon-circle {
+    animation: none !important;
+  }
+  .game-card-shimmer::after {
+    animation: none !important;
   }
 }
 

@@ -6,7 +6,7 @@ import { Providers } from "@/components/providers";
 const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"], // Reduced from 6 to 4 weights — 300 and 800 were unused
   display: 'swap',
 });
 

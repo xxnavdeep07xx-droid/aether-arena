@@ -16,7 +16,9 @@ export async function GET(request: Request) {
       orderBy: { sortOrder: 'asc' },
     })
 
-    return NextResponse.json({ games })
+    return NextResponse.json({ games }, {
+      headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' },
+    })
   } catch {
     return NextResponse.json(
       { error: 'Internal server error' },

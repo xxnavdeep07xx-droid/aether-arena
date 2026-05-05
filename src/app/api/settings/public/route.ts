@@ -87,7 +87,9 @@ export async function GET(request: Request) {
       settingsMap['gpay_payment_enabled'] = gpayNumber?.value ? 'true' : 'false'
     }
 
-    return NextResponse.json({ settings: settingsMap })
+    return NextResponse.json({ settings: settingsMap }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    })
   } catch {
     return NextResponse.json({ settings: {} })
   }

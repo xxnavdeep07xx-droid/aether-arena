@@ -17,7 +17,9 @@ export async function GET(request: Request) {
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     })
 
-    return NextResponse.json({ packs })
+    return NextResponse.json({ packs }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    })
   } catch (error: unknown) {
     console.error('TopupPacks GET error:', error)
     return NextResponse.json({ packs: [] })

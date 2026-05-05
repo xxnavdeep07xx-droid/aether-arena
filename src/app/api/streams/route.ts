@@ -45,7 +45,9 @@ export async function GET(request: Request) {
       ],
     })
 
-    return NextResponse.json({ streams })
+    return NextResponse.json({ streams }, {
+      headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' },
+    })
   } catch {
     return NextResponse.json(
       { error: 'Internal server error' },

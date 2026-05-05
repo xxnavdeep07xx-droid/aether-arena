@@ -15,6 +15,7 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,      // prevent surprise refetches on tab switch
       refetchOnReconnect: true,          // refetch on reconnect is fine
+      placeholderData: (previousData: unknown) => previousData, // keep previous data while refetching to avoid flicker
     },
   },
 });

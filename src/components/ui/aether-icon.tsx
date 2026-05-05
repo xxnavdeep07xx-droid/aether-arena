@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface AetherIconProps {
   className?: string;
@@ -14,6 +15,13 @@ const sizeMap = {
   md: 'w-5 h-5',
   lg: 'w-6 h-6',
   xl: 'w-8 h-8',
+};
+
+const pxMap = {
+  sm: 16,
+  md: 20,
+  lg: 24,
+  xl: 32,
 };
 
 const srcMap = {
@@ -47,11 +55,14 @@ export function AetherIcon({ className, size = 'md', animated = false }: AetherI
           <span className="absolute -bottom-0.5 -left-0.5 w-0.5 h-0.5 rounded-full bg-pink-300 animate-[aether-sparkle_2s_ease-in-out_1.5s_infinite]" />
         </span>
       )}
-      <img
+      <Image
         src={srcMap[size]}
         alt="Aether Coin"
+        width={pxMap[size]}
+        height={pxMap[size]}
         className="w-full h-full object-contain select-none relative z-10"
         draggable={false}
+        unoptimized
       />
     </span>
   );

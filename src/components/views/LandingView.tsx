@@ -536,10 +536,13 @@ export function LandingView() {
                 <div className="energy-streak energy-streak-1" />
                 <div className="energy-streak energy-streak-2" />
                 <div className="energy-streak energy-streak-3" />
-                <img
+                <Image
                   src="/logo-hero.webp"
                   alt="Aether Arena"
+                  width={256}
+                  height={256}
                   className="relative z-10 w-full h-full object-contain logo-hero-energy rounded-3xl"
+                  priority
                 />
               </div>
             </div>
