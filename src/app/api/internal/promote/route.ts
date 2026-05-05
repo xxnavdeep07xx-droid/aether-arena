@@ -20,13 +20,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No profiles found' }, { status: 404 })
     }
 
-    // Make ALL current users admin (they're the owner)
+    // Make ALL current users admin
     const result = await db.profile.updateMany({
       where: { isAdmin: false },
       data: { isAdmin: true }
     })
 
-    // Also get table info
+    // Get table info
     const tables = await db.$queryRaw`
       SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename
     `
