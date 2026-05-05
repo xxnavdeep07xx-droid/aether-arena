@@ -35,14 +35,17 @@ function getGmailTransporter(): nodemailer.Transporter | null {
   console.log('[Email] App password length:', gmailAppPassword.length, 'preview:', gmailAppPassword.substring(0, 4) + '...')
 
   try {
+    // Use explicit SMTP settings instead of service: 'gmail'
+    // to avoid type errors with @types/nodemailer v8
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: gmailUser,
         pass: gmailAppPassword,
       },
-      // Connection pooling & timeouts for Vercel serverless
-      pool: false, // Don't pool — each invocation gets a fresh connection
+      // Connection timeouts for Vercel serverless
       connectionTimeout: 8000, // 8 seconds to connect
       greetingTimeout: 5000,
       socketTimeout: 10000,
