@@ -60,18 +60,18 @@ export async function POST(request: Request) {
     },
   })
 
-  // Send OTP email — AWAIT the result (not fire-and-forget!)
-  // This ensures we know if the email actually failed to send
+  // Send OTP email — AWAIT the result
   const emailResult = await sendOtpEmail(email, otp)
 
   if (!emailResult.success) {
     console.error('[SendEmailOTP] Email failed to send:', emailResult.error)
-    // Still return success to not reveal internal errors to user,
-    // but log the detailed error for debugging
+    // Return an error so the user knows the OTP wasn't sent
+    // They can try again — the OTP is stored in DB so verify will still work
+    // if the email was actually delivered but we got a false error
     return NextResponse.json({
-      success: true,
-      _debug: process.env.NODE_ENV === 'development' ? emailResult.error : undefined,
-    })
+      error: 'Failed to send OTP email. Please try again.',
+      _debug: emailResult.error,
+    }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })

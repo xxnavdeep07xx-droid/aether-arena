@@ -18,7 +18,7 @@ function getGmailTransporter(): nodemailer.Transporter | null {
   if (typeof window !== 'undefined') return null
 
   const gmailUser = process.env.GMAIL_USER
-  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD
+  let gmailAppPassword = process.env.GMAIL_APP_PASSWORD
 
   if (!gmailUser || !gmailAppPassword) {
     console.warn('[Email] GMAIL_USER or GMAIL_APP_PASSWORD not set')
@@ -26,6 +26,10 @@ function getGmailTransporter(): nodemailer.Transporter | null {
     console.warn('[Email] GMAIL_APP_PASSWORD:', gmailAppPassword ? `set (length: ${gmailAppPassword.length})` : 'NOT SET')
     return null
   }
+
+  // Strip spaces from app password — Gmail generates them as "xxxx xxxx xxxx xxxx"
+  // but the actual password is the 16 chars without spaces
+  gmailAppPassword = gmailAppPassword.replace(/\s/g, '')
 
   console.log('[Email] Creating Gmail transporter for:', gmailUser)
   console.log('[Email] App password length:', gmailAppPassword.length, 'preview:', gmailAppPassword.substring(0, 4) + '...')
@@ -37,6 +41,11 @@ function getGmailTransporter(): nodemailer.Transporter | null {
         user: gmailUser,
         pass: gmailAppPassword,
       },
+      // Connection pooling & timeouts for Vercel serverless
+      pool: false, // Don't pool — each invocation gets a fresh connection
+      connectionTimeout: 8000, // 8 seconds to connect
+      greetingTimeout: 5000,
+      socketTimeout: 10000,
     })
     return transporter
   } catch (error) {
@@ -80,9 +89,9 @@ export async function sendVerificationEmail(
   const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`
 
   try {
-    // Verify the transporter can connect
-    await transporter.verify()
-    console.log('[Email] Transporter verified, sending verification email to:', toEmail)
+    // Skip transporter.verify() — it wastes time on Vercel serverless
+    // by creating an extra SMTP connection. Just send directly.
+    console.log('[Email] Sending verification email directly to:', toEmail)
 
     await transporter.sendMail({
       from: getFromEmail(),
@@ -171,9 +180,10 @@ export async function sendOtpEmail(
   }
 
   try {
-    // Verify the transporter can connect before trying to send
-    await transporter.verify()
-    console.log('[Email] Transporter verified, sending OTP email to:', toEmail)
+    // Skip transporter.verify() — it wastes a full SMTP round-trip
+    // on Vercel serverless. Just send directly; if auth fails,
+    // sendMail will throw with a clear error message.
+    console.log('[Email] Sending OTP email directly to:', toEmail)
 
     await transporter.sendMail({
       from: getFromEmail(),
