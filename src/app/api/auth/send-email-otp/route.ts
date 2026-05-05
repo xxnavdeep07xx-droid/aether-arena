@@ -60,10 +60,19 @@ export async function POST(request: Request) {
     },
   })
 
-  // Send OTP email (non-blocking)
-  sendOtpEmail(email, otp).catch(err => {
-    console.error('[SendEmailOTP] Failed to send OTP email:', err)
-  })
+  // Send OTP email — AWAIT the result (not fire-and-forget!)
+  // This ensures we know if the email actually failed to send
+  const emailResult = await sendOtpEmail(email, otp)
+
+  if (!emailResult.success) {
+    console.error('[SendEmailOTP] Email failed to send:', emailResult.error)
+    // Still return success to not reveal internal errors to user,
+    // but log the detailed error for debugging
+    return NextResponse.json({
+      success: true,
+      _debug: process.env.NODE_ENV === 'development' ? emailResult.error : undefined,
+    })
+  }
 
   return NextResponse.json({ success: true })
 }

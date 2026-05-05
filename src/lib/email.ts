@@ -9,33 +9,47 @@
 
 import nodemailer from 'nodemailer'
 
-// ─── Gmail SMTP Transporter (lazy singleton) ──────────────────
-
-let gmailTransporter: nodemailer.Transporter | null = null
+// ─── Gmail SMTP Transporter ──────────────────────────────────
+// NOT a singleton — Vercel serverless functions need fresh connections
+// because env vars can change between deployments and connections
+// can go stale between cold starts.
 
 function getGmailTransporter(): nodemailer.Transporter | null {
-  if (gmailTransporter) return gmailTransporter
   if (typeof window !== 'undefined') return null
 
   const gmailUser = process.env.GMAIL_USER
   const gmailAppPassword = process.env.GMAIL_APP_PASSWORD
 
-  if (!gmailUser || !gmailAppPassword) return null
+  if (!gmailUser || !gmailAppPassword) {
+    console.warn('[Email] GMAIL_USER or GMAIL_APP_PASSWORD not set')
+    console.warn('[Email] GMAIL_USER:', gmailUser ? `set (${gmailUser})` : 'NOT SET')
+    console.warn('[Email] GMAIL_APP_PASSWORD:', gmailAppPassword ? `set (length: ${gmailAppPassword.length})` : 'NOT SET')
+    return null
+  }
 
-  gmailTransporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: gmailUser,
-      pass: gmailAppPassword,
-    },
-  })
+  console.log('[Email] Creating Gmail transporter for:', gmailUser)
+  console.log('[Email] App password length:', gmailAppPassword.length, 'preview:', gmailAppPassword.substring(0, 4) + '...')
 
-  return gmailTransporter
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser,
+        pass: gmailAppPassword,
+      },
+    })
+    return transporter
+  } catch (error) {
+    console.error('[Email] Failed to create transporter:', error)
+    return null
+  }
 }
 
 // ─── Email From Address ───────────────────────────────────────
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'Aether Arena <aetherarena.999@gmail.com>'
+function getFromEmail(): string {
+  return process.env.EMAIL_FROM || 'Aether Arena <aetherarena.999@gmail.com>'
+}
 
 // ─── HTML Escape Utility ──────────────────────────────────────
 
@@ -66,8 +80,12 @@ export async function sendVerificationEmail(
   const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`
 
   try {
+    // Verify the transporter can connect
+    await transporter.verify()
+    console.log('[Email] Transporter verified, sending verification email to:', toEmail)
+
     await transporter.sendMail({
-      from: FROM_EMAIL,
+      from: getFromEmail(),
       to: toEmail,
       subject: 'Verify your email — Aether Arena',
       html: `
@@ -127,10 +145,15 @@ export async function sendVerificationEmail(
       `,
     })
 
+    console.log('[Email] Verification email sent successfully to:', toEmail)
     return { success: true }
-  } catch (error) {
-    console.error('[Email] Failed to send verification email:', error)
-    return { success: false, error: 'Failed to send email' }
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('[Email] Failed to send verification email:', msg)
+    console.error('[Email] Full error:', error)
+    return { success: false, error: `Failed to send email: ${msg}` }
+  } finally {
+    try { transporter.close() } catch {}
   }
 }
 
@@ -148,8 +171,12 @@ export async function sendOtpEmail(
   }
 
   try {
+    // Verify the transporter can connect before trying to send
+    await transporter.verify()
+    console.log('[Email] Transporter verified, sending OTP email to:', toEmail)
+
     await transporter.sendMail({
-      from: FROM_EMAIL,
+      from: getFromEmail(),
       to: toEmail,
       subject: 'Your Aether Arena Verification Code',
       html: `
@@ -196,9 +223,14 @@ export async function sendOtpEmail(
       `,
     })
 
+    console.log('[Email] OTP email sent successfully to:', toEmail)
     return { success: true }
-  } catch (error) {
-    console.error('[Email] Failed to send OTP email:', error)
-    return { success: false, error: 'Failed to send email' }
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('[Email] Failed to send OTP email:', msg)
+    console.error('[Email] Full error:', error)
+    return { success: false, error: `Failed to send email: ${msg}` }
+  } finally {
+    try { transporter.close() } catch {}
   }
 }
