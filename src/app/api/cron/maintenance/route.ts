@@ -78,7 +78,6 @@ export async function GET(request: Request) {
           await tx.userStreak.deleteMany({ where: { userId: user.id } })
           await tx.tournament.deleteMany({ where: { createdById: user.id } })
           await tx.session.deleteMany({ where: { userId: user.id } })
-          await tx.account.deleteMany({ where: { userId: user.id } })
           await tx.accountCredential.deleteMany({ where: { userId: user.id } })
           await tx.profile.delete({ where: { id: user.id } })
         })

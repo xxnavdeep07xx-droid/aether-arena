@@ -97,7 +97,6 @@ async function performDeletion(userId: string) {
     await tx.userStreak.deleteMany({ where: { userId } })
     await tx.tournament.deleteMany({ where: { createdById: userId } })
     await tx.session.deleteMany({ where: { userId } })
-    await tx.account.deleteMany({ where: { userId } })
     await tx.accountCredential.deleteMany({ where: { userId } })
     await tx.profile.delete({ where: { id: userId } })
   })
