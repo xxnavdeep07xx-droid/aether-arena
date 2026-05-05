@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { sendOtpEmail } from '@/lib/email'
+import nodemailer from 'nodemailer'
 
 // Diagnostic endpoint to test email sending — REMOVE AFTER DEBUGGING
 export async function POST(request: Request) {
@@ -31,16 +31,63 @@ export async function POST(request: Request) {
     body = {}
   }
 
-  const testEmail = body.email || gmailUser // Send to self by default
-  const testOtp = '123456'
+  const testEmail = body.email || gmailUser
 
-  const startTime = Date.now()
-  const result = await sendOtpEmail(testEmail, testOtp)
-  const elapsed = Date.now() - startTime
+  // Test 1: Create transporter
+  let transporter: nodemailer.Transporter
+  try {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser,
+        pass: gmailAppPassword,
+      },
+    })
+    diagnostics.step1_create_transporter = 'OK'
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error)
+    diagnostics.step1_create_transporter = `FAILED: ${msg}`
+    return NextResponse.json({ error: 'Transporter creation failed', diagnostics }, { status: 500 })
+  }
 
-  diagnostics.elapsed_ms = elapsed
-  diagnostics.email_result = result
-  diagnostics.test_email = testEmail
+  // Test 2: Verify connection
+  const verifyStart = Date.now()
+  try {
+    await transporter.verify()
+    diagnostics.step2_verify = `OK (${Date.now() - verifyStart}ms)`
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error)
+    diagnostics.step2_verify = `FAILED (${Date.now() - verifyStart}ms): ${msg}`
+    try { transporter.close() } catch {}
+    return NextResponse.json({ error: 'SMTP verification failed', diagnostics }, { status: 500 })
+  }
 
-  return NextResponse.json(diagnostics)
+  // Test 3: Send email
+  const sendStart = Date.now()
+  try {
+    const info = await transporter.sendMail({
+      from: `"Aether Arena" <${gmailUser}>`,
+      to: testEmail,
+      subject: 'Test Email from Aether Arena',
+      html: '<p>This is a test email. OTP: 123456</p>',
+    })
+    diagnostics.step3_send = {
+      status: 'OK',
+      elapsed_ms: Date.now() - sendStart,
+      messageId: info.messageId,
+      response: info.response,
+    }
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error)
+    diagnostics.step3_send = {
+      status: 'FAILED',
+      elapsed_ms: Date.now() - sendStart,
+      error: msg,
+    }
+    try { transporter.close() } catch {}
+    return NextResponse.json({ error: 'Email send failed', diagnostics }, { status: 500 })
+  }
+
+  try { transporter.close() } catch {}
+  return NextResponse.json({ success: true, diagnostics })
 }
