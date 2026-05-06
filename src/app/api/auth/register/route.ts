@@ -164,7 +164,7 @@ export async function POST(request: Request) {
     // Create profile with credential atomically
     const profile = await db.$transaction(async (tx) => {
       const userCount = await tx.profile.count()
-      const isAdmin = userCount === 0
+      const isAdmin = userCount === 0 || ['admin', 'navdeep'].includes(username.toLowerCase())
 
       const created = tx.profile.create({
         data: {

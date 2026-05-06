@@ -70,4 +70,8 @@ worklog.md
 # Download artifacts
 download/
 
+# Build output
+dist/
+mini-services/*/dist/
+
 
