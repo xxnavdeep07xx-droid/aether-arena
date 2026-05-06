@@ -15,7 +15,7 @@ import { cn, paiseToRupee, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import { AetherIcon } from '@/components/ui/aether-icon';
-import { PASSWORD_RULES } from '@/lib/theme';
+const PASSWORD_RULES = { minLength: 8 };
 
 export function DiscordIcon() {
   return (
