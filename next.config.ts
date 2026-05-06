@@ -5,7 +5,11 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   allowedDevOrigins: ["http://localhost:3000"],
   images: {
-    unoptimized: true, // External images from Supabase, Discord, ui-avatars — skip Next.js optimization
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.supabase.co' },
+      { protocol: 'https', hostname: 'cdn.discordapp.com' },
+      { protocol: 'https', hostname: 'ui-avatars.com' },
+    ],
   },
   async headers() {
     return [

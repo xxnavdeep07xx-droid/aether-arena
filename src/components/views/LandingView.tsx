@@ -475,7 +475,7 @@ export function LandingView() {
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,75,92,0.04) 0%, transparent 50%)' }} />
         <div className="absolute inset-0 hero-grid-pattern opacity-40" />
         <div className="absolute inset-0 opacity-10">
-          <Image src="/images/hero-banner.webp" alt="" fill className="object-cover" unoptimized priority />
+          <Image src="/images/hero-banner.webp" alt="" fill className="object-cover" priority />
         </div>
         <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
@@ -510,7 +510,7 @@ export function LandingView() {
                 ].map((game) => (
                   <div key={game.name} className="game-icon-float flex flex-col items-center gap-1.5">
                     <div className={cn('w-12 h-12 rounded-full bg-gradient-to-br flex items-center justify-center overflow-hidden shadow-lg', game.color)} style={{ boxShadow: '0 0 16px rgba(255,75,92,0.15)' }}>
-                      <Image src={game.src} alt={game.name} width={36} height={36} className="w-9 h-9 rounded-full object-cover" unoptimized loading="lazy" />
+                      <Image src={game.src} alt={game.name} width={36} height={36} className="w-9 h-9 rounded-full object-cover" loading="lazy" />
                     </div>
                     <span className="text-[10px] text-arena-text-muted font-medium">{game.name}</span>
                   </div>
@@ -612,7 +612,7 @@ export function LandingView() {
                 onClick={() => nav('tournament-detail', { id: t.id })}>
                 <div className="h-32 bg-gradient-to-br from-arena-accent/20 to-arena-purple/20 flex items-center justify-center relative overflow-hidden">
                   {t.game?.slug ? (
-                    <Image src={`/images/games/${t.game.slug}.webp`} alt={t.game?.name || 'Game'} fill className="object-cover opacity-60" unoptimized loading="lazy" />
+                    <Image src={`/images/games/${t.game.slug}.webp`} alt={t.game?.name || 'Game'} fill className="object-cover opacity-60" loading="lazy" />
                   ) : (
                     <Gamepad2 className="w-12 h-12 text-arena-text-muted" />
                   )}
@@ -644,7 +644,7 @@ export function LandingView() {
               <div key={g.id} className="game-card-shimmer bg-arena-card border border-arena-border rounded-2xl p-5 flex flex-col items-center gap-3 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-w-[120px]">
                 <div className="w-12 h-12 rounded-2xl bg-arena-accent/10 flex items-center justify-center overflow-hidden" style={{ boxShadow: '0 0 12px rgba(255,75,92,0.1)' }}>
                   {g.iconUrl ? (
-                    <Image src={g.iconUrl} alt={g.name} width={48} height={48} className="w-12 h-12 object-cover" unoptimized loading="lazy" />
+                    <Image src={g.iconUrl} alt={g.name} width={48} height={48} className="w-12 h-12 object-cover" loading="lazy" />
                   ) : (
                     <Gamepad2 className="w-6 h-6 text-arena-accent" />
                   )}

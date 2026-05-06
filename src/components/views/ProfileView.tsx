@@ -95,7 +95,6 @@ export function ProfileView() {
             alt="Profile banner"
             fill
             className="object-cover opacity-20"
-            unoptimized
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/20 via-arena-purple/15 to-arena-surface" />

@@ -83,8 +83,7 @@ function StreamBannerSection() {
           alt="Aether Arena"
           fill
           className="object-cover opacity-20 group-hover:opacity-25 transition-opacity duration-500"
-          unoptimized
-          priority
+priority
         />
         <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/10 via-arena-purple/5 to-arena-dark/80" />
         <div className="absolute inset-0 bg-gradient-to-r from-arena-card/95 via-arena-card/70 to-arena-card/40" />
@@ -125,8 +124,7 @@ function StreamBannerSection() {
           alt="Aether Arena"
           fill
           className="object-cover opacity-20 group-hover:opacity-25 transition-opacity duration-500"
-          unoptimized
-          priority
+priority
         />
         <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/10 via-arena-purple/5 to-arena-dark/80" />
         <div className="absolute inset-0 bg-gradient-to-r from-arena-card/95 via-arena-card/70 to-arena-card/40" />
@@ -270,7 +268,7 @@ function QuickStoreSection() {
                     className="group flex items-center gap-3 bg-arena-surface border border-arena-border rounded-xl p-3 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5">
                     <div className="w-11 h-11 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {pack.imageUrl ? (
-                        <Image src={pack.imageUrl} alt={pack.packName} width={44} height={44} className="w-full h-full object-cover" unoptimized loading="lazy" />
+                        <Image src={pack.imageUrl} alt={pack.packName} width={44} height={44} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <Zap className="w-5 h-5 text-arena-accent" />
                       )}
@@ -302,7 +300,7 @@ function QuickStoreSection() {
                     className="group flex items-center gap-3 bg-arena-surface border border-arena-border rounded-xl p-3 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5">
                     <div className="w-11 h-11 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {a.imageUrl ? (
-                        <Image src={a.imageUrl} alt={a.name} width={44} height={44} className="w-full h-full object-cover" unoptimized loading="lazy" />
+                        <Image src={a.imageUrl} alt={a.name} width={44} height={44} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <Gamepad2 className="w-5 h-5 text-arena-accent/60" />
                       )}
@@ -388,7 +386,7 @@ function TopPlayersSection() {
               <div className="relative">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden">
                   {entry.player?.avatarUrl ? (
-                    <Image src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} width={40} height={40} className="w-full h-full object-cover" unoptimized loading="lazy" />
+                    <Image src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} width={40} height={40} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     (entry.player?.username || '?')[0].toUpperCase()
                   )}
@@ -503,7 +501,7 @@ export function TournamentCard({ tournament: t, onClick }: { tournament: any; on
     <div onClick={onClick} className="bg-arena-card border border-arena-border rounded-xl overflow-hidden hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20">
       <div className="h-28 bg-gradient-to-br from-arena-accent/15 via-arena-purple/10 to-arena-surface flex items-center justify-center relative overflow-hidden">
         {t.game?.slug ? (
-          <Image src={`/images/games/${t.game.slug}.webp`} alt={t.game?.name || 'Game'} fill className="object-cover opacity-60" unoptimized loading="lazy" />
+          <Image src={`/images/games/${t.game.slug}.webp`} alt={t.game?.name || 'Game'} fill className="object-cover opacity-60" loading="lazy" />
         ) : (
           <Gamepad2 className="w-10 h-10 text-arena-text-muted/50" />
         )}

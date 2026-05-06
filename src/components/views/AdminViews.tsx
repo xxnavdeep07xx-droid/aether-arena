@@ -423,7 +423,7 @@ export function AdminRegistrationsView() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
-                    {r.player?.avatarUrl ? <Image src={r.player.avatarUrl} alt="" width={32} height={32} className="w-full h-full object-cover" unoptimized loading="lazy" /> : (r.player?.username || '?')[0].toUpperCase()}
+                    {r.player?.avatarUrl ? <Image src={r.player.avatarUrl} alt="" width={32} height={32} className="w-full h-full object-cover" loading="lazy" /> : (r.player?.username || '?')[0].toUpperCase()}
                   </div>
                   <div>
                     <div className="font-medium text-sm">{r.player?.displayName || r.player?.username || 'Unknown'}</div>
@@ -739,7 +739,7 @@ export function AdminAffiliatesView() {
         {affiliates?.map((a: any) => (
           <div key={a.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between hover:border-arena-accent/30 transition-all duration-200">
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              {a.imageUrl ? <Image src={a.imageUrl} alt={a.name} width={40} height={40} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" unoptimized loading="lazy" /> : <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0"><ShoppingBag className="w-5 h-5 text-arena-accent" /></div>}
+              {a.imageUrl ? <Image src={a.imageUrl} alt={a.name} width={40} height={40} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" loading="lazy" /> : <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0"><ShoppingBag className="w-5 h-5 text-arena-accent" /></div>}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-sm truncate">{a.name}</h3>

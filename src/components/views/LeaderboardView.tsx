@@ -221,7 +221,7 @@ export function LeaderboardView() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-arena-accent/20 to-arena-purple/20 flex items-center justify-center text-xs font-bold overflow-hidden">
-                            {entry.player?.avatarUrl ? <Image src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} width={32} height={32} className="w-full h-full object-cover" unoptimized loading="lazy" /> : (entry.player?.username || '?')[0].toUpperCase()}
+                            {entry.player?.avatarUrl ? <Image src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} width={32} height={32} className="w-full h-full object-cover" loading="lazy" /> : (entry.player?.username || '?')[0].toUpperCase()}
                           </div>
                           <div>
                             <div className="font-semibold text-sm">{entry.player?.username || 'Unknown'}</div>
