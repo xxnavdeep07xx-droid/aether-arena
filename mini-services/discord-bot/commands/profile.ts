@@ -61,8 +61,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return
     }
 
-    const totalGames = profile.totalKills + profile.totalDeaths
-    const kdRatio = totalGames > 0 ? (profile.totalKills / profile.totalDeaths).toFixed(2) : '0.00'
+    const kdRatio = profile.totalDeaths > 0
+      ? (profile.totalKills / profile.totalDeaths).toFixed(2)
+      : profile.totalKills > 0
+        ? '∞'
+        : '0.00'
     const winRate =
       profile.totalTournamentsPlayed > 0
         ? ((profile.totalWins / profile.totalTournamentsPlayed) * 100).toFixed(1)

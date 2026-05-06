@@ -21,7 +21,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   try {
     const username = interaction.options.get('username')!.value! as string
     const discordId = interaction.user.id
-    const discordUsername = `${interaction.user.username}#${interaction.user.discriminator}`
+    const discordUsername = interaction.user.username
 
     // Check if this Discord user already has a profile
     const existingByDiscord = await db.profile.findFirst({
