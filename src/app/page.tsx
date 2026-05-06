@@ -7,7 +7,8 @@ import {
   Trophy, Zap, Shield, ChevronRight,
   Tv, BarChart3, User, Home, LogOut,
   Bell, Menu, X, Search, Settings, FileText,
-  ShieldCheck, Mail, HelpCircle, Wallet
+  ShieldCheck, Mail, HelpCircle, Wallet,
+  ShoppingBag, Crown
 } from 'lucide-react';
 import { AetherIcon } from '@/components/ui/aether-icon';
 import { cn } from '@/lib/utils';
@@ -19,12 +20,15 @@ import Image from 'next/image';
 
 // Keep LandingView static for instant load
 import { LandingView } from '@/components/views/LandingView';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Lazy load ALL other views
 const HomeView = lazy(() => import('@/components/views/HomeView').then(m => ({ default: m.HomeView })));
 const TournamentsView = lazy(() => import('@/components/views/TournamentsView').then(m => ({ default: m.TournamentsView })));
 const TournamentDetailView = lazy(() => import('@/components/views/TournamentDetailView').then(m => ({ default: m.TournamentDetailView })));
 const LeaderboardView = lazy(() => import('@/components/views/LeaderboardView').then(m => ({ default: m.LeaderboardView })));
+const LeagueView = lazy(() => import('@/components/views/LeagueView').then(m => ({ default: m.LeagueView })));
+const GameStoreView = lazy(() => import('@/components/views/GameStoreView').then(m => ({ default: m.GameStoreView })));
 const StreamsView = lazy(() => import('@/components/views/StreamsView').then(m => ({ default: m.StreamsView })));
 const ProfileView = lazy(() => import('@/components/views/ProfileView').then(m => ({ default: m.ProfileView })));
 const NotificationsView = lazy(() => import('@/components/views/NotificationsView').then(m => ({ default: m.NotificationsView })));
@@ -91,7 +95,12 @@ function useUnreadCount() {
   const { isAuthenticated } = useAuthStore();
   const { data: unreadCount } = useQuery({
     queryKey: ['unread-notifications'],
-    queryFn: () => fetch('/api/notifications?limit=1').then(r => r.json()).then(d => d.unreadCount || 0),
+    queryFn: async () => {
+      const r = await fetch('/api/notifications?limit=1');
+      if (!r.ok) throw new Error(`API error: ${r.status}`);
+      const d = await r.json();
+      return d.unreadCount || 0;
+    },
     refetchInterval: 30000,
     enabled: isAuthenticated,
   });
@@ -123,7 +132,7 @@ function ViewFallback() {
 function ViewRenderer() {
   const { currentView } = useAppStore();
   const { isLoading, user } = useAuthStore();
-  const isAdmin = user?.isAdmin;
+  const isAdmin = user?.isAdmin === true;
 
   // Admin-only views - redirect non-admins
   const adminViews: ViewName[] = [
@@ -161,42 +170,44 @@ function ViewRenderer() {
 
   const viewMap: Record<ViewName, React.ReactNode> = {
     'landing': <LandingView />,
-    'home': <Suspense fallback={<HomeSkeleton />}><HomeView /></Suspense>,
-    'tournaments': <Suspense fallback={<TournamentsSkeleton />}><TournamentsView /></Suspense>,
-    'tournament-detail': <Suspense fallback={<TournamentDetailSkeleton />}><TournamentDetailView /></Suspense>,
-    'leaderboard': <Suspense fallback={<LeaderboardSkeleton />}><LeaderboardView /></Suspense>,
-    'streams': <Suspense fallback={<StreamsSkeleton />}><StreamsView /></Suspense>,
-    'profile': <Suspense fallback={<ProfileSkeleton />}><ProfileView /></Suspense>,
-    'notifications': <Suspense fallback={<NotificationsSkeleton />}><NotificationsView /></Suspense>,
-    'settings': <Suspense fallback={<ViewFallback />}><SettingsView /></Suspense>,
+    'home': <ErrorBoundary><Suspense fallback={<HomeSkeleton />}><HomeView /></Suspense></ErrorBoundary>,
+    'tournaments': <ErrorBoundary><Suspense fallback={<TournamentsSkeleton />}><TournamentsView /></Suspense></ErrorBoundary>,
+    'tournament-detail': <ErrorBoundary><Suspense fallback={<TournamentDetailSkeleton />}><TournamentDetailView /></Suspense></ErrorBoundary>,
+    'leaderboard': <ErrorBoundary><Suspense fallback={<LeaderboardSkeleton />}><LeaderboardView /></Suspense></ErrorBoundary>,
+    'league': <ErrorBoundary><Suspense fallback={<ViewFallback />}><LeagueView /></Suspense></ErrorBoundary>,
+    'store': <ErrorBoundary><Suspense fallback={<ViewFallback />}><GameStoreView /></Suspense></ErrorBoundary>,
+    'streams': <ErrorBoundary><Suspense fallback={<StreamsSkeleton />}><StreamsView /></Suspense></ErrorBoundary>,
+    'profile': <ErrorBoundary><Suspense fallback={<ProfileSkeleton />}><ProfileView /></Suspense></ErrorBoundary>,
+    'notifications': <ErrorBoundary><Suspense fallback={<NotificationsSkeleton />}><NotificationsView /></Suspense></ErrorBoundary>,
+    'settings': <ErrorBoundary><Suspense fallback={<ViewFallback />}><SettingsView /></Suspense></ErrorBoundary>,
     // Admin views routed through grouped lazy chunk
-    'admin-dashboard': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-dashboard" /></Suspense>,
-    'admin-tournaments': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-tournaments" /></Suspense>,
-    'admin-tournament-create': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-tournament-create" /></Suspense>,
-    'admin-registrations': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-registrations" /></Suspense>,
-    'admin-games': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-games" /></Suspense>,
-    'admin-streams': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-streams" /></Suspense>,
-    'admin-affiliates': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-affiliates" /></Suspense>,
-    'admin-topup': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-topup" /></Suspense>,
-    'admin-analytics': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-analytics" /></Suspense>,
-    'admin-settings': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-settings" /></Suspense>,
-    'admin-redemptions': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-redemptions" /></Suspense>,
-    'admin-aether-manage': <Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-aether-manage" /></Suspense>,
+    'admin-dashboard': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-dashboard" /></Suspense></ErrorBoundary>,
+    'admin-tournaments': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-tournaments" /></Suspense></ErrorBoundary>,
+    'admin-tournament-create': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-tournament-create" /></Suspense></ErrorBoundary>,
+    'admin-registrations': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-registrations" /></Suspense></ErrorBoundary>,
+    'admin-games': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-games" /></Suspense></ErrorBoundary>,
+    'admin-streams': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-streams" /></Suspense></ErrorBoundary>,
+    'admin-affiliates': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-affiliates" /></Suspense></ErrorBoundary>,
+    'admin-topup': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-topup" /></Suspense></ErrorBoundary>,
+    'admin-analytics': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-analytics" /></Suspense></ErrorBoundary>,
+    'admin-settings': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-settings" /></Suspense></ErrorBoundary>,
+    'admin-redemptions': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-redemptions" /></Suspense></ErrorBoundary>,
+    'admin-aether-manage': <ErrorBoundary><Suspense fallback={<ViewFallback />}><AdminViewsLazy view="admin-aether-manage" /></Suspense></ErrorBoundary>,
     // Aether views routed through grouped lazy chunk
-    'aether': <Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether" /></Suspense>,
-    'aether-tasks': <Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-tasks" /></Suspense>,
-    'aether-redeem': <Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-redeem" /></Suspense>,
-    'aether-history': <Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-history" /></Suspense>,
+    'aether': <ErrorBoundary><Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether" /></Suspense></ErrorBoundary>,
+    'aether-tasks': <ErrorBoundary><Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-tasks" /></Suspense></ErrorBoundary>,
+    'aether-redeem': <ErrorBoundary><Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-redeem" /></Suspense></ErrorBoundary>,
+    'aether-history': <ErrorBoundary><Suspense fallback={<ViewFallback />}><EarnAetherViews view="aether-history" /></Suspense></ErrorBoundary>,
     // Static pages routed through grouped lazy chunk
-    'privacy-policy': <Suspense fallback={<ViewFallback />}><StaticPagesLazy view="privacy-policy" /></Suspense>,
-    'terms-conditions': <Suspense fallback={<ViewFallback />}><StaticPagesLazy view="terms-conditions" /></Suspense>,
-    'refund-policy': <Suspense fallback={<ViewFallback />}><StaticPagesLazy view="refund-policy" /></Suspense>,
-    'contact': <Suspense fallback={<ViewFallback />}><StaticPagesLazy view="contact" /></Suspense>,
+    'privacy-policy': <ErrorBoundary><Suspense fallback={<ViewFallback />}><StaticPagesLazy view="privacy-policy" /></Suspense></ErrorBoundary>,
+    'terms-conditions': <ErrorBoundary><Suspense fallback={<ViewFallback />}><StaticPagesLazy view="terms-conditions" /></Suspense></ErrorBoundary>,
+    'refund-policy': <ErrorBoundary><Suspense fallback={<ViewFallback />}><StaticPagesLazy view="refund-policy" /></Suspense></ErrorBoundary>,
+    'contact': <ErrorBoundary><Suspense fallback={<ViewFallback />}><StaticPagesLazy view="contact" /></Suspense></ErrorBoundary>,
   };
 
   return (
     <div key={currentView} className="animate-fade-in">
-      {viewMap[currentView] || <Suspense fallback={<HomeSkeleton />}><HomeView /></Suspense>}
+      {viewMap[currentView] || <ErrorBoundary><Suspense fallback={<HomeSkeleton />}><HomeView /></Suspense></ErrorBoundary>}
     </div>
   );
 }
@@ -207,16 +218,19 @@ export default function Page() {
   const { currentView, navigate, mobileMenuOpen, setMobileMenuOpen, rightPanelCollapsed, setRightPanelCollapsed } = useAppStore();
   const { isAuthenticated, user, logout, aetherBalance, setAetherBalance } = useAuthStore();
   const isLanding = currentView === 'landing';
-  const isAdmin = user?.isAdmin;
+  const isAdmin = user?.isAdmin === true;
   const [searchFocused, setSearchFocused] = useState(false);
 
   // Fetch aether balance for header display
   useQuery({
     queryKey: ['aether-balance-header'],
-    queryFn: () => fetch('/api/aether/balance').then(r => r.json()).then(d => {
+    queryFn: async () => {
+      const r = await fetch('/api/aether/balance');
+      if (!r.ok) throw new Error(`API error: ${r.status}`);
+      const d = await r.json();
       if (d.balance !== undefined) setAetherBalance(d.balance);
       return d;
-    }),
+    },
     enabled: isAuthenticated && aetherBalance === null,
     refetchInterval: 60000,
   });
@@ -233,6 +247,8 @@ export default function Page() {
     { view: 'home' as ViewName, icon: Home, label: t('nav.home') },
     { view: 'tournaments' as ViewName, icon: Trophy, label: t('nav.tournaments') },
     { view: 'leaderboard' as ViewName, icon: BarChart3, label: t('nav.leaderboard') },
+    { view: 'league' as ViewName, icon: Crown, label: 'League' },
+    { view: 'store' as ViewName, icon: ShoppingBag, label: 'Store' },
     { view: 'streams' as ViewName, icon: Tv, label: t('nav.streams') },
     { view: 'aether' as ViewName, icon: Wallet, label: t('nav.aether') },
     { view: 'profile' as ViewName, icon: User, label: t('nav.profile') },
@@ -243,6 +259,8 @@ export default function Page() {
   const mobileMenuItems = [
     { view: 'notifications' as ViewName, icon: Bell, label: t('nav.notifications') },
     { view: 'settings' as ViewName, icon: Settings, label: t('nav.settings') },
+    { view: 'league' as ViewName, icon: Crown, label: 'League' },
+    { view: 'store' as ViewName, icon: ShoppingBag, label: 'Store' },
     { view: 'aether' as ViewName, icon: Wallet, label: t('nav.aether') },
     { view: 'contact' as ViewName, icon: Mail, label: t('nav.contact') },
     ...(isAdmin ? [
@@ -257,7 +275,7 @@ export default function Page() {
   ];
 
   // Views that show the main top bar (with hamburger on mobile)
-  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams', 'profile', 'notifications', 'settings', 'admin-dashboard', 'contact', 'aether'];
+  const mainViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'league', 'store', 'streams', 'profile', 'notifications', 'settings', 'admin-dashboard', 'contact', 'aether'];
 
   // Views where the search bar is useful and functional
   const searchableViews: ViewName[] = ['home', 'tournaments', 'leaderboard', 'streams'];
@@ -267,6 +285,8 @@ export default function Page() {
     'admin-dashboard': { title: t('section.adminPanel'), icon: Shield },
     'contact': { title: t('section.contactUs'), icon: Mail },
     'aether': { title: t('nav.aether'), icon: Wallet },
+    'league': { title: 'League', icon: Crown },
+    'store': { title: 'Game Store', icon: ShoppingBag },
   };
 
   const currentSection = sectionTitles[currentView];
@@ -430,8 +450,8 @@ export default function Page() {
 
             {/* Content + Right Panel */}
             <div className="flex flex-1 overflow-hidden">
-              {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
+              {/* Scrollable Content — contain:layout for GPU-rendered scrolling */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6" style={{ contain: 'layout style' }}>
                 <ViewRenderer />
               </div>
 

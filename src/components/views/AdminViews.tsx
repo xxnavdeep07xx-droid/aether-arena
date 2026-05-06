@@ -4,11 +4,11 @@ import { useAppStore, useAuthStore, ViewName } from '@/lib/store';
 import { useState, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Users, Trophy, Clock, DollarSign, CheckCircle2, XCircle, Plus,
+  Users, Trophy, Clock, DollarSign, CheckCircle2, Check, XCircle, Plus,
   Eye, Trash2, Gamepad2, Pencil, X, Tv, ExternalLink, Link2,
   ShoppingBag, Zap, Settings, BarChart3, User, TrendingUp,
   ChevronRight, AlertTriangle, Wallet,
-  Share2, Calendar, Globe, Gift, Bell
+  Share2, Calendar, Globe, Gift, Bell, Smartphone, Image as ImageIcon
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { AetherIcon } from '@/components/ui/aether-icon';
@@ -19,6 +19,7 @@ import {
   PieChart, Pie, Cell, CartesianGrid, Area, AreaChart
 } from 'recharts';
 import { ThemedSkeleton } from './Skeletons';
+import { apiFetch } from '@/lib/api';
 import Image from 'next/image';
 
 // ==================== REUSABLE CONFIRM DIALOG ====================
@@ -65,7 +66,7 @@ export function AdminDashboardView() {
 
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
-    queryFn: () => fetch('/api/admin/stats').then(r => r.json()),
+    queryFn: () => apiFetch<any>('/api/admin/stats'),
   });
 
   if (!user?.isAdmin) return <div className="text-center py-20 text-arena-text-muted">Access Denied</div>;
@@ -124,13 +125,12 @@ export function AdminTournamentsView() {
 
   const { data: tournaments, refetch } = useQuery({
     queryKey: ['admin-tournaments', statusFilter],
-    queryFn: () => fetch(`/api/admin/tournaments${statusFilter ? `?status=${statusFilter}` : ''}`).then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>(`/api/admin/tournaments${statusFilter ? `?status=${statusFilter}` : ''}`).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
   });
 
   const deleteTournament = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/tournaments/${id}`, { method: 'DELETE' });
-      if (!res.ok) { const data = await res.json().catch(() => ({})); toast.error(data.error || 'Failed to delete tournament'); return; }
+      await apiFetch(`/api/admin/tournaments/${id}`, { method: 'DELETE' });
       refetch();
       toast.success('Tournament deleted');
     } catch { toast.error('Failed to delete tournament'); }
@@ -180,15 +180,16 @@ export function AdminTournamentsView() {
 export function AdminTournamentCreateView() {
   const { navigate, viewParams } = useAppStore();
   const editId = viewParams?.id;
-  const { data: games } = useQuery({ queryKey: ['admin-games'], queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []) });
+  const { data: games } = useQuery({ queryKey: ['admin-games'], queryFn: () => apiFetch<any>('/api/games').then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []) });
 
   const [form, setForm] = useState({ title: '', description: '', gameId: '', format: 'solo', entryFee: '0', prizePool: '0', maxPlayers: '100', startTime: '', customRules: '', isFeatured: false, roomId: '', roomPassword: '', map: '', matchMode: '', bannerImageUrl: '', status: 'upcoming' });
   const [saving, setSaving] = useState(false);
+  const [createStep, setCreateStep] = useState(0);
 
   // Fetch existing tournament data for editing
   const { data: existingTournament, isLoading: loadingExisting } = useQuery({
     queryKey: ['admin-tournament-edit', editId],
-    queryFn: () => fetch(`/api/admin/tournaments/${editId}`).then(r => r.json()).then(d => d.tournament || d),
+    queryFn: () => apiFetch<any>(`/api/admin/tournaments/${editId}`).then(d => d.tournament || d),
     enabled: !!editId,
   });
 
@@ -248,47 +249,117 @@ export function AdminTournamentCreateView() {
   const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150";
   const labelClass = "text-xs text-arena-text-secondary mb-1 block";
 
+  // Step validation
+  const isCreateStep0Valid = form.title.trim().length > 0 && form.gameId.length > 0;
+  const isCreateStep1Valid = form.startTime.length > 0;
+  // Step 2 is always valid (all fields optional)
+
+  const stepDescriptions = ['Basic info', 'Schedule & details', 'Room & publishing'];
+
   return (
     <div>
-      <form onSubmit={handleCreate} className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4 max-w-2xl">
-        <div><label className={labelClass}>Title *</label><input type="text" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputClass} /></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className={labelClass}>Game *</label><select required value={form.gameId} onChange={e => setForm({ ...form, gameId: e.target.value })} className={inputClass}><option value="">Select Game</option>{games?.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
-          <div><label className={labelClass}>Format</label><select value={form.format} onChange={e => setForm({ ...form, format: e.target.value })} className={inputClass}>{['solo','duo','squad','custom'].map(f => <option key={f} value={f}>{getFormatLabel(f)}</option>)}</select></div>
+      <form onSubmit={handleCreate} className="bg-arena-card border border-arena-border rounded-2xl p-6 max-w-2xl">
+        {/* Step Title */}
+        <div className="mb-5">
+          <h2 className="text-lg font-bold">{editId ? 'Edit Tournament' : 'Create Tournament'}</h2>
+          <p className="text-xs text-arena-text-secondary mt-0.5">{stepDescriptions[createStep]}</p>
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div><label className={labelClass}>Entry Fee (₹)</label><input type="number" min="0" value={form.entryFee} onChange={e => setForm({ ...form, entryFee: e.target.value })} className={inputClass} /></div>
-          <div><label className={labelClass}>Prize Pool (₹)</label><input type="number" min="0" value={form.prizePool} onChange={e => setForm({ ...form, prizePool: e.target.value })} className={inputClass} /></div>
-          <div><label className={labelClass}>Max Players *</label><input type="number" required min="2" value={form.maxPlayers} onChange={e => setForm({ ...form, maxPlayers: e.target.value })} className={inputClass} /></div>
+
+        {/* ── Stepper Progress ─────────────────────── */}
+        <div className="flex items-center gap-1.5 mb-5">
+          {[
+            { icon: Trophy, label: 'Details' },
+            { icon: Calendar, label: 'Schedule' },
+            { icon: Gamepad2, label: 'Publish' },
+          ].map((step, i) => (
+            <div key={step.label} className="flex items-center flex-1">
+              <div className="flex items-center gap-1.5 flex-1">
+                <div className={cn(
+                  'w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-300',
+                  i < createStep ? 'bg-green-500/20 text-green-400' :
+                  i === createStep ? 'bg-arena-accent/20 text-arena-accent' :
+                  'bg-arena-border/30 text-arena-text-muted/40'
+                )}>
+                  {i < createStep ? <Check className="w-3 h-3" /> : <step.icon className="w-3 h-3" />}
+                </div>
+                <span className={cn(
+                  'text-[10px] font-medium hidden sm:inline transition-colors duration-300',
+                  i <= createStep ? 'text-arena-text-primary' : 'text-arena-text-muted/40'
+                )}>{step.label}</span>
+              </div>
+              {i < 2 && (
+                <div className={cn(
+                  'h-0.5 flex-1 mx-0.5 rounded-full transition-all duration-300',
+                  i < createStep ? 'bg-green-500/40' : 'bg-arena-border/30'
+                )} />
+              )}
+            </div>
+          ))}
         </div>
-        <div><label className={labelClass}>Status</label>
-            <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inputClass}>
-              <option value="upcoming">Upcoming</option>
-              <option value="registration_open">Open for Registration (Now)</option>
-              <option value="in_progress">In Progress (Live)</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+
+        {/* ── Step 0: Details ─────────────────────── */}
+        {createStep === 0 && (
+          <div className="space-y-4">
+            <div><label className={labelClass}>Title *</label><input type="text" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputClass} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className={labelClass}>Game *</label><select required value={form.gameId} onChange={e => setForm({ ...form, gameId: e.target.value })} className={inputClass}><option value="">Select Game</option>{games?.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
+              <div><label className={labelClass}>Format</label><select value={form.format} onChange={e => setForm({ ...form, format: e.target.value })} className={inputClass}>{['solo','duo','squad','custom'].map(f => <option key={f} value={f}>{getFormatLabel(f)}</option>)}</select></div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div><label className={labelClass}>Entry Fee (₹)</label><input type="number" min="0" value={form.entryFee} onChange={e => setForm({ ...form, entryFee: e.target.value })} className={inputClass} /></div>
+              <div><label className={labelClass}>Prize Pool (₹)</label><input type="number" min="0" value={form.prizePool} onChange={e => setForm({ ...form, prizePool: e.target.value })} className={inputClass} /></div>
+              <div><label className={labelClass}>Max Players *</label><input type="number" required min="2" value={form.maxPlayers} onChange={e => setForm({ ...form, maxPlayers: e.target.value })} className={inputClass} /></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setCreateStep(1)} disabled={!isCreateStep0Valid} className="flex-1 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed">Continue</button>
+              <button type="button" onClick={() => navigate('admin-tournaments')} className="px-6 py-2.5 h-11 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
+            </div>
           </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className={labelClass}>Start Time</label><input type="datetime-local" value={form.startTime} onChange={e => setForm({ ...form, startTime: e.target.value })} className={inputClass} /></div>
-          <div><label className={labelClass}>Map</label><input type="text" value={form.map} onChange={e => setForm({ ...form, map: e.target.value })} className={inputClass} /></div>
-        </div>
-        <div><label className={labelClass}>Description</label><textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} /></div>
-        <div><label className={labelClass}>Custom Rules</label><textarea rows={3} value={form.customRules} onChange={e => setForm({ ...form, customRules: e.target.value })} className={cn(inputClass, 'resize-none')} /></div>
-        <div><label className={labelClass}>Banner Image URL</label><input type="url" value={form.bannerImageUrl} onChange={e => setForm({ ...form, bannerImageUrl: e.target.value })} className={inputClass} placeholder="https://example.com/banner.jpg" /></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className={labelClass}>Room ID</label><input type="text" value={form.roomId} onChange={e => setForm({ ...form, roomId: e.target.value })} className={inputClass} /></div>
-          <div><label className={labelClass}>Room Password</label><input type="text" value={form.roomPassword} onChange={e => setForm({ ...form, roomPassword: e.target.value })} className={inputClass} /></div>
-        </div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={form.isFeatured} onChange={e => setForm({ ...form, isFeatured: e.target.checked })} className="accent-arena-accent" />
-          <span className="text-sm">Mark as Featured</span>
-        </label>
-        <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? (editId ? 'Updating...' : 'Creating...') : editId ? 'Update Tournament' : 'Create Tournament'}</button>
-          <button type="button" onClick={() => navigate('admin-tournaments')} className="px-6 py-2.5 h-11 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
-        </div>
+        )}
+
+        {/* ── Step 1: Schedule & Content ─────────────── */}
+        {createStep === 1 && (
+          <div className="space-y-4">
+            <div><label className={labelClass}>Status</label>
+              <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inputClass}>
+                <option value="upcoming">Upcoming</option>
+                <option value="registration_open">Open for Registration (Now)</option>
+                <option value="in_progress">In Progress (Live)</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className={labelClass}>Start Time *</label><input type="datetime-local" value={form.startTime} onChange={e => setForm({ ...form, startTime: e.target.value })} className={inputClass} /></div>
+              <div><label className={labelClass}>Map</label><input type="text" value={form.map} onChange={e => setForm({ ...form, map: e.target.value })} className={inputClass} /></div>
+            </div>
+            <div><label className={labelClass}>Description</label><textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} /></div>
+            <div><label className={labelClass}>Custom Rules</label><textarea rows={3} value={form.customRules} onChange={e => setForm({ ...form, customRules: e.target.value })} className={cn(inputClass, 'resize-none')} /></div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setCreateStep(0)} className="px-6 py-2.5 h-11 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+              <button type="button" onClick={() => setCreateStep(2)} disabled={!isCreateStep1Valid} className="flex-1 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed">Continue</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 2: Media & Room ─────────────── */}
+        {createStep === 2 && (
+          <div className="space-y-4">
+            <div><label className={labelClass}>Banner Image URL</label><input type="url" value={form.bannerImageUrl} onChange={e => setForm({ ...form, bannerImageUrl: e.target.value })} className={inputClass} placeholder="https://example.com/banner.jpg" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className={labelClass}>Room ID</label><input type="text" value={form.roomId} onChange={e => setForm({ ...form, roomId: e.target.value })} className={inputClass} /></div>
+              <div><label className={labelClass}>Room Password</label><input type="text" value={form.roomPassword} onChange={e => setForm({ ...form, roomPassword: e.target.value })} className={inputClass} /></div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.isFeatured} onChange={e => setForm({ ...form, isFeatured: e.target.checked })} className="accent-arena-accent" />
+              <span className="text-sm">Mark as Featured</span>
+            </label>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setCreateStep(1)} className="px-6 py-2.5 h-11 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+              <button type="submit" disabled={saving} className="flex-1 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? (editId ? 'Updating...' : 'Creating...') : editId ? 'Update Tournament' : 'Create Tournament'}</button>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );
@@ -301,7 +372,7 @@ export function AdminRegistrationsView() {
 
   const { data: registrations, refetch } = useQuery({
     queryKey: ['admin-registrations', filter],
-    queryFn: () => fetch(`/api/admin/registrations?status=${filter}`).then(r => r.json()).then(d => Array.isArray(d.registrations) ? d.registrations : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>(`/api/admin/registrations?status=${filter}`).then(d => Array.isArray(d.registrations) ? d.registrations : Array.isArray(d) ? d : []),
   });
 
   const handleVerify = async (id: string) => {
@@ -352,7 +423,7 @@ export function AdminRegistrationsView() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
-                    {r.player?.avatarUrl ? <Image src={r.player.avatarUrl} alt="" width={32} height={32} className="w-full h-full object-cover" unoptimized loading="lazy" /> : (r.player?.username || '?')[0].toUpperCase()}
+                    {r.player?.avatarUrl ? <Image src={r.player.avatarUrl} alt="" width={32} height={32} className="w-full h-full object-cover" loading="lazy" /> : (r.player?.username || '?')[0].toUpperCase()}
                   </div>
                   <div>
                     <div className="font-medium text-sm">{r.player?.displayName || r.player?.username || 'Unknown'}</div>
@@ -406,7 +477,7 @@ export function AdminRegistrationsView() {
 export function AdminGamesView() {
   const { data: games, refetch } = useQuery({
     queryKey: ['admin-games-list'],
-    queryFn: () => fetch('/api/admin/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/admin/games').then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -511,7 +582,7 @@ export function AdminGamesView() {
 export function AdminStreamsView() {
   const { data: streams, refetch } = useQuery({
     queryKey: ['admin-streams-list'],
-    queryFn: () => fetch('/api/admin/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/admin/streams').then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
   });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -614,7 +685,7 @@ export function AdminStreamsView() {
 export function AdminAffiliatesView() {
   const { data: affiliates, refetch } = useQuery({
     queryKey: ['admin-affiliates-list'],
-    queryFn: () => fetch('/api/admin/affiliates').then(r => r.json()).then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/admin/affiliates').then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
   });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -623,9 +694,10 @@ export function AdminAffiliatesView() {
 
   const emptyForm = { name: '', platform: '', url: '', slug: '', description: '', category: '', imageUrl: '', price: 0, originalPrice: 0, isActive: true, sortOrder: 0 };
   const [form, setForm] = useState(emptyForm);
+  const [affiliateStep, setAffiliateStep] = useState(0);
 
-  const openCreate = () => { setForm(emptyForm); setEditing(null); setShowModal(true); };
-  const openEdit = (a: any) => { setForm({ name: a.name, platform: a.platform || '', url: a.url, slug: a.slug, description: a.description || '', category: a.category || '', imageUrl: a.imageUrl || '', price: a.price || 0, originalPrice: a.originalPrice || 0, isActive: a.isActive, sortOrder: a.sortOrder || 0 }); setEditing(a); setShowModal(true); };
+  const openCreate = () => { setForm(emptyForm); setEditing(null); setAffiliateStep(0); setShowModal(true); };
+  const openEdit = (a: any) => { setForm({ name: a.name, platform: a.platform || '', url: a.url, slug: a.slug, description: a.description || '', category: a.category || '', imageUrl: a.imageUrl || '', price: a.price || 0, originalPrice: a.originalPrice || 0, isActive: a.isActive, sortOrder: a.sortOrder || 0 }); setEditing(a); setAffiliateStep(0); setShowModal(true); };
 
   const handleSave = async () => {
     if (!form.name || !form.url || !form.slug) { toast.error('Name, URL, and slug are required'); return; }
@@ -667,7 +739,7 @@ export function AdminAffiliatesView() {
         {affiliates?.map((a: any) => (
           <div key={a.id} className="bg-arena-card border border-arena-border rounded-xl p-4 flex items-center justify-between hover:border-arena-accent/30 transition-all duration-200">
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              {a.imageUrl ? <Image src={a.imageUrl} alt={a.name} width={40} height={40} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" unoptimized loading="lazy" /> : <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0"><ShoppingBag className="w-5 h-5 text-arena-accent" /></div>}
+              {a.imageUrl ? <Image src={a.imageUrl} alt={a.name} width={40} height={40} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" loading="lazy" /> : <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0"><ShoppingBag className="w-5 h-5 text-arena-accent" /></div>}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-sm truncate">{a.name}</h3>
@@ -692,34 +764,140 @@ export function AdminAffiliatesView() {
               <h2 className="text-lg font-bold">{editing ? 'Edit Affiliate' : 'New Affiliate'}</h2>
               <button onClick={() => setShowModal(false)} className="text-arena-text-muted hover:text-arena-text-primary" aria-label="Close"><X className="w-5 h-5" /></button>
             </div>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Name *</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="Product name" /></div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Slug *</label><input type="text" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.replace(/\s/g, '-').toLowerCase() })} className={inputClass} placeholder="product-slug" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Platform</label><input type="text" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className={inputClass} placeholder="Amazon" /></div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Category</label><input type="text" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass} placeholder="Gaming" /></div>
-              </div>
-              <div><label className="text-xs text-arena-text-secondary mb-1 block">URL *</label><input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className={inputClass} placeholder="https://amazon.in/..." /></div>
-              <div><label className="text-xs text-arena-text-secondary mb-1 block">Image URL</label><input type="url" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} className={inputClass} placeholder="https://..." /></div>
-              <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Product description" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Price (₹ paise)</label><input type="number" min={0} value={form.price} onChange={e => setForm({ ...form, price: parseInt(e.target.value) || 0 })} className={inputClass} placeholder="49900 = ₹499" /></div>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Original Price (₹ paise)</label><input type="number" min={0} value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: parseInt(e.target.value) || 0 })} className={inputClass} placeholder="99900 = ₹999" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
-                  <span className="text-sm text-arena-text-secondary">Active</span>
-                </label>
-                <div><label className="text-xs text-arena-text-secondary mb-1 block">Sort Order</label><input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className={inputClass} /></div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
-                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
-              </div>
+            {/* Step Progress Indicator */}
+            <div className="flex items-center gap-2 mb-4">
+              {[
+                { icon: ShoppingBag, label: 'Details' },
+                { icon: DollarSign, label: 'Pricing' },
+                { icon: Eye, label: 'Display' },
+              ].map((s, i) => (
+                <div key={i} className="flex items-center flex-1">
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <div className={cn(
+                      'w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-300',
+                      i < affiliateStep ? 'bg-green-500/20 text-green-400' :
+                      i === affiliateStep ? 'bg-arena-accent/20 text-arena-accent' :
+                      'bg-arena-border/30 text-arena-text-muted/40'
+                    )}>
+                      {i < affiliateStep ? <Check className="w-3 h-3" /> : <s.icon className="w-3 h-3" />}
+                    </div>
+                    <span className={cn(
+                      'text-[10px] font-medium hidden sm:inline transition-colors duration-300',
+                      i <= affiliateStep ? 'text-arena-text-primary' : 'text-arena-text-muted/40'
+                    )}>{s.label}</span>
+                  </div>
+                  {i < 2 && (
+                    <div className={cn(
+                      'h-0.5 flex-1 mx-0.5 rounded-full transition-all duration-300',
+                      i < affiliateStep ? 'bg-green-500/40' : 'bg-arena-border/30'
+                    )} />
+                  )}
+                </div>
+              ))}
             </div>
+
+            {/* Step 0 — Details */}
+            {affiliateStep === 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <ShoppingBag className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Details</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs text-arena-text-secondary mb-1 block">Name *</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="Product name" /></div>
+                  <div><label className="text-xs text-arena-text-secondary mb-1 block">Slug *</label><input type="text" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.replace(/\s/g, '-').toLowerCase() })} className={inputClass} placeholder="product-slug" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs text-arena-text-secondary mb-1 block">Platform</label><input type="text" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className={inputClass} placeholder="Amazon" /></div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Category</label>
+                    <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass}>
+                      <option value="">Select category</option>
+                      <option value="gaming_gear">Gaming Gear</option>
+                      <option value="gift_card">Gift Card</option>
+                      <option value="in_game_currency">In-Game Currency</option>
+                      <option value="subscription">Subscription</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div><label className="text-xs text-arena-text-secondary mb-1 block">Description</label><textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={cn(inputClass, 'resize-none')} placeholder="Product description" /></div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">URL *</label>
+                  <div className="flex gap-2">
+                    <input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className={cn(inputClass, 'flex-1')} placeholder="https://amazon.in/..." />
+                    {form.url && (
+                      <button type="button" onClick={() => window.open(form.url, '_blank', 'noopener,noreferrer')} className="px-2.5 h-[38px] border border-arena-border rounded-xl hover:border-arena-accent/50 hover:bg-arena-accent/10 transition-all duration-150 flex items-center justify-center flex-shrink-0" title="Open link in new tab">
+                        <ExternalLink className="w-4 h-4 text-arena-text-muted" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setAffiliateStep(1)} disabled={!form.name.trim() || !form.slug.trim()} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed">Continue</button>
+                  <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 1 — Pricing */}
+            {affiliateStep === 1 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <DollarSign className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Pricing</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs text-arena-text-secondary mb-1 block">Price (₹ paise)</label><input type="number" min={0} value={form.price} onChange={e => setForm({ ...form, price: parseInt(e.target.value) || 0 })} className={inputClass} placeholder="49900 = ₹499" /></div>
+                  <div><label className="text-xs text-arena-text-secondary mb-1 block">Original Price (₹ paise)</label><input type="number" min={0} value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: parseInt(e.target.value) || 0 })} className={inputClass} placeholder="99900 = ₹999" /></div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setAffiliateStep(0)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+                  <button type="button" onClick={() => setAffiliateStep(2)} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm">Continue</button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2 — Display */}
+            {affiliateStep === 2 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <Eye className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Display</h3>
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Image URL</label>
+                  <div className="flex gap-3 items-start">
+                    <div className="flex-1">
+                      <input type="url" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} className={inputClass} placeholder="https://..." />
+                      <p className="text-[10px] text-arena-text-muted mt-1">Paste an image URL or leave blank for default icon. Recommended: 200×200px, PNG/WebP</p>
+                    </div>
+                    <div className="w-16 h-16 rounded-xl border border-arena-border bg-arena-dark flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                      {form.imageUrl && (
+                        <img
+                          src={form.imageUrl}
+                          alt="Preview"
+                          className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      )}
+                      <ImageIcon className="w-6 h-6 text-arena-text-muted/40" />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
+                    <span className="text-sm text-arena-text-secondary">Active</span>
+                  </label>
+                  <div><label className="text-xs text-arena-text-secondary mb-1 block">Sort Order</label><input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className={inputClass} /></div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setAffiliateStep(1)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+                  <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -732,10 +910,11 @@ export function AdminAffiliatesView() {
 
 export function AdminSettingsView() {
   const [saving, setSaving] = useState(false);
+  const [settingsTab, setSettingsTab] = useState(0);
 
   const { data: fetchedSettings, isLoading } = useQuery({
     queryKey: ['admin-platform-settings'],
-    queryFn: () => fetch('/api/admin/settings').then(r => r.json()).then(d => d && typeof d === 'object' && !Array.isArray(d) && !d.error ? (d.settings || d) : {}),
+    queryFn: () => apiFetch<any>('/api/admin/settings').then(d => d && typeof d === 'object' && !Array.isArray(d) && !d.error ? (d.settings || d) : {}),
   });
 
   const [localSettings, setLocalSettings] = useState<Record<string, string> | null>(null);
@@ -774,7 +953,7 @@ export function AdminSettingsView() {
       newSettings.razorpay_key_id = rzpKeyId.trim();
       newSettings.razorpay_key_secret = rzpKeySecret.trim();
       newSettings.razorpay_webhook_secret = rzpWebhookSecret.trim();
-      await fetch('/api/admin/settings', {
+      await apiFetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSettings),
@@ -789,7 +968,7 @@ export function AdminSettingsView() {
   const handleGenericSave = async () => {
     setSaving(true);
     try {
-      await fetch('/api/admin/settings', {
+      await apiFetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
@@ -809,362 +988,420 @@ export function AdminSettingsView() {
           {[1,2,3,4,5].map(i => <div key={i} className="bg-arena-card border border-arena-border rounded-xl h-12" />)}
         </div>
       ) : (
-        <div className="space-y-6 max-w-xl">
-          {/* Razorpay Payment Gateway Section */}
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', rzpConfigured ? 'bg-arena-success/10' : 'bg-arena-warning/10')}>
-                <span className={cn('text-lg', rzpConfigured ? 'text-arena-success' : 'text-arena-warning')}>{rzpConfigured ? '✓' : '!'}</span>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  Razorpay Payment Gateway
-                  {rzpConfigured && <span className="text-[10px] bg-arena-success/20 text-arena-success font-medium px-2 py-0.5 rounded-full">Connected</span>}
-                </h2>
-                <p className="text-xs text-arena-text-muted">Configure Razorpay to accept online payments for tournaments</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Razorpay Key ID</label>
-                <input type="text" value={rzpKeyId} onChange={e => { setRzpKeyId(e.target.value); setRzpConfirmStep(0); }}
-                  placeholder="rzp_live_xxxxxxxxxxxxxxx" className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Razorpay Key Secret</label>
-                <div className="relative">
-                  <input type={showSecret ? 'text' : 'password'} value={rzpKeySecret} onChange={e => { setRzpKeySecret(e.target.value); setRzpConfirmStep(0); }}
-                    placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className={inputClass} />
-                  <button type="button" onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-arena-text-muted hover:text-arena-text-primary">
-                    {showSecret ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Webhook Secret (Optional)</label>
-                <input type="text" value={rzpWebhookSecret} onChange={e => { setRzpWebhookSecret(e.target.value); setRzpConfirmStep(0); }}
-                  placeholder="whsec_xxxxxxxxxxxxxxxx" className={inputClass} />
-              </div>
-
-              {/* Double Confirmation UI */}
-              {rzpConfirmStep > 0 && (
-                <div className={cn('rounded-xl p-3 text-sm', rzpConfirmStep === 1 ? 'bg-arena-warning/10 border border-arena-warning/30' : 'bg-arena-success/10 border border-arena-success/30')}>
-                  {rzpConfirmStep === 1 ? (
-                    <>
-                      <p className="font-medium text-arena-warning mb-1">Step 1: Confirm Changes</p>
-                      <p className="text-xs text-arena-text-secondary">You are about to update Razorpay credentials. This affects all payment processing. Click save again to confirm.</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-medium text-arena-success mb-1">Step 2: Final Confirmation</p>
-                      <p className="text-xs text-arena-text-secondary">Last chance! Click save one more time to apply changes permanently.</p>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <button onClick={handleRzpSave} disabled={rzpSaving || (!rzpKeyId.trim() && !rzpKeySecret.trim())}
-                className={cn('w-full py-2.5 h-11 font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 flex items-center justify-center gap-2',
-                  rzpConfirmStep === 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' :
-                  rzpConfirmStep === 1 ? 'bg-arena-warning hover:bg-arena-warning/80 text-white' :
-                  'bg-arena-success hover:bg-arena-success/80 text-white')}>
-                {rzpSaving ? 'Saving...' : rzpConfirmStep === 0 ? 'Save Razorpay Credentials' : rzpConfirmStep === 1 ? 'Click Again to Confirm' : 'Final Click to Apply'}
+        <div className="max-w-xl">
+          {/* Tab Bar */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 mb-4 -mx-1 px-1">
+            {[
+              { icon: Settings, label: 'Platform' },
+              { icon: Wallet, label: 'Payments' },
+              { icon: Globe, label: 'Social & SEO' },
+              { icon: Trophy, label: 'Tournaments' },
+              { icon: Bell, label: 'Notifications' },
+            ].map((tab, i) => (
+              <button key={tab.label} onClick={() => setSettingsTab(i)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200',
+                  settingsTab === i
+                    ? 'bg-arena-accent/15 text-arena-accent border border-arena-accent/20'
+                    : 'text-arena-text-muted hover:text-arena-text-secondary border border-transparent hover:border-arena-border/40'
+                )}>
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
               </button>
-            </div>
+            ))}
           </div>
 
-          {/* Maintenance Mode */}
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', settings.maintenance_mode === 'true' ? 'bg-arena-warning/10' : 'bg-arena-surface')}>
-                  <AlertTriangle className={cn('w-5 h-5', settings.maintenance_mode === 'true' ? 'text-arena-warning' : 'text-arena-text-muted')} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold">Maintenance Mode</h2>
-                  <p className="text-xs text-arena-text-muted">Temporarily disable the platform for all users</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  const newVal = settings.maintenance_mode === 'true' ? 'false' : 'true';
-                  setLocalSettings({ ...settings, maintenance_mode: newVal });
-                  fetch('/api/admin/settings', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...settings, maintenance_mode: newVal }),
-                  }).then(() => toast.success(newVal === 'true' ? 'Maintenance mode enabled' : 'Maintenance mode disabled')).catch(() => toast.error('Failed'));
-                }}
-                className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
-                  settings.maintenance_mode === 'true' ? 'bg-arena-warning' : 'bg-arena-border')}>
-                <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
-                  settings.maintenance_mode === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
-              </button>
-            </div>
-            {settings.maintenance_message && settings.maintenance_mode === 'true' && (
-              <div className="mt-3 p-3 bg-arena-warning/5 border border-arena-warning/20 rounded-lg">
-                <p className="text-xs text-arena-warning font-medium">Message: {settings.maintenance_message}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Platform General Settings */}
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
-            <h2 className="text-lg font-bold">Platform Settings</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Platform Name</label>
-                <input type="text" value={settings.platform_name || ''} onChange={e => setLocalSettings({ ...settings, platform_name: e.target.value })}
-                  placeholder="Aether Arena" className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Support Email</label>
-                <input type="email" value={settings.support_email || ''} onChange={e => setLocalSettings({ ...settings, support_email: e.target.value })}
-                  placeholder="support@aetherarena.com" className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Discord Invite Link</label>
-                <input type="url" value={settings.discord_invite || ''} onChange={e => setLocalSettings({ ...settings, discord_invite: e.target.value })}
-                  placeholder="https://discord.gg/aetherarena" className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Default Max Players</label>
-                <input type="number" min="2" value={settings.default_max_players || '100'} onChange={e => setLocalSettings({ ...settings, default_max_players: e.target.value })}
-                  className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Registration Fee (%)</label>
-                <input type="number" min="0" max="100" step="0.1" value={settings.platform_fee_percent || '0'} onChange={e => setLocalSettings({ ...settings, platform_fee_percent: e.target.value })}
-                  placeholder="Platform fee percentage" className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Min Withdrawal (₹)</label>
-                <input type="number" min="0" value={settings.min_withdrawal || '100'} onChange={e => setLocalSettings({ ...settings, min_withdrawal: e.target.value })}
-                  className={inputClass} />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-arena-text-secondary mb-1 block">Maintenance Message (leave empty to disable)</label>
-              <input type="text" value={settings.maintenance_message || ''} onChange={e => setLocalSettings({ ...settings, maintenance_message: e.target.value })}
-                placeholder="Site is under maintenance..." className={inputClass} />
-            </div>
-            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save Platform Settings'}
-            </button>
-          </div>
-
-          {/* Social Links Section */}
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-                <Share2 className="w-5 h-5 text-arena-accent" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold">Social Links</h2>
-                <p className="text-xs text-arena-text-muted">Connect your social media profiles</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Instagram URL</label>
-                <input type="url" value={settings.social_instagram || ''} onChange={e => setLocalSettings({ ...settings, social_instagram: e.target.value })}
-                  placeholder="https://instagram.com/aetherarena" className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Twitter / X URL</label>
-                <input type="url" value={settings.social_twitter || ''} onChange={e => setLocalSettings({ ...settings, social_twitter: e.target.value })}
-                  placeholder="https://x.com/aetherarena" className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">YouTube URL</label>
-                <input type="url" value={settings.social_youtube || ''} onChange={e => setLocalSettings({ ...settings, social_youtube: e.target.value })}
-                  placeholder="https://youtube.com/@aetherarena" className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Telegram URL</label>
-                <input type="url" value={settings.social_telegram || ''} onChange={e => setLocalSettings({ ...settings, social_telegram: e.target.value })}
-                  placeholder="https://t.me/aetherarena" className={inputClass} />
-              </div>
-            </div>
-            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save Social Links'}
-            </button>
-          </div>
-
-          {/* Tournament Defaults Section */}
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-arena-accent" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold">Tournament Defaults</h2>
-                <p className="text-xs text-arena-text-muted">Configure default tournament creation settings</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Default Registration Period (hours)</label>
-                <input type="number" min="1" max="720" value={settings.tournament_default_reg_hours || '24'} onChange={e => setLocalSettings({ ...settings, tournament_default_reg_hours: e.target.value })}
-                  className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Max Concurrent Tournaments per User</label>
-                <input type="number" min="1" max="100" value={settings.tournament_max_per_user || '5'} onChange={e => setLocalSettings({ ...settings, tournament_max_per_user: e.target.value })}
-                  className={inputClass} />
-              </div>
-            </div>
-            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
-              <div>
-                <div className="text-sm font-medium">Auto-start Tournaments</div>
-                <div className="text-[10px] text-arena-text-muted">Automatically start tournaments when start time is reached</div>
-              </div>
-              <button
-                onClick={() => {
-                  const newVal = settings.tournament_auto_start === 'true' ? 'false' : 'true';
-                  setLocalSettings({ ...settings, tournament_auto_start: newVal });
-                  fetch('/api/admin/settings', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...settings, tournament_auto_start: newVal }),
-                  }).then(() => toast.success(newVal === 'true' ? 'Auto-start enabled' : 'Auto-start disabled')).catch(() => toast.error('Failed'));
-                }}
-                className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
-                  settings.tournament_auto_start === 'true' ? 'bg-arena-accent' : 'bg-arena-border')}>
-                <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
-                  settings.tournament_auto_start === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
-              </button>
-            </div>
-            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save Tournament Defaults'}
-            </button>
-          </div>
-
-          {/* SEO & Branding Section */}
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-                <Globe className="w-5 h-5 text-arena-accent" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold">SEO & Branding</h2>
-                <p className="text-xs text-arena-text-muted">Configure meta tags and brand assets</p>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-arena-text-secondary mb-1 block">Site Description</label>
-              <textarea rows={3} value={settings.seo_description || ''} onChange={e => setLocalSettings({ ...settings, seo_description: e.target.value })}
-                placeholder="India's fastest-growing mobile esports tournament platform..." className={cn(inputClass, 'resize-none')} maxLength={300} />
-              <div className="text-[10px] text-arena-text-muted mt-1 text-right">{(settings.seo_description || '').length}/300</div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">OG Image URL</label>
-                <input type="url" value={settings.seo_og_image || ''} onChange={e => setLocalSettings({ ...settings, seo_og_image: e.target.value })}
-                  placeholder="https://example.com/og-image.png" className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Custom Favicon URL</label>
-                <input type="url" value={settings.branding_favicon || ''} onChange={e => setLocalSettings({ ...settings, branding_favicon: e.target.value })}
-                  placeholder="https://example.com/favicon.ico" className={inputClass} />
-              </div>
-            </div>
-            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save SEO & Branding'}
-            </button>
-          </div>
-
-          {/* Referral System Section */}
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-                <Gift className="w-5 h-5 text-arena-accent" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold">Referral System</h2>
-                <p className="text-xs text-arena-text-muted">Configure the referral reward program</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
-              <div>
-                <div className="text-sm font-medium">Referral Program Enabled</div>
-                <div className="text-[10px] text-arena-text-muted">Allow users to earn rewards by referring friends</div>
-              </div>
-              <button
-                onClick={() => {
-                  const newVal = settings.referral_enabled === 'true' ? 'false' : 'true';
-                  setLocalSettings({ ...settings, referral_enabled: newVal });
-                  fetch('/api/admin/settings', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...settings, referral_enabled: newVal }),
-                  }).then(() => toast.success(newVal === 'true' ? 'Referral program enabled' : 'Referral program disabled')).catch(() => toast.error('Failed'));
-                }}
-                className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
-                  settings.referral_enabled === 'true' ? 'bg-arena-accent' : 'bg-arena-border')}>
-                <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
-                  settings.referral_enabled === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Referral Bonus (Aether Coins)</label>
-                <input type="number" min="0" value={settings.referral_bonus || '50'} onChange={e => setLocalSettings({ ...settings, referral_bonus: e.target.value })}
-                  className={inputClass} />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Max Referrals per User</label>
-                <input type="number" min="0" value={settings.referral_max_per_user || '0'} onChange={e => setLocalSettings({ ...settings, referral_max_per_user: e.target.value })}
-                  placeholder="0 = unlimited" className={inputClass} />
-              </div>
-            </div>
-            <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save Referral Settings'}
-            </button>
-          </div>
-
-          {/* Notification Settings Section */}
-          <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-                <Bell className="w-5 h-5 text-arena-accent" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold">Notification Settings</h2>
-                <p className="text-xs text-arena-text-muted">Configure platform-wide notification preferences</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {[
-                { key: 'notify_email_enabled', label: 'Email Notifications', desc: 'Send email notifications to users' },
-                { key: 'notify_registration', label: 'Registration Alerts', desc: 'Notify users about tournament registration events' },
-                { key: 'notify_results', label: 'Result Announcements', desc: 'Send results when tournaments conclude' },
-              ].map(item => (
-                <div key={item.key} className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
-                  <div>
-                    <div className="text-sm font-medium">{item.label}</div>
-                    <div className="text-[10px] text-arena-text-muted">{item.desc}</div>
+          {/* Tab 0: Platform — Platform Settings + Maintenance Mode */}
+          {settingsTab === 0 && (
+            <div className="space-y-6">
+              {/* Maintenance Mode */}
+              <div className="bg-arena-card border border-arena-border rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', settings.maintenance_mode === 'true' ? 'bg-arena-warning/10' : 'bg-arena-surface')}>
+                      <AlertTriangle className={cn('w-5 h-5', settings.maintenance_mode === 'true' ? 'text-arena-warning' : 'text-arena-text-muted')} />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold">Maintenance Mode</h2>
+                      <p className="text-xs text-arena-text-muted">Temporarily disable the platform for all users</p>
+                    </div>
                   </div>
                   <button
                     onClick={() => {
-                      const newVal = settings[item.key] === 'true' ? 'false' : 'true';
-                      setLocalSettings({ ...settings, [item.key]: newVal });
-                      fetch('/api/admin/settings', {
+                      const newVal = settings.maintenance_mode === 'true' ? 'false' : 'true';
+                      setLocalSettings({ ...settings, maintenance_mode: newVal });
+                      apiFetch('/api/admin/settings', {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...settings, [item.key]: newVal }),
-                      }).then(() => toast.success(`${item.label} ${newVal === 'true' ? 'enabled' : 'disabled'}`)).catch(() => toast.error('Failed'));
+                        body: JSON.stringify({ ...settings, maintenance_mode: newVal }),
+                      }).then(() => toast.success(newVal === 'true' ? 'Maintenance mode enabled' : 'Maintenance mode disabled')).catch(() => toast.error('Failed'));
                     }}
                     className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
-                      settings[item.key] === 'true' ? 'bg-arena-accent' : 'bg-arena-border')}>
+                      settings.maintenance_mode === 'true' ? 'bg-arena-warning' : 'bg-arena-border')}>
                     <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
-                      settings[item.key] === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
+                      settings.maintenance_mode === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
                   </button>
                 </div>
-              ))}
+                {settings.maintenance_message && settings.maintenance_mode === 'true' && (
+                  <div className="mt-3 p-3 bg-arena-warning/5 border border-arena-warning/20 rounded-lg">
+                    <p className="text-xs text-arena-warning font-medium">Message: {settings.maintenance_message}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Platform General Settings */}
+              <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+                <h2 className="text-lg font-bold">Platform Settings</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Platform Name</label>
+                    <input type="text" value={settings.platform_name || ''} onChange={e => setLocalSettings({ ...settings, platform_name: e.target.value })}
+                      placeholder="Aether Arena" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Support Email</label>
+                    <input type="email" value={settings.support_email || ''} onChange={e => setLocalSettings({ ...settings, support_email: e.target.value })}
+                      placeholder="support@aetherarena.com" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Discord Invite Link</label>
+                    <input type="url" value={settings.discord_invite || ''} onChange={e => setLocalSettings({ ...settings, discord_invite: e.target.value })}
+                      placeholder="https://discord.gg/aetherarena" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Default Max Players</label>
+                    <input type="number" min="2" value={settings.default_max_players || '100'} onChange={e => setLocalSettings({ ...settings, default_max_players: e.target.value })}
+                      className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Registration Fee (%)</label>
+                    <input type="number" min="0" max="100" step="0.1" value={settings.platform_fee_percent || '0'} onChange={e => setLocalSettings({ ...settings, platform_fee_percent: e.target.value })}
+                      placeholder="Platform fee percentage" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Min Withdrawal (₹)</label>
+                    <input type="number" min="0" value={settings.min_withdrawal || '100'} onChange={e => setLocalSettings({ ...settings, min_withdrawal: e.target.value })}
+                      className={inputClass} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Maintenance Message (leave empty to disable)</label>
+                  <input type="text" value={settings.maintenance_message || ''} onChange={e => setLocalSettings({ ...settings, maintenance_message: e.target.value })}
+                    placeholder="Site is under maintenance..." className={inputClass} />
+                </div>
+                <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+                  {saving ? 'Saving...' : 'Save Platform Settings'}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Tab 1: Payments — Google Pay + Razorpay */}
+          {settingsTab === 1 && (
+            <div className="space-y-6">
+              {/* Google Pay Configuration */}
+              <div className="bg-arena-card border border-green-500/20 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold flex items-center gap-2">
+                      Google Pay (Manual Verification)
+                      <span className="text-[10px] bg-green-500/20 text-green-400 font-medium px-2 py-0.5 rounded-full">Active</span>
+                    </h2>
+                    <p className="text-xs text-arena-text-muted">Users pay via GPay and submit UTR for admin verification</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">GPay Number *</label>
+                    <input type="tel" value={settings.gpay_number || ''} onChange={e => setLocalSettings({ ...settings, gpay_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      placeholder="9876543210" className={inputClass} maxLength={10} />
+                    <p className="text-[10px] text-arena-text-muted mt-1">This number will be shown to users for payment. Only the number is visible — no account holder name or bank details.</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">UPI ID (Optional)</label>
+                    <input type="text" value={settings.gpay_upi_id || ''} onChange={e => setLocalSettings({ ...settings, gpay_upi_id: e.target.value })}
+                      placeholder="name@okbank" className={inputClass} />
+                    <p className="text-[10px] text-arena-text-muted mt-1">If set, users can also pay via UPI ID</p>
+                  </div>
+                  <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+                    {saving ? 'Saving...' : 'Save GPay Settings'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Razorpay — Coming Soon */}
+              <div className="bg-arena-card border border-arena-border rounded-2xl p-6 opacity-60">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', rzpConfigured ? 'bg-arena-success/10' : 'bg-arena-warning/10')}>
+                    <span className={cn('text-lg', rzpConfigured ? 'text-arena-success' : 'text-arena-warning')}>{rzpConfigured ? '✓' : '!'}</span>
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-lg font-bold flex items-center gap-2">
+                      Razorpay Payment Gateway
+                      <span className="text-[10px] bg-arena-warning/20 text-arena-warning font-medium px-2 py-0.5 rounded-full">Coming Soon</span>
+                      {rzpConfigured && <span className="text-[10px] bg-arena-success/20 text-arena-success font-medium px-2 py-0.5 rounded-full">Configured</span>}
+                    </h2>
+                    <p className="text-xs text-arena-text-muted">Automated payment gateway — coming soon!</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Razorpay Key ID</label>
+                    <input type="text" value={rzpKeyId} onChange={e => { setRzpKeyId(e.target.value); setRzpConfirmStep(0); }}
+                      placeholder="rzp_live_xxxxxxxxxxxxxxx" className={inputClass} disabled />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Razorpay Key Secret</label>
+                    <div className="relative">
+                      <input type={showSecret ? 'text' : 'password'} value={rzpKeySecret} onChange={e => { setRzpKeySecret(e.target.value); setRzpConfirmStep(0); }}
+                        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className={inputClass} disabled />
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl p-3 bg-arena-warning/10 border border-arena-warning/30">
+                    <p className="font-medium text-arena-warning text-sm">Coming Soon</p>
+                    <p className="text-xs text-arena-text-secondary">Razorpay integration is under development. Currently, all payments are processed via Google Pay with manual admin verification.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 2: Social & SEO — Social Links + SEO & Branding */}
+          {settingsTab === 2 && (
+            <div className="space-y-6">
+              {/* Social Links Section */}
+              <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                    <Share2 className="w-5 h-5 text-arena-accent" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Social Links</h2>
+                    <p className="text-xs text-arena-text-muted">Connect your social media profiles</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Discord Server Invite URL</label>
+                    <input type="url" value={settings.discord_invite_url || ''} onChange={e => setLocalSettings({ ...settings, discord_invite_url: e.target.value })}
+                      placeholder="https://discord.gg/aetherarena" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">YouTube Channel URL</label>
+                    <input type="url" value={settings.youtube_channel_url || ''} onChange={e => setLocalSettings({ ...settings, youtube_channel_url: e.target.value })}
+                      placeholder="https://youtube.com/@aetherarena" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Instagram URL</label>
+                    <input type="url" value={settings.instagram_url || ''} onChange={e => setLocalSettings({ ...settings, instagram_url: e.target.value })}
+                      placeholder="https://instagram.com/aetherarena" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">WhatsApp Channel URL</label>
+                    <input type="url" value={settings.whatsapp_channel_url || ''} onChange={e => setLocalSettings({ ...settings, whatsapp_channel_url: e.target.value })}
+                      placeholder="https://whatsapp.com/channel/your-channel" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Twitter / X URL</label>
+                    <input type="url" value={settings.twitter_url || ''} onChange={e => setLocalSettings({ ...settings, twitter_url: e.target.value })}
+                      placeholder="https://x.com/aetherarena" className={inputClass} />
+                  </div>
+                </div>
+                <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+                  {saving ? 'Saving...' : 'Save Social Links'}
+                </button>
+              </div>
+
+              {/* SEO & Branding Section */}
+              <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-arena-accent" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">SEO & Branding</h2>
+                    <p className="text-xs text-arena-text-muted">Configure meta tags and brand assets</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Site Description</label>
+                  <textarea rows={3} value={settings.seo_description || ''} onChange={e => setLocalSettings({ ...settings, seo_description: e.target.value })}
+                    placeholder="India's fastest-growing mobile esports tournament platform..." className={cn(inputClass, 'resize-none')} maxLength={300} />
+                  <div className="text-[10px] text-arena-text-muted mt-1 text-right">{(settings.seo_description || '').length}/300</div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">OG Image URL</label>
+                    <input type="url" value={settings.seo_og_image || ''} onChange={e => setLocalSettings({ ...settings, seo_og_image: e.target.value })}
+                      placeholder="https://example.com/og-image.png" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Custom Favicon URL</label>
+                    <input type="url" value={settings.branding_favicon || ''} onChange={e => setLocalSettings({ ...settings, branding_favicon: e.target.value })}
+                      placeholder="https://example.com/favicon.ico" className={inputClass} />
+                  </div>
+                </div>
+                <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+                  {saving ? 'Saving...' : 'Save SEO & Branding'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Tournaments — Tournament Defaults + Referral System */}
+          {settingsTab === 3 && (
+            <div className="space-y-6">
+              {/* Tournament Defaults Section */}
+              <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-arena-accent" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Tournament Defaults</h2>
+                    <p className="text-xs text-arena-text-muted">Configure default tournament creation settings</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Default Registration Period (hours)</label>
+                    <input type="number" min="1" max="720" value={settings.tournament_default_reg_hours || '24'} onChange={e => setLocalSettings({ ...settings, tournament_default_reg_hours: e.target.value })}
+                      className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Max Concurrent Tournaments per User</label>
+                    <input type="number" min="1" max="100" value={settings.tournament_max_per_user || '5'} onChange={e => setLocalSettings({ ...settings, tournament_max_per_user: e.target.value })}
+                      className={inputClass} />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
+                  <div>
+                    <div className="text-sm font-medium">Auto-start Tournaments</div>
+                    <div className="text-[10px] text-arena-text-muted">Automatically start tournaments when start time is reached</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newVal = settings.tournament_auto_start === 'true' ? 'false' : 'true';
+                      setLocalSettings({ ...settings, tournament_auto_start: newVal });
+                      apiFetch('/api/admin/settings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...settings, tournament_auto_start: newVal }),
+                      }).then(() => toast.success(newVal === 'true' ? 'Auto-start enabled' : 'Auto-start disabled')).catch(() => toast.error('Failed'));
+                    }}
+                    className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
+                      settings.tournament_auto_start === 'true' ? 'bg-arena-accent' : 'bg-arena-border')}>
+                    <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
+                      settings.tournament_auto_start === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
+                  </button>
+                </div>
+                <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+                  {saving ? 'Saving...' : 'Save Tournament Defaults'}
+                </button>
+              </div>
+
+              {/* Referral System Section */}
+              <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                    <Gift className="w-5 h-5 text-arena-accent" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Referral System</h2>
+                    <p className="text-xs text-arena-text-muted">Configure the referral reward program</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
+                  <div>
+                    <div className="text-sm font-medium">Referral Program Enabled</div>
+                    <div className="text-[10px] text-arena-text-muted">Allow users to earn rewards by referring friends</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newVal = settings.referral_enabled === 'true' ? 'false' : 'true';
+                      setLocalSettings({ ...settings, referral_enabled: newVal });
+                      apiFetch('/api/admin/settings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...settings, referral_enabled: newVal }),
+                      }).then(() => toast.success(newVal === 'true' ? 'Referral program enabled' : 'Referral program disabled')).catch(() => toast.error('Failed'));
+                    }}
+                    className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
+                      settings.referral_enabled === 'true' ? 'bg-arena-accent' : 'bg-arena-border')}>
+                    <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
+                      settings.referral_enabled === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Referral Bonus (Aether Coins)</label>
+                    <input type="number" min="0" value={settings.referral_bonus || '50'} onChange={e => setLocalSettings({ ...settings, referral_bonus: e.target.value })}
+                      className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Max Referrals per User</label>
+                    <input type="number" min="0" value={settings.referral_max_per_user || '0'} onChange={e => setLocalSettings({ ...settings, referral_max_per_user: e.target.value })}
+                      placeholder="0 = unlimited" className={inputClass} />
+                  </div>
+                </div>
+                <button onClick={handleGenericSave} disabled={saving} className="px-6 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">
+                  {saving ? 'Saving...' : 'Save Referral Settings'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 4: Notifications — Notification Settings */}
+          {settingsTab === 4 && (
+            <div className="space-y-6">
+              <div className="bg-arena-card border border-arena-border rounded-2xl p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-arena-accent" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Notification Settings</h2>
+                    <p className="text-xs text-arena-text-muted">Configure platform-wide notification preferences</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { key: 'notify_email_enabled', label: 'Email Notifications', desc: 'Send email notifications to users' },
+                    { key: 'notify_registration', label: 'Registration Alerts', desc: 'Notify users about tournament registration events' },
+                    { key: 'notify_results', label: 'Result Announcements', desc: 'Send results when tournaments conclude' },
+                  ].map(item => (
+                    <div key={item.key} className="flex items-center justify-between px-4 py-3 rounded-xl bg-arena-surface border border-arena-border">
+                      <div>
+                        <div className="text-sm font-medium">{item.label}</div>
+                        <div className="text-[10px] text-arena-text-muted">{item.desc}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newVal = settings[item.key] === 'true' ? 'false' : 'true';
+                          setLocalSettings({ ...settings, [item.key]: newVal });
+                          apiFetch('/api/admin/settings', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ...settings, [item.key]: newVal }),
+                          }).then(() => toast.success(`${item.label} ${newVal === 'true' ? 'enabled' : 'disabled'}`)).catch(() => toast.error('Failed'));
+                        }}
+                        className={cn('relative w-14 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
+                          settings[item.key] === 'true' ? 'bg-arena-accent' : 'bg-arena-border')}>
+                        <div className={cn('absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-200',
+                          settings[item.key] === 'true' ? 'translate-x-[30px]' : 'translate-x-0.5')} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1176,7 +1413,7 @@ export function AdminSettingsView() {
 export function AdminTopupView() {
   const { data: packs, refetch } = useQuery({
     queryKey: ['admin-topup-packs'],
-    queryFn: () => fetch('/api/admin/topup-packs').then(r => r.json()).then(d => Array.isArray(d.packs) ? d.packs : []),
+    queryFn: () => apiFetch<any>('/api/admin/topup-packs').then(d => Array.isArray(d.packs) ? d.packs : []),
   });
   const [showCreate, setShowCreate] = useState(false);
   const [editingPack, setEditingPack] = useState<any>(null);
@@ -1185,19 +1422,20 @@ export function AdminTopupView() {
 
   const emptyForm = { gameName: '', gameSlug: '', packName: '', description: '', price: 0, originalPrice: 0, imageUrl: '', affiliateUrl: '', isPopular: false, isActive: true, sortOrder: 0 };
   const [form, setForm] = useState(emptyForm);
+  const [topupStep, setTopupStep] = useState(0);
 
-  const openCreate = () => { setForm(emptyForm); setEditingPack(null); setShowCreate(true); };
-  const openEdit = (pack: any) => { setForm(pack); setEditingPack(pack); setShowCreate(true); };
+  const openCreate = () => { setForm(emptyForm); setEditingPack(null); setTopupStep(0); setShowCreate(true); };
+  const openEdit = (pack: any) => { setForm(pack); setEditingPack(pack); setTopupStep(0); setShowCreate(true); };
 
   const handleSave = async () => {
     if (!form.gameName || !form.gameSlug || !form.packName) { toast.error('Game name, slug, and pack name are required'); return; }
     setSaving(true);
     try {
       if (editingPack) {
-        await fetch(`/api/admin/topup-packs/${editingPack.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        await apiFetch(`/api/admin/topup-packs/${editingPack.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
         toast.success('Pack updated!');
       } else {
-        await fetch('/api/admin/topup-packs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        await apiFetch('/api/admin/topup-packs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
         toast.success('Pack created!');
       }
       setShowCreate(false);
@@ -1208,7 +1446,7 @@ export function AdminTopupView() {
 
   const deletePack = async (id: string) => {
     try {
-      await fetch(`/api/admin/topup-packs/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/admin/topup-packs/${id}`, { method: 'DELETE' });
       toast.success('Pack deleted'); refetch();
     } catch { toast.error('Failed to delete pack'); }
   };
@@ -1252,58 +1490,152 @@ export function AdminTopupView() {
               <h2 className="text-lg font-bold">{editingPack ? 'Edit Pack' : 'New Pack'}</h2>
               <button onClick={() => setShowCreate(false)} className="text-arena-text-muted hover:text-arena-text-primary"><X className="w-5 h-5" /></button>
             </div>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-arena-text-secondary mb-1 block">Game Name *</label>
-                  <input type="text" value={form.gameName} onChange={e => setForm({ ...form, gameName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="BGMI" />
+            {/* Step Progress Indicator */}
+            <div className="flex items-center gap-2 mb-4">
+              {[
+                { icon: Zap, label: 'Details' },
+                { icon: DollarSign, label: 'Pricing' },
+                { icon: Eye, label: 'Display' },
+              ].map((s, i) => (
+                <div key={i} className="flex items-center flex-1">
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <div className={cn(
+                      'w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-300',
+                      i < topupStep ? 'bg-green-500/20 text-green-400' :
+                      i === topupStep ? 'bg-arena-accent/20 text-arena-accent' :
+                      'bg-arena-border/30 text-arena-text-muted/40'
+                    )}>
+                      {i < topupStep ? <Check className="w-3 h-3" /> : <s.icon className="w-3 h-3" />}
+                    </div>
+                    <span className={cn(
+                      'text-[10px] font-medium hidden sm:inline transition-colors duration-300',
+                      i <= topupStep ? 'text-arena-text-primary' : 'text-arena-text-muted/40'
+                    )}>{s.label}</span>
+                  </div>
+                  {i < 2 && (
+                    <div className={cn(
+                      'h-0.5 flex-1 mx-0.5 rounded-full transition-all duration-300',
+                      i < topupStep ? 'bg-green-500/40' : 'bg-arena-border/30'
+                    )} />
+                  )}
                 </div>
-                <div>
-                  <label className="text-xs text-arena-text-secondary mb-1 block">Game Slug *</label>
-                  <input type="text" value={form.gameSlug} onChange={e => setForm({ ...form, gameSlug: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="bgmi" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Pack Name *</label>
-                <input type="text" value={form.packName} onChange={e => setForm({ ...form, packName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="60 UC" />
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Description</label>
-                <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="Basic currency pack" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-arena-text-secondary mb-1 block">Price (₹ paise) *</label>
-                  <input type="number" value={form.price} onChange={e => setForm({ ...form, price: parseInt(e.target.value) || 0 })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" />
-                </div>
-                <div>
-                  <label className="text-xs text-arena-text-secondary mb-1 block">Original Price (₹ paise)</label>
-                  <input type="number" value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: parseInt(e.target.value) || 0 })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-arena-text-secondary mb-1 block">Affiliate URL (Codashop)</label>
-                <input type="url" value={form.affiliateUrl} onChange={e => setForm({ ...form, affiliateUrl: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="https://www.codashop.com/in/bgmi" />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="isPopular" checked={form.isPopular} onChange={e => setForm({ ...form, isPopular: e.target.checked })} className="accent-arena-accent" />
-                  <label htmlFor="isPopular" className="text-xs text-arena-text-secondary">Popular</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="isActive" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
-                  <label htmlFor="isActive" className="text-xs text-arena-text-secondary">Active</label>
-                </div>
-                <div>
-                  <label className="text-xs text-arena-text-secondary mb-1 block">Sort</label>
-                  <input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-2 py-1 text-xs focus:outline-none focus:border-arena-accent transition-colors" />
-                </div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 h-10 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-medium rounded-xl transition-all duration-200 text-sm">Cancel</button>
-                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editingPack ? 'Update' : 'Create'}</button>
-              </div>
+              ))}
             </div>
+
+            {/* Step 0 — Details */}
+            {topupStep === 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <Zap className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Details</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Game Name *</label>
+                    <input type="text" value={form.gameName} onChange={e => setForm({ ...form, gameName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="BGMI" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Game Slug *</label>
+                    <input type="text" value={form.gameSlug} onChange={e => setForm({ ...form, gameSlug: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="bgmi" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Pack Name *</label>
+                  <input type="text" value={form.packName} onChange={e => setForm({ ...form, packName: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="60 UC" />
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Description</label>
+                  <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="Basic currency pack" />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setTopupStep(1)} disabled={!form.gameName.trim() || !form.gameSlug.trim() || !form.packName.trim()} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed">Continue</button>
+                  <button type="button" onClick={() => setShowCreate(false)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 1 — Pricing */}
+            {topupStep === 1 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <DollarSign className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Pricing</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Price (₹ paise) *</label>
+                    <input type="number" value={form.price} onChange={e => setForm({ ...form, price: parseInt(e.target.value) || 0 })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Original Price (₹ paise)</label>
+                    <input type="number" value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: parseInt(e.target.value) || 0 })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Affiliate URL (Codashop)</label>
+                  <div className="flex gap-2">
+                    <input type="url" value={form.affiliateUrl} onChange={e => setForm({ ...form, affiliateUrl: e.target.value })} className="flex-1 bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="https://www.codashop.com/in/bgmi" />
+                    {form.affiliateUrl && (
+                      <button type="button" onClick={() => window.open(form.affiliateUrl, '_blank', 'noopener,noreferrer')} className="px-2.5 h-[38px] border border-arena-border rounded-xl hover:border-arena-accent/50 hover:bg-arena-accent/10 transition-all duration-150 flex items-center justify-center flex-shrink-0" title="Open link in new tab">
+                        <ExternalLink className="w-4 h-4 text-arena-text-muted" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setTopupStep(0)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+                  <button type="button" onClick={() => setTopupStep(2)} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm">Continue</button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2 — Display */}
+            {topupStep === 2 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-arena-border/50">
+                  <Eye className="w-4 h-4 text-arena-accent" />
+                  <h3 className="text-sm font-semibold">Display</h3>
+                </div>
+                <div>
+                  <label className="text-xs text-arena-text-secondary mb-1 block">Image URL</label>
+                  <div className="flex gap-3 items-start">
+                    <div className="flex-1">
+                      <input type="url" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-arena-accent transition-colors" placeholder="https://..." />
+                      <p className="text-[10px] text-arena-text-muted mt-1">Paste an image URL or leave blank for default icon. Recommended: 200×200px, PNG/WebP</p>
+                    </div>
+                    <div className="w-16 h-16 rounded-xl border border-arena-border bg-arena-dark flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                      {form.imageUrl && (
+                        <img
+                          src={form.imageUrl}
+                          alt="Preview"
+                          className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      )}
+                      <ImageIcon className="w-6 h-6 text-arena-text-muted/40" />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="isPopular" checked={form.isPopular} onChange={e => setForm({ ...form, isPopular: e.target.checked })} className="accent-arena-accent" />
+                    <label htmlFor="isPopular" className="text-xs text-arena-text-secondary">Popular</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="isActive" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="accent-arena-accent" />
+                    <label htmlFor="isActive" className="text-xs text-arena-text-secondary">Active</label>
+                  </div>
+                  <div>
+                    <label className="text-xs text-arena-text-secondary mb-1 block">Sort</label>
+                    <input type="number" value={form.sortOrder} onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className="w-full bg-arena-dark border border-arena-border rounded-xl px-2 py-1 text-xs focus:outline-none focus:border-arena-accent transition-colors" />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setTopupStep(1)} className="px-6 py-2.5 h-10 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+                  <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 h-10 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50">{saving ? 'Saving...' : editingPack ? 'Update' : 'Create'}</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1317,7 +1649,7 @@ export function AdminTopupView() {
 export function AdminAnalyticsView() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-analytics'],
-    queryFn: () => fetch('/api/admin/analytics').then(r => r.json()),
+    queryFn: () => apiFetch<any>('/api/admin/analytics'),
     refetchInterval: 120000,
   });
 
@@ -1535,7 +1867,7 @@ export function AdminRedemptionsView() {
 
   const { data, refetch } = useQuery({
     queryKey: ['admin-redemptions', statusFilter],
-    queryFn: () => fetch(`/api/admin/redemptions${statusFilter ? `?status=${statusFilter}` : ''}`).then(r => r.json()),
+    queryFn: () => apiFetch<any>(`/api/admin/redemptions${statusFilter ? `?status=${statusFilter}` : ''}`),
     enabled: user?.isAdmin,
   });
 
@@ -1608,7 +1940,7 @@ export function AdminRedemptionsView() {
                   </td>
                   <td className="py-3 px-3">
                     <div className="font-semibold">{r.amountAether} ◆</div>
-                    <div className="text-xs text-arena-text-muted">₹{r.amountInr}</div>
+                    <div className="text-xs text-arena-text-muted">₹{(r.amountInr / 100).toFixed(0)}</div>
                   </td>
                   <td className="py-3 px-3 text-xs text-arena-text-secondary">{r.upiId || '—'}</td>
                   <td className="py-3 px-3">
@@ -1677,7 +2009,7 @@ export function AdminAetherManageView() {
 
   const { data: stats } = useQuery({
     queryKey: ['admin-aether-stats'],
-    queryFn: () => fetch('/api/admin/stats').then(r => r.json()),
+    queryFn: () => apiFetch<any>('/api/admin/stats'),
     enabled: user?.isAdmin,
   });
 

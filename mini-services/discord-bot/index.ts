@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, Interaction } from 'discord.js'
-import { PrismaClient } from '@prisma/client'
+import { db } from './lib/db'
 
 import { data as tournamentsData, execute as tournamentsExecute } from './commands/tournaments'
 import { data as leaderboardData, execute as leaderboardExecute } from './commands/leaderboard'
@@ -10,15 +10,16 @@ import { data as topupData, execute as topupExecute } from './commands/topup'
 
 // ─── Config ──────────────────────────────────────────────
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN
-const CLIENT_ID = process.env.CLIENT_ID || '1493661620239601664'
+const CLIENT_ID = process.env.CLIENT_ID
 
 if (!DISCORD_TOKEN) {
   console.error('[ERROR] DISCORD_TOKEN environment variable is required.')
   process.exit(1)
 }
-
-// ─── Prisma ──────────────────────────────────────────────
-const db = new PrismaClient()
+if (!CLIENT_ID) {
+  console.error('[ERROR] CLIENT_ID environment variable is required.')
+  process.exit(1)
+}
 
 // ─── Commands Map ────────────────────────────────────────
 const commands: { data: any; execute: (interaction: any) => Promise<void> }[] = [

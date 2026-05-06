@@ -6,20 +6,54 @@ import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import {
   Crown, ChevronRight, Swords, Star, CircleDot, Clock,
-  Gamepad2, Trophy, ShoppingBag, ExternalLink, Zap,
-  ChevronLeft, Play, Eye, Timer
+  Gamepad2, Trophy, ShoppingBag, Zap,
+  Play, Eye, Timer, X, Megaphone, Store
 } from 'lucide-react';
 import { cn, paiseToRupee, formatDate, getCountdown, LEAGUE_CONFIG, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 
 export function HomeView() {
   return (
     <div className="space-y-6">
+      <AnnouncementBanner />
       <StreamBannerSection />
-      <TopPlayersSection />
-      <AffiliateCarouselSection />
-      <TopupCarouselSection />
       <HomeTournamentsSection />
+      <QuickStoreSection />
+      <TopPlayersSection />
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────
+   Announcement Banner — dismissible gradient bar
+   ────────────────────────────────────────────── */
+
+function AnnouncementBanner() {
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) return null;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-arena-accent/20 via-arena-purple/15 to-arena-accent/10 border border-arena-accent/20">
+      <div className="absolute inset-0 bg-gradient-to-r from-arena-accent/5 to-transparent pointer-events-none" />
+      <div className="relative flex items-center gap-3 px-4 py-3 md:px-5 md:py-3.5">
+        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-arena-accent/15 flex items-center justify-center">
+          <Megaphone className="w-4 h-4 text-arena-accent" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-arena-text-primary truncate">
+            Welcome to Aether Arena! 🎮 Compete in tournaments, climb the ranks, and win big.
+          </p>
+        </div>
+        <button
+          onClick={() => setDismissed(true)}
+          className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-arena-text-muted hover:text-arena-text-primary hover:bg-arena-surface/50 transition-all duration-150"
+          aria-label="Dismiss announcement"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -30,7 +64,7 @@ function StreamBannerSection() {
 
   const { data: streams } = useQuery({
     queryKey: ['featured-streams'],
-    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/streams').then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
     placeholderData: [],
     staleTime: 5 * 60 * 1000,
   });
@@ -43,14 +77,37 @@ function StreamBannerSection() {
 
   if (!streams || streams.length === 0) {
     return (
-      <div className="relative rounded-2xl overflow-hidden border border-dashed border-arena-border h-48 md:h-56 bg-arena-card/50">
-        <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/5 via-arena-purple/5 to-arena-dark" />
-        <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-arena-accent/10 flex items-center justify-center mb-3">
-            <Play className="w-6 h-6 text-arena-accent/50" />
+      <div className="relative rounded-2xl overflow-hidden border border-arena-border h-56 md:h-64 bg-arena-card group">
+        <Image
+          src="/images/hero-banner.webp"
+          alt="Aether Arena"
+          fill
+          className="object-cover opacity-20 group-hover:opacity-25 transition-opacity duration-500"
+priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/10 via-arena-purple/5 to-arena-dark/80" />
+        <div className="absolute inset-0 bg-gradient-to-r from-arena-card/95 via-arena-card/70 to-arena-card/40" />
+        <div className="relative z-10 h-full flex flex-col justify-center p-6 md:p-10">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-arena-accent/15 flex items-center justify-center">
+              <Play className="w-5 h-5 text-arena-accent/70" />
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-arena-accent to-arena-purple bg-clip-text text-transparent">
+                Aether Arena
+              </h2>
+              <p className="text-[10px] text-arena-text-muted uppercase tracking-wider font-medium">Esports Platform</p>
+            </div>
           </div>
-          <h2 className="text-lg font-semibold mb-1">No streams right now</h2>
-          <p className="text-xs text-arena-text-muted max-w-sm">Tune in later for live tournament broadcasts, gameplay streams, and community events.</p>
+          <p className="text-sm text-arena-text-secondary max-w-md mb-4">
+            No live streams right now. Tune in later for live tournament broadcasts, gameplay streams, and community events.
+          </p>
+          <button
+            onClick={() => navigate('tournaments')}
+            className="flex items-center gap-2 px-5 py-2 h-10 bg-arena-accent/80 hover:bg-arena-accent text-white font-medium rounded-xl transition-all duration-200 text-sm w-fit"
+          >
+            <Swords className="w-4 h-4" /> Browse Tournaments
+          </button>
         </div>
       </div>
     );
@@ -61,14 +118,37 @@ function StreamBannerSection() {
   // Guard against undefined stream (e.g. index out of bounds or bad data)
   if (!stream) {
     return (
-      <div className="relative rounded-2xl overflow-hidden border border-dashed border-arena-border h-48 md:h-56 bg-arena-card/50">
-        <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/5 via-arena-purple/5 to-arena-dark" />
-        <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-arena-accent/10 flex items-center justify-center mb-3">
-            <Play className="w-6 h-6 text-arena-accent/50" />
+      <div className="relative rounded-2xl overflow-hidden border border-arena-border h-56 md:h-64 bg-arena-card group">
+        <Image
+          src="/images/hero-banner.webp"
+          alt="Aether Arena"
+          fill
+          className="object-cover opacity-20 group-hover:opacity-25 transition-opacity duration-500"
+priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-arena-accent/10 via-arena-purple/5 to-arena-dark/80" />
+        <div className="absolute inset-0 bg-gradient-to-r from-arena-card/95 via-arena-card/70 to-arena-card/40" />
+        <div className="relative z-10 h-full flex flex-col justify-center p-6 md:p-10">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-arena-accent/15 flex items-center justify-center">
+              <Play className="w-5 h-5 text-arena-accent/70" />
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-arena-accent to-arena-purple bg-clip-text text-transparent">
+                Aether Arena
+              </h2>
+              <p className="text-[10px] text-arena-text-muted uppercase tracking-wider font-medium">Esports Platform</p>
+            </div>
           </div>
-          <h2 className="text-lg font-semibold mb-1">No streams right now</h2>
-          <p className="text-xs text-arena-text-muted max-w-sm">Tune in later for live tournament broadcasts, gameplay streams, and community events.</p>
+          <p className="text-sm text-arena-text-secondary max-w-md mb-4">
+            No live streams right now. Tune in later for live tournament broadcasts, gameplay streams, and community events.
+          </p>
+          <button
+            onClick={() => navigate('tournaments')}
+            className="flex items-center gap-2 px-5 py-2 h-10 bg-arena-accent/80 hover:bg-arena-accent text-white font-medium rounded-xl transition-all duration-200 text-sm w-fit"
+          >
+            <Swords className="w-4 h-4" /> Browse Tournaments
+          </button>
         </div>
       </div>
     );
@@ -122,23 +202,142 @@ function StreamBannerSection() {
   );
 }
 
+/* ──────────────────────────────────────────────
+   Quick Store — combines topup packs + affiliates
+   ────────────────────────────────────────────── */
+
+function QuickStoreSection() {
+  const { navigate } = useAppStore();
+
+  const { data: packsData } = useQuery({
+    queryKey: ['topup-packs-quick'],
+    queryFn: () => apiFetch<any>('/api/topup-packs').then(d => Array.isArray(d.packs) ? d.packs : []),
+    placeholderData: [],
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const { data: affiliates } = useQuery({
+    queryKey: ['affiliates-quick'],
+    queryFn: () => apiFetch<any>('/api/affiliates').then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
+    placeholderData: [],
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const packs = (packsData || []) as any[];
+  const affiliateList = (affiliates || []) as any[];
+  const topPacks = packs.slice(0, 3);
+  const topAffiliates = affiliateList.slice(0, 3);
+  const hasStoreItems = topPacks.length > 0 || topAffiliates.length > 0;
+
+  const handleAffiliateClick = async (affiliate: any) => {
+    try { await fetch(`/api/affiliates/${affiliate.id}/click`, { method: 'POST' }); } catch {}
+  };
+
+  return (
+    <div>
+      {/* Section Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <Store className="w-5 h-5 text-arena-accent" /> Game Store
+        </h2>
+        <button onClick={() => navigate('store')} className="text-arena-accent text-xs font-medium hover:underline flex items-center gap-1 transition-colors duration-150">
+          View All <ChevronRight className="w-3 h-3" />
+        </button>
+      </div>
+
+      {!hasStoreItems ? (
+        <div className="bg-arena-card/50 border border-dashed border-arena-border rounded-2xl p-6 text-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-arena-accent/10 flex items-center justify-center">
+            <ShoppingBag className="w-6 h-6 text-arena-accent/50" />
+          </div>
+          <p className="text-sm font-medium text-arena-text-secondary mb-1">Store coming soon</p>
+          <p className="text-xs text-arena-text-muted">Game top-ups and gear deals are on the way!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Topup Packs Column */}
+          {topPacks.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-4 h-4 text-arena-accent" />
+                <h3 className="text-sm font-semibold text-arena-text-secondary">Quick Top Up</h3>
+              </div>
+              <div className="space-y-2.5">
+                {topPacks.map((pack: any) => (
+                  <a key={pack.id} href={pack.affiliateUrl} target="_blank" rel="noopener noreferrer"
+                    className="group flex items-center gap-3 bg-arena-surface border border-arena-border rounded-xl p-3 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5">
+                    <div className="w-11 h-11 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {pack.imageUrl ? (
+                        <Image src={pack.imageUrl} alt={pack.packName} width={44} height={44} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <Zap className="w-5 h-5 text-arena-accent" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-medium text-arena-text-muted">{pack.gameName}</div>
+                      <h4 className="font-semibold text-sm truncate group-hover:text-arena-accent transition-colors duration-150">{pack.packName}</h4>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <div className="text-sm font-bold text-arena-text-primary">{paiseToRupee(pack.price)}</div>
+                      <span className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-arena-accent text-white group-hover:bg-arena-accent-light transition-all duration-200">Buy</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Affiliate Products Column */}
+          {topAffiliates.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <ShoppingBag className="w-4 h-4 text-arena-accent" />
+                <h3 className="text-sm font-semibold text-arena-text-secondary">Recommended Gear</h3>
+              </div>
+              <div className="space-y-2.5">
+                {topAffiliates.map((a: any) => (
+                  <a key={a.id} href={a.url || '#'} target="_blank" rel="noopener noreferrer" onClick={() => handleAffiliateClick(a)}
+                    className="group flex items-center gap-3 bg-arena-surface border border-arena-border rounded-xl p-3 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5">
+                    <div className="w-11 h-11 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {a.imageUrl ? (
+                        <Image src={a.imageUrl} alt={a.name} width={44} height={44} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <Gamepad2 className="w-5 h-5 text-arena-accent/60" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm truncate group-hover:text-arena-accent transition-colors duration-150">{a.name}</h4>
+                      <p className="text-[11px] text-arena-text-muted line-clamp-1">{a.description}</p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <div className="text-sm font-bold text-arena-success">{a.priceDisplay || 'Free'}</div>
+                      <span className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-arena-accent/10 text-arena-accent group-hover:bg-arena-accent group-hover:text-white transition-all duration-200">Shop</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TopPlayersSection() {
   const { navigate } = useAppStore();
 
   const { data: entries } = useQuery({
     queryKey: ['top-players'],
-    queryFn: () => fetch('/api/leaderboard?period=all_time&limit=50').then(r => r.json()).then(d => {
+    queryFn: () => apiFetch<any>('/api/leaderboard?period=all_time&limit=50').then(d => {
       const raw = d.leaderboard || d;
       const all = Array.isArray(raw) ? raw : [];
-      // Deduplicate: keep highest points per player
       const best = new Map<string, any>();
       for (const e of all) {
         const pid = e.playerId || e.player?.id;
         if (!pid) continue;
         const existing = best.get(pid);
-        if (!existing || (e.points || 0) > (existing.points || 0)) {
-          best.set(pid, e);
-        }
+        if (!existing || (e.points || 0) > (existing.points || 0)) best.set(pid, e);
       }
       return Array.from(best.values()).sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
     }),
@@ -187,7 +386,7 @@ function TopPlayersSection() {
               <div className="relative">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-arena-accent/30 to-arena-purple/30 flex items-center justify-center text-sm font-bold overflow-hidden">
                   {entry.player?.avatarUrl ? (
-                    <Image src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} width={40} height={40} className="w-full h-full object-cover" unoptimized loading="lazy" />
+                    <Image src={entry.player.avatarUrl} alt={`${entry.player.username}'s avatar`} width={40} height={40} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     (entry.player?.username || '?')[0].toUpperCase()
                   )}
@@ -213,206 +412,6 @@ function TopPlayersSection() {
   );
 }
 
-function AffiliateCarouselSection() {
-  const [current, setCurrent] = useState(0);
-
-  const { data: affiliates } = useQuery({
-    queryKey: ['affiliates'],
-    queryFn: () => fetch('/api/affiliates').then(r => r.json()).then(d => Array.isArray(d.affiliates) ? d.affiliates : Array.isArray(d) ? d : []),
-    placeholderData: [],
-    staleTime: 10 * 60 * 1000,
-  });
-
-  useEffect(() => {
-    if (!affiliates || affiliates.length <= 1) return;
-    const timer = setInterval(() => setCurrent(c => (c + 1) % affiliates.length), 10000);
-    return () => clearInterval(timer);
-  }, [affiliates]);
-
-  const handleClick = async (affiliate: any) => {
-    try { await fetch(`/api/affiliates/${affiliate.id}/click`, { method: 'POST' }); } catch {}
-  };
-
-  if (!affiliates || affiliates.length === 0) {
-    return (
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-arena-accent" /> Recommended Gear
-          </h2>
-        </div>
-        <div className="bg-arena-card/50 border border-dashed border-arena-border rounded-2xl p-6 text-center">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-            <Gamepad2 className="w-6 h-6 text-arena-accent/50" />
-          </div>
-          <p className="text-sm font-medium text-arena-text-secondary mb-1">No gear recommendations yet</p>
-          <p className="text-xs text-arena-text-muted">We are partnering with top gaming brands. Stay tuned for exclusive deals!</p>
-        </div>
-      </div>
-    );
-  }
-
-  const visible = affiliates.slice(current, current + 3).concat(
-    affiliates.length - current < 3 ? affiliates.slice(0, 3 - (affiliates.length - current)) : []
-  );
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <ShoppingBag className="w-5 h-5 text-arena-accent" /> Recommended Gear
-        </h2>
-        <div className="flex gap-1">
-          {affiliates.map((_: any, i: number) => (
-            <button key={i} onClick={() => setCurrent(i)}
-              className={cn('w-2 h-2 rounded-full transition-all', i === current ? 'w-4 bg-arena-accent' : 'bg-arena-text-muted')} />
-          ))}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {visible.map((a: any) => (
-          <a key={a.id} href={a.url || '#'} target="_blank" rel="noopener noreferrer" onClick={() => handleClick(a)}
-            className="group bg-arena-surface border border-arena-border rounded-2xl p-4 md:p-5 flex gap-4 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5 block">
-            <div className="w-16 h-16 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
-              <Gamepad2 className="w-8 h-8 text-arena-accent/60" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold truncate group-hover:text-arena-accent transition-colors duration-150">{a.name}</h3>
-              <p className="text-xs text-arena-text-muted mt-1 line-clamp-2">{a.description}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-sm font-bold text-arena-success">{a.priceDisplay || 'Free'}</span>
-                {a.originalPrice > 0 && <span className="text-xs text-arena-text-muted line-through">{a.originalPriceDisplay}</span>}
-              </div>
-            </div>
-            <ExternalLink className="w-4 h-4 text-arena-text-muted group-hover:text-arena-accent flex-shrink-0 self-center opacity-0 group-hover:opacity-100 transition-all duration-200" />
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-
-// ==================== QUICK TOP UP CAROUSEL ====================
-
-function TopupCarouselSection() {
-  const [current, setCurrent] = useState(0);
-
-  const { data: packsData } = useQuery({
-    queryKey: ['topup-packs'],
-    queryFn: () => fetch('/api/topup-packs').then(r => r.json()).then(d => Array.isArray(d.packs) ? d.packs : []),
-    placeholderData: [],
-    staleTime: 10 * 60 * 1000,
-  });
-
-  const packs = (packsData || []) as any[];
-  const filtered = packs;
-  const itemsPerPage = 3;
-  const maxIndex = Math.max(0, filtered.length - itemsPerPage);
-
-  useEffect(() => {
-    if (filtered.length <= itemsPerPage) return;
-    const timer = setInterval(() => setCurrent(c => {
-      const idx = Math.max(0, filtered.length - itemsPerPage);
-      return c >= idx ? 0 : c + 1;
-    }), 4000);
-    return () => clearInterval(timer);
-  }, [filtered, itemsPerPage]);
-
-  const prev = () => setCurrent(c => c <= 0 ? maxIndex : c - 1);
-  const next = () => setCurrent(c => c >= maxIndex ? 0 : c + 1);
-
-  if (packs.length === 0) return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-arena-accent" />
-          <h2 className="text-lg font-bold">Quick Top Up</h2>
-          <span className="text-[10px] bg-arena-accent/15 text-arena-accent font-medium px-2 py-0.5 rounded-full">Codashop</span>
-        </div>
-        <button className="text-xs text-arena-accent hover:text-arena-accent-light font-medium flex items-center gap-1 transition-colors duration-150">
-          View All <ChevronRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-      <div className="bg-arena-card/50 border border-dashed border-arena-border rounded-2xl p-5 text-center">
-        <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-arena-accent/10 flex items-center justify-center">
-          <Zap className="w-5 h-5 text-arena-accent/50" />
-        </div>
-        <p className="text-sm font-medium text-arena-text-secondary mb-1">No top-up packs available</p>
-        <p className="text-xs text-arena-text-muted">Get game currency at the best prices. Check back later!</p>
-      </div>
-    </div>
-  );
-  const visible = filtered.slice(current, current + itemsPerPage);
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-arena-accent" />
-          <h2 className="text-lg font-bold">Quick Top Up</h2>
-          <span className="text-[10px] bg-arena-accent/15 text-arena-accent font-medium px-2 py-0.5 rounded-full">Codashop</span>
-        </div>
-        <button className="text-xs text-arena-accent hover:text-arena-accent-light font-medium flex items-center gap-1 transition-colors duration-150">
-          View All <ChevronRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-      <div className="relative">
-        {filtered.length > itemsPerPage && (
-          <>
-            <button onClick={prev} className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button onClick={next} className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-8 h-8 rounded-full bg-arena-dark/90 border border-arena-border flex items-center justify-center text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/50 transition-all duration-150 shadow-lg">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {visible.map((pack: any) => (
-            <a key={pack.id} href={pack.affiliateUrl} target="_blank" rel="noopener noreferrer"
-              className="group relative bg-arena-surface border border-arena-border rounded-2xl p-4 hover:border-arena-accent/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-arena-accent/5 block overflow-hidden">
-              {pack.isPopular && (
-                <div className="absolute top-0 right-0 bg-arena-accent text-white text-[9px] font-bold px-2.5 py-0.5 rounded-bl-lg">🔥 POPULAR</div>
-              )}
-              <div className="flex items-center gap-2 mb-2.5">
-                <div className="w-9 h-9 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
-                  <Zap className="w-4 h-4 text-arena-accent" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-medium text-arena-text-muted">{pack.gameName}</div>
-                  <h3 className="font-semibold text-sm truncate group-hover:text-arena-accent transition-colors duration-150">{pack.packName}</h3>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 text-arena-text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 ml-auto" />
-              </div>
-              {pack.description && (
-                <p className="text-[11px] text-arena-text-muted mb-3 line-clamp-1">{pack.description}</p>
-              )}
-              <div className="flex items-center justify-between pt-2 border-t border-arena-border">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-base font-bold text-arena-text-primary">{paiseToRupee(pack.price)}</span>
-                  {pack.originalPrice > pack.price && (
-                    <span className="text-[11px] text-arena-text-muted line-through">{paiseToRupee(pack.originalPrice)}</span>
-                  )}
-                </div>
-                <span className="text-[10px] font-semibold px-3 py-1.5 rounded-lg bg-arena-accent text-white group-hover:bg-arena-accent-light transition-all duration-200">Buy Now</span>
-              </div>
-            </a>
-          ))}
-        </div>
-        {filtered.length > itemsPerPage && (
-          <div className="flex justify-center gap-1.5 mt-3">
-            {Array.from({ length: maxIndex + 1 }).map((_, i) => (
-              <button key={i} onClick={() => setCurrent(i)}
-                className={cn('w-1.5 h-1.5 rounded-full transition-all', i === current ? 'w-4 bg-arena-accent' : 'bg-arena-text-muted/40 hover:bg-arena-text-muted')} />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function HomeTournamentsSection() {
   const { navigate } = useAppStore();
   const [filter, setFilter] = useState('all');
@@ -424,7 +423,7 @@ function HomeTournamentsSection() {
       if (filter === 'featured') { params.set('featured', 'true'); }
       else if (filter !== 'all') { params.set('status', filter); }
       params.set('limit', '6');
-      return fetch(`/api/tournaments?${params}`).then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []);
+      return apiFetch<any>(`/api/tournaments?${params}`).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []);
     },
     placeholderData: [],
   });
@@ -500,8 +499,12 @@ function CountdownTimer({ startTime }: { startTime: string | Date }) {
 export function TournamentCard({ tournament: t, onClick }: { tournament: any; onClick: () => void }) {
   return (
     <div onClick={onClick} className="bg-arena-card border border-arena-border rounded-xl overflow-hidden hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20">
-      <div className="h-28 bg-gradient-to-br from-arena-accent/15 via-arena-purple/10 to-arena-surface flex items-center justify-center relative">
-        <Gamepad2 className="w-10 h-10 text-arena-text-muted/50" />
+      <div className="h-28 bg-gradient-to-br from-arena-accent/15 via-arena-purple/10 to-arena-surface flex items-center justify-center relative overflow-hidden">
+        {t.game?.slug ? (
+          <Image src={`/images/games/${t.game.slug}.webp`} alt={t.game?.name || 'Game'} fill className="object-cover opacity-60" loading="lazy" />
+        ) : (
+          <Gamepad2 className="w-10 h-10 text-arena-text-muted/50" />
+        )}
         <div className="absolute top-3 left-3 flex gap-2">
           {t.isFeatured && <span className="bg-arena-gold/20 text-arena-gold text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"><Star className="w-3 h-3" /> Featured</span>}
           {t?.status === 'in_progress' && <span className="bg-arena-accent text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"><CircleDot className="w-3 h-3 animate-pulse" /> LIVE</span>}

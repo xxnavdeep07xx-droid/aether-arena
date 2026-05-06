@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { getLeagueForPoints } from '@/lib/utils'
 
 export async function POST(request: Request) {
   try {
@@ -168,6 +169,49 @@ export async function POST(request: Request) {
           }
         }
       }
+    }
+
+    // --- Recalculate LP for all players based on leaderboard entries ---
+    // Aggregate from all_time entries to avoid double-counting across periods
+    const allTimeEntries = await db.leaderboard.findMany({
+      where: { period: 'all_time' },
+      select: {
+        playerId: true,
+        totalWins: true,
+        totalMatches: true,
+        totalKills: true,
+        totalDeaths: true,
+      },
+    })
+
+    // Aggregate per player across all games
+    const playerStatsMap = new Map<string, { totalWins: number; totalMatches: number; totalKills: number; totalDeaths: number }>()
+    for (const entry of allTimeEntries) {
+      const existing = playerStatsMap.get(entry.playerId) || { totalWins: 0, totalMatches: 0, totalKills: 0, totalDeaths: 0 }
+      existing.totalWins += entry.totalWins
+      existing.totalMatches += entry.totalMatches
+      existing.totalKills += entry.totalKills
+      existing.totalDeaths += entry.totalDeaths
+      playerStatsMap.set(entry.playerId, existing)
+    }
+
+    // Calculate and update LP for each player
+    for (const [playerId, stats] of playerStatsMap) {
+      const kdRatio = stats.totalDeaths > 0 ? stats.totalKills / stats.totalDeaths : stats.totalKills > 0 ? 99.99 : 0
+
+      // LP formula: totalWins * 30 + (totalMatches - totalWins) * 5 + K/D bonus
+      const kdBonus = kdRatio >= 5 ? 50 : kdRatio >= 3 ? 25 : kdRatio >= 2 ? 10 : 0
+      const calculatedLP = stats.totalWins * 30 + (stats.totalMatches - stats.totalWins) * 5 + kdBonus
+
+      const newLeague = getLeagueForPoints(calculatedLP)
+
+      await db.profile.update({
+        where: { id: playerId },
+        data: {
+          leaguePoints: calculatedLP,
+          league: newLeague,
+        },
+      })
     }
 
     return NextResponse.json({ success: true, message: 'Leaderboard recalculated successfully' })

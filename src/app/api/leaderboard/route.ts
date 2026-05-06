@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
+import { apiLimiter } from '@/lib/rate-limit'
 
 export async function GET(request: Request) {
+  // Rate limiting for public endpoint
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+  const { success: rateLimitOk } = await apiLimiter(`public:${clientIp}`)
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const gameId = searchParams.get('gameId')
@@ -117,7 +125,9 @@ export async function GET(request: Request) {
         gamesPlayed: e.gameNames,
       }))
 
-      return NextResponse.json({ leaderboard })
+      return NextResponse.json({ leaderboard }, {
+        headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
+      })
     }
 
     // Specific game filter
@@ -170,7 +180,9 @@ export async function GET(request: Request) {
       player: { ...entry.player, privacyPrefs: undefined },
     }))
 
-    return NextResponse.json({ leaderboard: filteredLeaderboard })
+    return NextResponse.json({ leaderboard: filteredLeaderboard }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
+    })
   } catch {
     return NextResponse.json(
       { error: 'Internal server error' },

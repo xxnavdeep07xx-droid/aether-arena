@@ -1,8 +1,20 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import crypto from 'crypto'
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8')
+  const bufB = Buffer.from(b, 'utf8')
+  if (bufA.length !== bufB.length) {
+    // Still perform a comparison to avoid leaking length via timing
+    crypto.timingSafeEqual(bufA, bufA)
+    return false
+  }
+  return crypto.timingSafeEqual(bufA, bufB)
+}
 
 // Database setup endpoint — creates missing tables/columns.
-// DELETE handler clears all seed/demo data from tables.
+// DELETE handler clears all data from tables (for admin cleanup).
 // Protected by SETUP_SECRET to prevent unauthorized access.
 // This is needed because prisma db push cannot be run from Vercel.
 // All SQL is PgBouncer-safe: single statements only, no multi-command strings.
@@ -19,7 +31,25 @@ async function safeCreateIndex(table: string, column: string, unique = false) {
 }
 
 // PgBouncer-safe: add a column using a full DO $$ block with proper quoting
+// NOTE: This function is ONLY called from the setup endpoint which is protected by SETUP_SECRET.
+// The table and column names are hardcoded constants in the codebase, NOT user input.
+// The parameters are validated through a whitelist approach.
+const ALLOWED_TABLES = new Set(['Profile', 'Tournament', 'AccountCredential', 'ContactSubmission', 'AetherBalance', 'AetherTransaction', 'AetherTask', 'AetherTaskProgress', 'UserStreak', 'RedemptionRequest', 'TopupPack', 'Announcement', 'PlatformSetting'])
+const ALLOWED_COLUMNS: Record<string, Set<string>> = {
+  'Profile': new Set(['bio', 'discordId', 'discordUsername', 'league', 'leaguePoints', 'totalTournamentsPlayed', 'totalWins', 'totalKills', 'totalDeaths', 'totalPrizeWon', 'scheduledDeletionAt', 'referredByCode', 'notificationPrefs', 'privacyPrefs', 'language', 'phone']),
+  'Tournament': new Set(['bannerImageUrl', 'streamScheduled', 'streamPlatform', 'streamUrl', 'streamStartTime', 'streamViewers', 'isFeatured']),
+}
+
 async function safeAddColumn(table: string, column: string, type: string, nullable: boolean, defaultVal?: string) {
+  // Validate table and column names against whitelist to prevent SQL injection
+  if (!ALLOWED_TABLES.has(table)) {
+    throw new Error(`Invalid table name: ${table}`)
+  }
+  const allowedCols = ALLOWED_COLUMNS[table]
+  if (allowedCols && !allowedCols.has(column)) {
+    throw new Error(`Invalid column name: ${column} for table: ${table}`)
+  }
+
   // Build the full ALTER TABLE as a literal string (no dynamic EXECUTE)
   const notNull = nullable ? '' : ' NOT NULL'
   const def = defaultVal !== undefined ? ` DEFAULT ${defaultVal}` : ''
@@ -44,7 +74,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Setup secret not configured. Set SETUP_SECRET env variable.' }, { status: 401 });
   }
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${SETUP_SECRET}`) {
+  if (!timingSafeEqual(authHeader || '', `Bearer ${SETUP_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -64,6 +94,12 @@ export async function GET(request: Request) {
       await safeAddColumn('Profile', 'totalDeaths', 'INTEGER', false, '0')
       await safeAddColumn('Profile', 'totalPrizeWon', 'INTEGER', false, '0')
       await safeAddColumn('Profile', 'scheduledDeletionAt', 'TIMESTAMP(3)', true)
+      await safeAddColumn('Profile', 'phone', 'TEXT', true)
+      await safeAddColumn('Profile', 'phoneVerified', 'BOOLEAN', false, 'false')
+      await safeAddColumn('Profile', 'referredByCode', 'TEXT', true)
+      await safeAddColumn('Profile', 'notification_prefs', 'JSONB', false, "'{\"pushEnabled\":true,\"tournamentAlerts\":true,\"resultUpdates\":true,\"promoOffers\":false,\"communityUpdates\":true}'")
+      await safeAddColumn('Profile', 'privacy_prefs', 'JSONB', false, "'{\"profileVisibility\":\"public\",\"showLeaderboard\":true,\"showActivity\":true}'")
+      await safeAddColumn('Profile', 'language', 'TEXT', false, "'en'")
       results.push('Profile columns: OK')
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
@@ -111,6 +147,31 @@ export async function GET(request: Request) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
       results.push(`AccountCredential indexes: ${msg}`)
+    }
+
+    // ── AccountCredential columns: phone, phoneVerified ──────────
+    try {
+      await safeAddColumn('AccountCredential', 'phone', 'TEXT', true)
+      await safeAddColumn('AccountCredential', 'phoneVerified', 'BOOLEAN', false, 'false')
+      await safeAddColumn('AccountCredential', 'emailVerified', 'BOOLEAN', false, 'false')
+      await safeAddColumn('AccountCredential', 'emailVerificationToken', 'TEXT', true)
+      await safeAddColumn('AccountCredential', 'emailVerificationExpires', 'TIMESTAMP(3)', true)
+      results.push('AccountCredential phone/email verification columns: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AccountCredential columns: ${msg}`)
+    }
+
+    // ── AccountCredential phone unique index ────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "AccountCredential_phone_key" ON "AccountCredential"("phone") WHERE "phone" IS NOT NULL
+      `)
+      await safeCreateIndex('AccountCredential', 'phone')
+      results.push('AccountCredential phone indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AccountCredential phone indexes: ${msg}`)
     }
 
     // ── AccountCredential FK → Profile ──────────────────────────
@@ -165,21 +226,20 @@ export async function GET(request: Request) {
       results.push(`ContactSubmission indexes: ${msg}`)
     }
 
-    // ── Profile column: referredByCode ────────────────────────
-    try {
-      await safeAddColumn('Profile', 'referredByCode', 'TEXT', true)
-      results.push('Profile column referredByCode: OK')
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'error'
-      results.push(`Profile column referredByCode: ${msg}`)
-    }
-
+    // ── Profile indexes (new columns) ──────────────────────────
     try {
       await safeCreateIndex('Profile', 'referredByCode')
-      results.push('Profile referredByCode index: OK')
+      await safeCreateIndex('Profile', 'league')
+      await safeCreateIndex('Profile', 'leaguePoints')
+      await safeCreateIndex('Profile', 'phone')
+      // Phone unique index (allows NULL)
+      await db.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "Profile_phone_key" ON "Profile"("phone") WHERE "phone" IS NOT NULL
+      `)
+      results.push('Profile extra indexes: OK')
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
-      results.push(`Profile referredByCode index: ${msg}`)
+      results.push(`Profile extra indexes: ${msg}`)
     }
 
     // ── AetherBalance table ───────────────────────────────────
@@ -400,6 +460,26 @@ export async function GET(request: Request) {
       results.push(`AetherTaskProgress FK → AetherTask: ${msg}`)
     }
 
+    // ── AetherTaskProgress unique constraint ─────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "AetherTaskProgress_user_id_task_key_reset_date_key" ON "AetherTaskProgress"("user_id", "task_key", "reset_date")
+      `)
+      results.push('AetherTaskProgress unique constraint: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTaskProgress unique constraint: ${msg}`)
+    }
+
+    // ── AetherTaskProgress missing columns ───────────────────
+    try {
+      await safeAddColumn('AetherTaskProgress', 'reset_date', 'DATE', true)
+      results.push('AetherTaskProgress reset_date column: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AetherTaskProgress reset_date column: ${msg}`)
+    }
+
     // ── UserStreak table ──────────────────────────────────────
     try {
       await db.$executeRawUnsafe(`
@@ -521,10 +601,11 @@ export async function GET(request: Request) {
           "gameName" TEXT NOT NULL DEFAULT '',
           "gameSlug" TEXT NOT NULL DEFAULT '',
           "packName" TEXT NOT NULL DEFAULT '',
-          "description" TEXT,
+          "description" TEXT NOT NULL DEFAULT '',
           "price" INTEGER NOT NULL DEFAULT 0,
           "originalPrice" INTEGER NOT NULL DEFAULT 0,
-          "affiliateUrl" TEXT,
+          "imageUrl" TEXT NOT NULL DEFAULT '',
+          "affiliateUrl" TEXT NOT NULL DEFAULT '',
           "iconUrl" TEXT,
           "isPopular" BOOLEAN NOT NULL DEFAULT false,
           "sortOrder" INTEGER NOT NULL DEFAULT 0,
@@ -537,6 +618,29 @@ export async function GET(request: Request) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
       results.push(`TopupPack table: ${msg}`)
+    }
+
+    // ── TopupPack missing columns (for existing tables) ────────
+    try {
+      await safeAddColumn('TopupPack', 'imageUrl', 'TEXT', false, "''")
+      await safeAddColumn('TopupPack', 'affiliateUrl', 'TEXT', false, "''")
+      await safeAddColumn('TopupPack', 'description', 'TEXT', false, "''")
+      await safeAddColumn('TopupPack', 'originalPrice', 'INTEGER', false, '0')
+      results.push('TopupPack extra columns: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`TopupPack extra columns: ${msg}`)
+    }
+
+    // ── TopupPack indexes ──────────────────────────────────────
+    try {
+      await safeCreateIndex('TopupPack', 'gameSlug')
+      await safeCreateIndex('TopupPack', 'isActive')
+      await safeCreateIndex('TopupPack', 'sortOrder')
+      results.push('TopupPack indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`TopupPack indexes: ${msg}`)
     }
 
     // ── Announcement table ────────────────────────────────────
@@ -556,6 +660,85 @@ export async function GET(request: Request) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'error'
       results.push(`Announcement table: ${msg}`)
+    }
+
+    // ── Announcement missing columns ─────────────────────────
+    try {
+      await safeAddColumn('Announcement', 'createdById', 'TEXT', true)
+      await safeAddColumn('Announcement', 'expiresAt', 'TIMESTAMP(3)', true)
+      await safeCreateIndex('Announcement', 'isActive')
+      await safeCreateIndex('Announcement', 'createdAt')
+      results.push('Announcement extra columns/indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`Announcement extra columns: ${msg}`)
+    }
+
+    // ── AffiliateLink table ───────────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "AffiliateLink" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "name" TEXT NOT NULL,
+          "platform" TEXT NOT NULL DEFAULT '',
+          "url" TEXT NOT NULL,
+          "slug" TEXT NOT NULL,
+          "description" TEXT NOT NULL DEFAULT '',
+          "category" TEXT NOT NULL DEFAULT '',
+          "imageUrl" TEXT NOT NULL DEFAULT '',
+          "price" INTEGER NOT NULL DEFAULT 0,
+          "originalPrice" INTEGER NOT NULL DEFAULT 0,
+          "clicks" INTEGER NOT NULL DEFAULT 0,
+          "isActive" BOOLEAN NOT NULL DEFAULT true,
+          "sortOrder" INTEGER NOT NULL DEFAULT 0,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "AffiliateLink_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('AffiliateLink table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AffiliateLink table: ${msg}`)
+    }
+
+    try {
+      await safeCreateIndex('AffiliateLink', 'slug', true)
+      await safeCreateIndex('AffiliateLink', 'isActive')
+      await safeCreateIndex('AffiliateLink', 'category')
+      await safeCreateIndex('AffiliateLink', 'sortOrder')
+      results.push('AffiliateLink indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`AffiliateLink indexes: ${msg}`)
+    }
+
+    // ── PhoneVerification table ──────────────────────────────
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "PhoneVerification" (
+          "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+          "phone" TEXT NOT NULL,
+          "otp" TEXT NOT NULL,
+          "purpose" TEXT NOT NULL DEFAULT 'signup',
+          "verified" BOOLEAN NOT NULL DEFAULT false,
+          "expiresAt" TIMESTAMP(3) NOT NULL,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "PhoneVerification_pkey" PRIMARY KEY ("id")
+        )
+      `)
+      results.push('PhoneVerification table: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`PhoneVerification table: ${msg}`)
+    }
+
+    try {
+      await safeCreateIndex('PhoneVerification', 'phone')
+      await safeCreateIndex('PhoneVerification', 'expiresAt')
+      results.push('PhoneVerification indexes: OK')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'error'
+      results.push(`PhoneVerification indexes: ${msg}`)
     }
 
     // ── AetherTask seed data ──────────────────────────────────
@@ -610,15 +793,15 @@ export async function GET(request: Request) {
   }
 }
 
-// DELETE /api/setup — Clear ALL seed/demo data from every data table.
-// Keeps only the first admin user profile (real user) and their credentials.
+// DELETE /api/setup — Clear ALL data from every data table.
+// Keeps only real user profiles (those with AccountCredential) and their credentials.
 export async function DELETE(request: Request) {
   // Always require setup secret
   if (!SETUP_SECRET) {
     return NextResponse.json({ error: 'Setup secret not configured. Set SETUP_SECRET env variable.' }, { status: 401 });
   }
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${SETUP_SECRET}`) {
+  if (!timingSafeEqual(authHeader || '', `Bearer ${SETUP_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

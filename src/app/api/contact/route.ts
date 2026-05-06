@@ -3,8 +3,14 @@ import { db } from '@/lib/db';
 import { strictLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
+  // Request body size limit
+  const contentLength = parseInt(request.headers.get('content-length') || '0')
+  if (contentLength > 100_000) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
+
   const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-  const { success: rateLimitOk } = strictLimiter(`contact:${clientIp}`);
+  const { success: rateLimitOk } = await strictLimiter(`contact:${clientIp}`);
   if (!rateLimitOk) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }

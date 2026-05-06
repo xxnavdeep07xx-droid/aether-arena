@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@/lib/store';
 import { Bell } from 'lucide-react';
 import { cn, timeAgo } from '@/lib/utils';
+import { apiFetch } from '@/lib/api';
 import { toast } from 'sonner';
 import { NotificationsSkeleton } from './Skeletons';
 
@@ -11,16 +12,12 @@ export function NotificationsView() {
   const { navigate } = useAppStore();
   const { data: notifications, isLoading, refetch } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => fetch('/api/notifications').then(r => r.json()).then(d => Array.isArray(d.notifications) ? d.notifications : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/notifications').then(d => Array.isArray(d.notifications) ? d.notifications : Array.isArray(d) ? d : []),
   });
 
   const markAllRead = async () => {
     try {
-      const res = await fetch('/api/notifications/read-all', { method: 'POST' });
-      if (!res.ok) {
-        toast.error('Failed to mark notifications as read');
-        return;
-      }
+      await apiFetch('/api/notifications/read-all', { method: 'POST' });
       refetch();
       toast.success('All notifications marked as read');
     } catch {
@@ -32,7 +29,7 @@ export function NotificationsView() {
     // Mark as read
     if (!n.isRead) {
       try {
-        await fetch(`/api/notifications/${n.id}/read`, { method: 'POST' });
+        await apiFetch(`/api/notifications/${n.id}/read`, { method: 'POST' });
         refetch();
       } catch { /* ignore */ }
     }

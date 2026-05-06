@@ -5,11 +5,12 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Star, CircleDot, Calendar, MonitorPlay, Gamepad2,
-  Shield, Copy, CheckCircle2
+  Shield, Copy, CheckCircle2, Smartphone, Clock, AlertCircle, ChevronRight
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel, formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 import { TournamentDetailSkeleton } from './Skeletons';
 
 export function TournamentDetailView() {
@@ -21,14 +22,11 @@ export function TournamentDetailView() {
 
   const { data: tournament, isLoading } = useQuery({
     queryKey: ['tournament', viewParams.id],
-    queryFn: () => fetch(`/api/tournaments/${viewParams.id}`).then(r => {
-      if (!r.ok) return null;
-      return r.json();
-    }).then(d => {
+    queryFn: () => apiFetch<any>(`/api/tournaments/${viewParams.id}`).then(d => {
       // Only return if it looks like a valid tournament (has a status field)
       if (!d || d.error || !d.status) return null;
       return d;
-    }),
+    }).catch(() => null),
     enabled: !!viewParams.id,
   });
 
@@ -36,8 +34,7 @@ export function TournamentDetailView() {
     if (!tournament || !isAuthenticated) return;
     const checkRegistration = async () => {
       try {
-        const res = await fetch('/api/registrations');
-        const data = await res.json();
+        const data = await apiFetch<any>('/api/registrations');
         const regs = Array.isArray(data.registrations) ? data.registrations : Array.isArray(data) ? data : [];
         const existing = regs.find((r: any) => r.tournamentId === viewParams.id);
         if (existing) { setRegistered(true); setPaymentStatus(existing.paymentStatus); }
@@ -48,22 +45,17 @@ export function TournamentDetailView() {
 
   const handleRegister = async (data: { paymentMethod?: string; paymentReference?: string }) => {
     try {
-      const res = await fetch(`/api/tournaments/${viewParams.id}/register`, {
+      const result = await apiFetch<{ registration?: { paymentStatus?: string } }>(`/api/tournaments/${viewParams.id}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      const result = await res.json();
-      if (res.ok) {
-        setRegistered(true);
-        setPaymentStatus(result.registration?.paymentStatus || 'pending');
-        setShowRegister(false);
-        toast.success(tournament.entryFee === 0 ? 'Registered successfully!' : 'Payment submitted! Waiting for verification.');
-      } else {
-        toast.error(result.error || 'Registration failed');
-      }
-    } catch {
-      toast.error('Registration failed');
+      setRegistered(true);
+      setPaymentStatus(result.registration?.paymentStatus || 'pending');
+      setShowRegister(false);
+      toast.success(tournament.entryFee === 0 ? 'Registered successfully!' : 'Payment submitted! Waiting for verification.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Registration failed');
     }
   };
 
@@ -189,7 +181,17 @@ export function TournamentDetailView() {
 
 function RegistrationModal({ tournament, onRegister, onClose }: { tournament: any; onRegister: (data: any) => void; onClose: () => void }) {
   const [loading, setLoading] = useState(false);
+  const [utr, setUtr] = useState('');
+  const [step, setStep] = useState<0 | 1 | 2>(0); // 0=instructions, 1=payment proof, 2=submitted
   const { isAuthenticated } = useAuthStore();
+
+  // Fetch GPay number from public platform settings (no admin auth required)
+  const { data: settings } = useQuery({
+    queryKey: ['platform-settings-public'],
+    queryFn: () => fetch('/api/settings/public').then(r => r.ok ? r.json() : {}).then((d: Record<string, any>) => d.settings || {}),
+  });
+
+  const gpayNumber = (settings as Record<string, string>)?.gpay_number || '9158396121';
 
   if (tournament.entryFee === 0) {
     return (
@@ -203,92 +205,153 @@ function RegistrationModal({ tournament, onRegister, onClose }: { tournament: an
     );
   }
 
-  const handleRazorpayPayment = async () => {
+  const handleGpaySubmit = async () => {
+    if (!utr.trim()) {
+      toast.error('Please enter the UTR / Transaction Reference number');
+      return;
+    }
     setLoading(true);
     try {
-      const amount = tournament.entryFee; // already in paise
-      const res = await fetch('/api/payments/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          tournamentId: tournament.id,
-          currency: 'INR',
-        }),
+      await onRegister({
+        paymentMethod: 'gpay',
+        paymentReference: utr.trim(),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || 'Payment initialization failed');
-        setLoading(false);
-        return;
-      }
-      // Razorpay checkout
-      const options: any = {
-        key: data.razorpayKey || '',
-        amount: data.amount,
-        currency: data.currency || 'INR',
-        name: 'Aether Arena',
-        description: `Entry: ${tournament.title}`,
-        order_id: data.orderId,
-        handler: function (response: any) {
-          onRegister({
-            paymentMethod: 'razorpay',
-            paymentReference: response.razorpay_payment_id,
-            razorpayOrderId: response.razorpay_order_id,
-            razorpaySignature: response.razorpay_signature,
-          });
-        },
-        prefill: {
-          name: '',
-          email: '',
-        },
-        theme: {
-          color: '#FF4B5C',
-        },
-        modal: {
-          ondismiss: function () {
-            setLoading(false);
-          },
-        },
-      };
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any) {
-        toast.error('Payment failed: ' + (response.error.description || 'Unknown error'));
-        setLoading(false);
-      });
-      rzp.open();
-    } catch (err) {
-      toast.error('Failed to initialize payment');
-      setLoading(false);
+      setStep(2);
+    } catch {
+      toast.error('Failed to submit payment proof');
     }
+    setLoading(false);
   };
 
   return (
     <ArenaModal open={true} onClose={onClose} title="Complete Payment" description={tournament.title} icon={
-      <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-        <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.894 5.575C5.589 22.753 8.664 24 12.199 24c2.676 0 4.863-.624 6.462-1.855 1.687-1.297 2.555-3.162 2.555-5.584 0-4.163-2.525-5.897-7.24-7.411z"/></svg>
+      <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+        <Smartphone className="w-5 h-5 text-green-400" />
       </div>
     } size="md">
-      <div className="bg-arena-surface rounded-xl p-4 mb-4">
-        <p className="text-2xl font-bold text-arena-accent">{paiseToRupee(tournament.entryFee)}</p>
-      </div>
-      <div className="mb-4 flex items-center gap-2 bg-arena-dark rounded-xl p-3">
-        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-          <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.894 5.575C5.589 22.753 8.664 24 12.199 24c2.676 0 4.863-.624 6.462-1.855 1.687-1.297 2.555-3.162 2.555-5.584 0-4.163-2.525-5.897-7.24-7.411z"/></svg>
+      {step === 0 && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Amount */}
+          <div className="bg-arena-surface rounded-xl p-4">
+            <p className="text-xs text-arena-text-muted mb-1">Entry Fee</p>
+            <p className="text-2xl font-bold text-arena-accent">{paiseToRupee(tournament.entryFee)}</p>
+          </div>
+
+          {/* Razorpay Coming Soon */}
+          <div className="flex items-center gap-3 bg-arena-dark rounded-xl p-3 border border-arena-border/50">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 text-blue-400" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.894 5.575C5.589 22.753 8.664 24 12.199 24c2.676 0 4.863-.624 6.462-1.855 1.687-1.297 2.555-3.162 2.555-5.584 0-4.163-2.525-5.897-7.24-7.411z"/></svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Razorpay</p>
+              <p className="text-xs text-arena-text-muted">Online payment gateway</p>
+            </div>
+            <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-arena-warning/15 text-arena-warning">Coming Soon</span>
+          </div>
+
+          {/* GPay Payment Option - UPI Deep Link */}
+          <div className="border border-green-500/30 rounded-xl p-4 bg-green-500/5">
+            <div className="flex items-center gap-2 mb-3">
+              <Smartphone className="w-4 h-4 text-green-400" />
+              <span className="text-sm font-semibold text-green-400">Pay via Google Pay</span>
+            </div>
+            <p className="text-xs text-arena-text-secondary mb-4 leading-relaxed">
+              Click the button below to open Google Pay with the exact amount pre-filled. Complete the payment, then come back and enter your UTR number.
+            </p>
+
+            {/* UPI Pay Button */}
+            <a
+              href={`upi://pay?pa=${gpayNumber}@upi&pn=Aether%20Arena&am=${(tournament.entryFee / 100).toFixed(2)}&cu=INR&tn=Aether%20Arena%20Tournament`}
+              className="flex items-center justify-center gap-2 w-full py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 mb-3"
+            >
+              <Smartphone className="w-4 h-4" />
+              Open Google Pay to Pay {paiseToRupee(tournament.entryFee)}
+            </a>
+
+            {/* Desktop fallback note */}
+            <div className="flex items-start gap-2 text-xs text-arena-text-muted bg-arena-dark rounded-lg p-3">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-arena-info" />
+              <span>
+                On mobile, tapping the button above will open Google Pay directly. 
+                On desktop, send the exact amount <strong className="text-arena-text-primary">{paiseToRupee(tournament.entryFee)}</strong> via Google Pay from your phone.
+              </span>
+            </div>
+
+            {/* Important Note */}
+            <div className="flex items-start gap-2 text-xs text-arena-warning mt-3">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+              <span>Send exactly <strong>{paiseToRupee(tournament.entryFee)}</strong>. Payments with incorrect amounts may be rejected.</span>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={onClose} className="flex-1 py-2.5 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Cancel</button>
+            <button onClick={() => setStep(1)} className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2">
+              I&apos;ve Completed Payment <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-medium">Secure Payment by Razorpay</p>
-          <p className="text-xs text-arena-text-muted">Pay securely with UPI, Cards, or Wallets</p>
+      )}
+
+      {step === 1 && (
+        <div className="space-y-4 animate-fade-in">
+          <div className="flex items-center gap-2 text-sm text-arena-text-secondary mb-2">
+            <Clock className="w-4 h-4 text-arena-warning" />
+            <span>Your registration is pending payment verification</span>
+          </div>
+
+          <div>
+            <label className="text-[13px] font-medium text-arena-text-primary/80 mb-1.5 block">
+              UTR / Transaction Reference <span className="text-arena-accent">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={utr}
+              onChange={e => setUtr(e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 30))}
+              className="w-full bg-arena-surface/50 border border-arena-border/60 rounded-xl text-sm text-arena-text-primary placeholder:text-arena-text-muted/40 focus:outline-none focus:border-arena-accent/70 focus:ring-2 focus:ring-arena-accent/10 transition-all duration-200 px-4 py-3 h-12"
+              placeholder="Enter 12-digit UTR number"
+              autoFocus
+            />
+            <p className="text-[11px] text-arena-text-muted/60 mt-1">
+              Find this in your Google Pay transaction history or bank statement
+            </p>
+          </div>
+
+          <div className="bg-arena-surface rounded-xl p-3 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-arena-info flex-shrink-0" />
+            <p className="text-xs text-arena-text-secondary">
+              Admin will verify your payment within <strong>15-30 minutes</strong>. You&apos;ll get a notification once confirmed.
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={() => setStep(0)} className="px-6 py-2.5 h-11 border border-arena-border rounded-xl text-sm font-medium hover:border-arena-text-primary transition-colors duration-150">Back</button>
+            <button onClick={handleGpaySubmit} disabled={loading || !utr.trim()}
+              className="flex-1 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              {loading ? <span className="animate-pulse">Submitting...</span> : 'Submit Payment Proof'}
+            </button>
+          </div>
         </div>
-      </div>
-      <button onClick={handleRazorpayPayment} disabled={loading}
-        className="w-full py-2.5 h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-50 flex items-center justify-center gap-2">
-        {loading ? (
-          <span className="animate-pulse">Processing...</span>
-        ) : (
-          <>Pay {paiseToRupee(tournament.entryFee)}</>
-        )}
-      </button>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-4 animate-fade-in text-center py-4">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-green-500/10 flex items-center justify-center mb-2">
+            <CheckCircle2 className="w-8 h-8 text-green-400" />
+          </div>
+          <h3 className="text-lg font-bold">Payment Proof Submitted!</h3>
+          <p className="text-sm text-arena-text-secondary">
+            Your payment is being verified. You&apos;ll receive a notification once it&apos;s confirmed.
+          </p>
+          <p className="text-xs text-arena-text-muted">
+            This usually takes 15-30 minutes during active hours.
+          </p>
+          <button onClick={onClose} className="mt-2 px-8 py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm">
+            Done
+          </button>
+        </div>
+      )}
     </ArenaModal>
   );
 }

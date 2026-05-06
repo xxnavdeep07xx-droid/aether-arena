@@ -28,28 +28,6 @@ model Session {
 }
 
 // ============================================
-// Account (NextAuth)
-// ============================================
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-
-  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-// ============================================
 // Profile
 // ============================================
 model Profile {
@@ -75,7 +53,6 @@ model Profile {
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
 
-  accounts                  Account[]
   credentials               AccountCredential?
   sessions                  Session[]
   createdTournaments        Tournament[]       @relation("TournamentCreator")
@@ -159,8 +136,8 @@ model Tournament {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  game           Game                   @relation(fields: [gameId], references: [id])
-  createdBy      Profile?               @relation("TournamentCreator", fields: [createdById], references: [id])
+  game           Game                   @relation(fields: [gameId], references: [id], onDelete: Restrict)
+  createdBy      Profile?               @relation("TournamentCreator", fields: [createdById], references: [id], onDelete: SetNull)
   registrations  TournamentRegistration[]
   matches        Match[]
   streamSchedules StreamSchedule[]
@@ -190,6 +167,7 @@ model TournamentRegistration {
   player     Profile    @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, playerId])
+  @@index([tournamentId])
   @@index([playerId])
   @@index([paymentStatus])
 }
@@ -297,10 +275,11 @@ model Announcement {
   createdAt   DateTime  @default(now())
   expiresAt   DateTime?
 
-  createdBy Profile @relation(fields: [createdById], references: [id])
+  createdBy Profile @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([createdAt])
+  @@index([createdById])
 }
 
 // ============================================
@@ -324,11 +303,12 @@ model StreamSchedule {
   createdAt      DateTime  @default(now())
 
   tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  createdBy  Profile     @relation(fields: [createdById], references: [id])
+  createdBy  Profile     @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([scheduledStart])
   @@index([isFeatured])
+  @@index([createdById])
 }
 
 // ============================================
@@ -364,25 +344,29 @@ model PlatformSetting {
   updatedAt  DateTime @updatedAt
   updatedById String?
 
-  updatedBy Profile? @relation(fields: [updatedById], references: [id])
+  updatedBy Profile? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
 }
 
 // ============================================
 // AccountCredential (simple email/password)
 // ============================================
 model AccountCredential {
-  id         String  @id @default(cuid())
-  userId     String  @unique
-  email      String  @unique
-  password   String
-  phone      String?  @unique
-  phoneVerified Boolean @default(false)
-  createdAt  DateTime @default(now())
+  id                          String    @id @default(cuid())
+  userId                      String    @unique
+  email                       String    @unique
+  password                    String
+  phone                       String?   @unique
+  phoneVerified               Boolean   @default(false)
+  emailVerified               Boolean   @default(false)
+  emailVerificationToken      String?   @unique
+  emailVerificationExpires    DateTime?
+  createdAt                   DateTime  @default(now())
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email])
   @@index([phone])
+  @@index([emailVerificationToken])
 }
 
 // ============================================
@@ -432,6 +416,8 @@ model AetherTransaction {
   user         Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
   balance      AetherBalance @relation(fields: [userId], references: [userId], map: "AetherTransaction_balance_fkey")
 
+  @@index([userId])
+  @@index([userId, createdAt])
   @@map("AetherTransaction")
 }
 
@@ -467,9 +453,10 @@ model AetherTaskProgress {
   timesCompleted Int       @default(0) @map("times_completed")
   createdAt      DateTime  @default(now()) @map("created_at")
   user           Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task           AetherTask @relation(fields: [taskKey], references: [taskKey])
+  task           AetherTask @relation(fields: [taskKey], references: [taskKey], onDelete: Cascade)
 
   @@unique([userId, taskKey, resetDate])
+  @@index([userId])
   @@map("AetherTaskProgress")
 }
 
@@ -494,7 +481,7 @@ model RedemptionRequest {
   id           String    @id @default(uuid())
   userId       String    @map("user_id")
   amountAether Int       @map("amount_aether")
-  amountInr    Float     @map("amount_inr")
+  amountInr    Int       @map("amount_inr")  // stored in paise (₹1 = 100)
   upiId        String    @map("upi_id")
   status       String    @default("pending")
   adminNote    String?   @map("admin_note")
@@ -503,6 +490,8 @@ model RedemptionRequest {
   user         Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
   balance      AetherBalance @relation(fields: [userId], references: [userId], map: "RedemptionRequest_balance_fkey")
 
+  @@index([userId])
+  @@index([status])
   @@map("RedemptionRequest")
 }
 

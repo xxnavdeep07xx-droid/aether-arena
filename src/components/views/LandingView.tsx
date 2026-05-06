@@ -1,18 +1,21 @@
 'use client';
 
 import { useAppStore, useAuthStore } from '@/lib/store';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import {
   Trophy, Gamepad2, Users, Coins, ChevronRight,
-  CircleDot, Search, User, Eye, EyeOff, Check, X, Phone
+  CircleDot, Search, User, Eye, EyeOff, Check, X, Phone,
+  AtSign, Mail, Lock, Shield, Gift, Loader2, Sparkles,
+  ArrowLeft, ArrowRight
 } from 'lucide-react';
 import { ArenaModal } from '@/components/ui/ArenaModal';
 import { cn, paiseToRupee, getStatusBg, getFormatLabel } from '@/lib/utils';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 import { AetherIcon } from '@/components/ui/aether-icon';
-import { PASSWORD_RULES } from '@/lib/theme';
+const PASSWORD_RULES = { minLength: 8 };
 
 export function DiscordIcon() {
   return (
@@ -20,7 +23,7 @@ export function DiscordIcon() {
   );
 }
 
-// Password strength indicator
+// Password strength indicator — enhanced with label and color-coded checks
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
     { label: `${PASSWORD_RULES.minLength}+ characters`, met: password.length >= PASSWORD_RULES.minLength },
@@ -30,27 +33,136 @@ function PasswordStrength({ password }: { password: string }) {
   ];
 
   const metCount = checks.filter(c => c.met).length;
+  const strengthLabel = metCount === 0 ? '' : metCount <= 1 ? 'Weak' : metCount <= 2 ? 'Fair' : metCount <= 3 ? 'Good' : 'Strong';
+  const strengthColor = metCount <= 1 ? 'text-red-400' : metCount <= 2 ? 'text-orange-400' : metCount <= 3 ? 'text-yellow-400' : 'text-green-400';
 
   return (
-    <div className="space-y-1.5 mt-2">
-      <div className="flex gap-1">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className={cn(
-            'h-1 flex-1 rounded-full transition-colors duration-200',
-            i <= metCount ? (metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-orange-500' : metCount <= 3 ? 'bg-yellow-500' : 'bg-green-500') : 'bg-arena-border'
-          )} />
-        ))}
+    <div className="space-y-2 mt-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1.5 flex-1">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className={cn(
+              'h-1.5 flex-1 rounded-full transition-all duration-300',
+              i <= metCount ? (metCount <= 1 ? 'bg-red-500' : metCount <= 2 ? 'bg-orange-500' : metCount <= 3 ? 'bg-yellow-500' : 'bg-green-500') : 'bg-arena-border/50'
+            )} />
+          ))}
+        </div>
+        {strengthLabel && (
+          <span className={cn('text-[11px] font-semibold ml-3 transition-colors duration-300', strengthColor)}>
+            {strengthLabel}
+          </span>
+        )}
       </div>
-      <div className="space-y-0.5">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {checks.map((check) => (
-          <div key={check.label} className={cn('flex items-center gap-1.5 text-[10px] transition-colors duration-200', check.met ? 'text-green-400' : 'text-arena-text-muted')}>
-            {check.met ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+          <div key={check.label} className={cn(
+            'flex items-center gap-1.5 text-[11px] transition-all duration-200',
+            check.met ? 'text-green-400' : 'text-arena-text-muted/60'
+          )}>
+            <div className={cn(
+              'w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200',
+              check.met ? 'bg-green-500/20' : 'bg-arena-border/30'
+            )}>
+              {check.met ? <Check className="w-2.5 h-2.5" /> : <div className="w-1 h-1 rounded-full bg-arena-text-muted/30" />}
+            </div>
             {check.label}
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+// Reusable input field wrapper with icon support
+function FormField({
+  label,
+  required,
+  optional,
+  icon,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  optional?: boolean;
+  icon?: React.ReactNode;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="text-[13px] font-medium text-arena-text-primary/80 mb-1.5 block">
+        {label}
+        {required && <span className="text-arena-accent ml-0.5">*</span>}
+        {optional && <span className="text-arena-text-muted text-[11px] ml-1.5 font-normal">(optional)</span>}
+      </label>
+      <div className="relative">
+        {icon && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-arena-text-muted/50 pointer-events-none">
+            {icon}
+          </div>
+        )}
+        {children}
+      </div>
+      {error && <p className="text-[11px] text-red-400 mt-1 flex items-center gap-1"><X className="w-3 h-3" />{error}</p>}
+      {hint && !error && <p className="text-[11px] text-arena-text-muted/60 mt-1">{hint}</p>}
+    </div>
+  );
+}
+
+// Animated counter — counts up from 0 to target value
+function AnimatedCounter({ value }: { value: string }) {
+  const [display, setDisplay] = useState(() => value === '...' ? '...' : '0');
+  const hasAnimated = useRef(false);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (value === '...' || hasAnimated.current) return;
+
+    // Extract numeric part
+    const numericStr = value.replace(/[^0-9.]/g, '');
+    const numVal = parseFloat(numericStr);
+    if (isNaN(numVal)) return;
+
+    hasAnimated.current = true;
+    const duration = 1500;
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(numVal * eased);
+
+      // Reconstruct the formatted value
+      let formatted: string;
+      if (value.includes('₹')) {
+        formatted = `₹${current.toLocaleString('en-IN')}`;
+      } else if (value.includes(',') || numVal > 999) {
+        formatted = current.toLocaleString();
+      } else {
+        formatted = String(current);
+      }
+
+      if (progress < 1) {
+        setDisplay(formatted);
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplay(value);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [value]);
+
+  return <div>{display}</div>;
 }
 
 export function LandingView() {
@@ -79,6 +191,14 @@ export function LandingView() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpVerified, setOtpVerified] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0); // countdown in seconds
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [signupStep, setSignupStep] = useState(0); // 0=Identity, 1=Contact, 2=Security, 3=Finish
 
   // Handle OAuth error params from Discord callback redirect
   useEffect(() => {
@@ -92,24 +212,53 @@ export function LandingView() {
         'account_banned': 'This account has been banned.',
       };
       toast.error(errorMessages[error] || `Login error: ${error}`);
-      // Clean URL without reloading
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 
+  // OTP countdown timer
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const interval = setInterval(() => setOtpTimer(t => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [otpTimer]);
+
+  // Username availability check (debounced)
+  const checkUsername = useCallback(async (username: string) => {
+    if (username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_-]+$/.test(username)) {
+      setUsernameAvailable(null);
+      return;
+    }
+    setUsernameChecking(true);
+    try {
+      const res = await fetch(`/api/profiles/${username}`)
+      setUsernameAvailable(!res.ok) // 404 = available
+    } catch {
+      setUsernameAvailable(null)
+    }
+    setUsernameChecking(false);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (signupForm.username) checkUsername(signupForm.username)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [signupForm.username, checkUsername])
+
   const { data: featuredTournaments } = useQuery({
     queryKey: ['featured-tournaments'],
-    queryFn: () => fetch('/api/tournaments?featured=true&limit=4').then(r => r.json()).then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/tournaments?featured=true&limit=4').then(d => Array.isArray(d.tournaments) ? d.tournaments : Array.isArray(d) ? d : []),
   });
 
   const { data: games } = useQuery({
     queryKey: ['landing-games'],
-    queryFn: () => fetch('/api/games').then(r => r.json()).then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/games').then(d => Array.isArray(d.games) ? d.games : Array.isArray(d) ? d : []),
   });
 
   const { data: stats } = useQuery({
     queryKey: ['platform-stats'],
-    queryFn: () => fetch('/api/stats').then(r => r.json()),
+    queryFn: () => apiFetch<{ players?: number; tournaments?: number; prizesWon?: number; games?: number }>('/api/stats'),
   });
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -139,28 +288,65 @@ export function LandingView() {
   };
 
   const handleSendOtp = async () => {
-    if (!signupForm.phone || !/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) {
-      toast.error('Enter a valid 10-digit Indian phone number');
+    if (!signupForm.email || !/^\S+@\S+\.\S+$/.test(signupForm.email)) {
+      toast.error('Enter a valid email address first');
       return;
     }
-    // In production, this would call an SMS API.
-    // For now, we simulate OTP send and auto-verify
-    toast.success('OTP sent to your phone! (Demo: use any 6-digit code)');
-    setOtpSent(true);
+    setOtpSending(true);
+    try {
+      const res = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupForm.email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOtpSent(true);
+        setOtpTimer(300); // 5 minutes
+        setOtpVerified(false);
+        setOtp('');
+        toast.success('OTP sent to your email!');
+      } else {
+        toast.error(data.error || 'Failed to send OTP');
+      }
+    } catch {
+      toast.error('Failed to send OTP');
+    }
+    setOtpSending(false);
   };
 
-  const handleVerifyOtp = () => {
-    if (otp.length === 6) {
-      // In production, this would verify against the actual OTP
-      setOtpVerified(true);
-      toast.success('Phone number verified!');
-    } else {
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) {
       toast.error('Enter a valid 6-digit OTP');
+      return;
     }
+    setOtpVerifying(true);
+    try {
+      const res = await fetch('/api/auth/verify-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupForm.email, otp }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOtpVerified(true);
+        toast.success('Email verified!');
+      } else {
+        toast.error(data.error || 'Invalid OTP');
+      }
+    } catch {
+      toast.error('OTP verification failed');
+    }
+    setOtpVerifying(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!agreedToTerms) {
+      toast.error('Please agree to the Terms & Conditions');
+      return;
+    }
 
     // Validate password
     if (signupForm.password.length < 8 || !/[A-Z]/.test(signupForm.password) || !/[a-z]/.test(signupForm.password) || !/[0-9]/.test(signupForm.password)) {
@@ -174,17 +360,17 @@ export function LandingView() {
       return;
     }
 
-    // Validate phone if provided
-    if (signupForm.phone && !/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) {
-      toast.error('Enter a valid 10-digit Indian phone number');
+    // Validate displayName
+    if (!signupForm.displayName || signupForm.displayName.trim().length < 2) {
+      toast.error('Display name is required (min 2 characters)');
       return;
     }
 
-    // Note: OTP verification is optional for now (can be made mandatory later)
-    // if (signupForm.phone && !otpVerified) {
-    //   toast.error('Please verify your phone number');
-    //   return;
-    // }
+    // Validate phone (required now)
+    if (!signupForm.phone || !/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) {
+      toast.error('A valid 10-digit Indian phone number is required');
+      return;
+    }
 
     setSignupLoading(true);
     try {
@@ -195,9 +381,10 @@ export function LandingView() {
           email: signupForm.email,
           username: signupForm.username,
           displayName: signupForm.displayName,
-          phone: signupForm.phone || undefined,
+          phone: signupForm.phone,
           password: signupForm.password,
           referralCode: signupForm.referralCode || undefined,
+          emailOtpVerified: true,
         }),
       });
       const data = await res.json();
@@ -214,7 +401,55 @@ export function LandingView() {
     setSignupLoading(false);
   };
 
-  const inputClass = "w-full bg-arena-dark border border-arena-border rounded-xl px-4 py-2.5 h-11 text-sm focus:outline-none focus:border-arena-accent focus:ring-1 focus:ring-arena-accent/20 transition-colors duration-150";
+  // Enhanced input styles
+  const inputBase = "w-full bg-arena-surface/50 border border-arena-border/60 rounded-xl text-sm text-arena-text-primary placeholder:text-arena-text-muted/40 focus:outline-none focus:border-arena-accent/70 focus:ring-2 focus:ring-arena-accent/10 transition-all duration-200";
+  const inputDefault = cn(inputBase, "px-4 py-3 h-12");
+  const inputWithIcon = cn(inputBase, "pl-10 pr-4 py-3 h-12");
+  const inputWithRightAction = cn(inputBase, "pl-10 pr-12 py-3 h-12");
+
+  // Username validation state
+  const usernameValid = signupForm.username.length >= 3 && /^[a-zA-Z0-9_-]+$/.test(signupForm.username);
+  const usernameError = signupForm.username.length > 0 && !usernameValid
+    ? 'Only letters, numbers, underscores, and hyphens'
+    : usernameValid && usernameAvailable === false
+    ? 'This username is already taken'
+    : undefined;
+
+  // Step validation
+  const isStep0Valid = signupForm.displayName.trim().length >= 2 && signupForm.username.length >= 3 && usernameValid && usernameAvailable === true;
+  const isStep1Valid = signupForm.email.length > 0 && /^\S+@\S+\.\S+$/.test(signupForm.email) && otpVerified && signupForm.phone.trim().length > 0 && /^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''));
+  const isStep2Valid = signupForm.password.length >= 8 && /[A-Z]/.test(signupForm.password) && /[a-z]/.test(signupForm.password) && /[0-9]/.test(signupForm.password) && signupForm.password === signupForm.confirmPassword;
+  const isStep3Valid = agreedToTerms;
+
+  const goNextStep = () => {
+    if (signupStep === 0 && !isStep0Valid) {
+      if (!signupForm.displayName.trim()) toast.error('Display name is required');
+      else if (signupForm.displayName.trim().length < 2) toast.error('Display name must be at least 2 characters');
+      else if (!signupForm.username || !usernameValid) toast.error('Please enter a valid username');
+      else if (usernameAvailable !== true) toast.error('Username must be available');
+      return;
+    }
+    if (signupStep === 1 && !isStep1Valid) {
+      if (!signupForm.email) toast.error('Email is required');
+      else if (!/^\S+@\S+\.\S+$/.test(signupForm.email)) toast.error('Please enter a valid email address');
+      else if (!otpVerified) toast.error('Please verify your email with OTP');
+      else if (!signupForm.phone.trim()) toast.error('Phone number is required');
+      else if (!/^[6-9]\d{9}$/.test(signupForm.phone.replace(/\D/g, ''))) toast.error('Enter a valid 10-digit Indian phone number');
+      return;
+    }
+    if (signupStep === 2 && !isStep2Valid) {
+      if (signupForm.password.length < 8 || !/[A-Z]/.test(signupForm.password) || !/[a-z]/.test(signupForm.password) || !/[0-9]/.test(signupForm.password)) toast.error('Password must be 8+ chars with uppercase, lowercase, and number');
+      else if (signupForm.password !== signupForm.confirmPassword) toast.error('Passwords do not match');
+      return;
+    }
+    setSignupStep(s => Math.min(s + 1, 3));
+  };
+
+  const goPrevStep = () => setSignupStep(s => Math.max(s - 1, 0));
+
+  // Reset step when modal opens/closes
+  const openSignup = () => { setSignupStep(0); setShowSignup(true); };
+  const closeSignup = () => { setShowSignup(false); setSignupStep(0); setOtpSent(false); setOtpVerified(false); setOtp(''); setOtpTimer(0); };
 
   return (
     <div className="min-h-screen bg-arena-dark">
@@ -226,14 +461,22 @@ export function LandingView() {
           </div>
           <div className="flex items-center gap-1.5">
             <button onClick={() => setShowLogin(true)} className="px-3 py-1.5 text-xs font-medium border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/50 rounded-lg transition-all duration-200">Log In</button>
-            <button onClick={() => setShowSignup(true)} className="px-3 py-1.5 text-xs font-medium bg-arena-accent hover:bg-arena-accent-light text-white rounded-lg transition-all duration-200">Sign Up</button>
+            <button onClick={openSignup} className="px-3 py-1.5 text-xs font-medium bg-arena-accent hover:bg-arena-accent-light text-white rounded-lg transition-all duration-200">Sign Up</button>
           </div>
         </div>
       </header>
 
       {/* Hero */}
       <section className="relative pt-16 overflow-hidden">
+        {/* Dramatic multi-layer background */}
         <div className="absolute inset-0 bg-gradient-to-b from-arena-accent/5 via-transparent to-transparent" />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 80% 20%, rgba(255,75,92,0.08) 0%, transparent 60%)' }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 50% at 10% 80%, rgba(139,92,246,0.06) 0%, transparent 60%)' }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,75,92,0.04) 0%, transparent 50%)' }} />
+        <div className="absolute inset-0 hero-grid-pattern opacity-40" />
+        <div className="absolute inset-0 opacity-10">
+          <Image src="/images/hero-banner.webp" alt="" fill className="object-cover" priority />
+        </div>
         <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
             {/* Left - Text */}
@@ -250,43 +493,56 @@ export function LandingView() {
                 Join India&apos;s fastest-growing mobile esports tournament platform. Free Fire, BGMI, COD Mobile &amp; more. Register, compete, and win real prizes.
               </p>
               <div className="flex gap-4 justify-center lg:justify-start animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                <button onClick={() => setShowSignup(true)} className="px-8 py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-arena-accent/25 hover:-translate-y-0.5">
+                <button onClick={openSignup} className="px-8 py-3 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-arena-accent/25 hover:-translate-y-0.5">
                   Get Started Free
                 </button>
                 <button onClick={() => setShowLogin(true)} className="px-8 py-3 border border-arena-border hover:border-arena-accent/50 text-arena-text-primary font-semibold rounded-xl transition-all duration-200">
                   Log In
                 </button>
               </div>
+              {/* Floating Game Icons */}
+              <div className="flex items-center justify-center lg:justify-start gap-5 mt-10 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+                {[
+                  { src: '/images/games/bgmi.webp', name: 'BGMI', color: 'from-orange-500/20 to-orange-600/10' },
+                  { src: '/images/games/freefire.webp', name: 'Free Fire', color: 'from-yellow-500/20 to-orange-500/10' },
+                  { src: '/images/games/codm.webp', name: 'CODM', color: 'from-green-500/20 to-emerald-600/10' },
+                  { src: '/images/games/clash-royale.webp', name: 'Clash Royale', color: 'from-blue-500/20 to-purple-600/10' },
+                ].map((game) => (
+                  <div key={game.name} className="game-icon-float flex flex-col items-center gap-1.5">
+                    <div className={cn('w-12 h-12 rounded-full bg-gradient-to-br flex items-center justify-center overflow-hidden shadow-lg', game.color)} style={{ boxShadow: '0 0 16px rgba(255,75,92,0.15)' }}>
+                      <Image src={game.src} alt={game.name} width={36} height={36} className="w-9 h-9 rounded-full object-cover" loading="lazy" />
+                    </div>
+                    <span className="text-[10px] text-arena-text-muted font-medium">{game.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Right - Animated Logo */}
             <div className="flex-shrink-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
               <div className="hero-energy-container w-48 h-48 md:w-64 md:h-64">
-                {/* Background aura */}
                 <div className="energy-aura" />
-                {/* Energy swirls */}
                 <div className="energy-swirl" />
                 <div className="energy-swirl energy-swirl-2" />
-                {/* Rotating energy rings */}
                 <div className="energy-ring energy-ring-1" />
                 <div className="energy-ring energy-ring-2" />
                 <div className="energy-ring energy-ring-3" />
-                {/* Floating particles */}
                 <div className="energy-particle energy-particle-1" />
                 <div className="energy-particle energy-particle-2" />
                 <div className="energy-particle energy-particle-3" />
                 <div className="energy-particle energy-particle-4" />
                 <div className="energy-particle energy-particle-5" />
                 <div className="energy-particle energy-particle-6" />
-                {/* Energy streaks */}
                 <div className="energy-streak energy-streak-1" />
                 <div className="energy-streak energy-streak-2" />
                 <div className="energy-streak energy-streak-3" />
-                {/* The Logo */}
-                <img
+                <Image
                   src="/logo-hero.webp"
                   alt="Aether Arena"
+                  width={256}
+                  height={256}
                   className="relative z-10 w-full h-full object-contain logo-hero-energy rounded-3xl"
+                  priority
                 />
               </div>
             </div>
@@ -296,17 +552,19 @@ export function LandingView() {
 
       {/* Stats */}
       <section className="border-y border-arena-border bg-arena-surface/50">
-        <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { icon: Users, label: 'Players', value: stats?.players != null ? stats.players.toLocaleString() : '...' },
-            { icon: Trophy, label: 'Tournaments', value: stats?.tournaments != null ? stats.tournaments.toLocaleString() : '...' },
-            { icon: Coins, label: 'Prizes Won', value: stats ? `₹${(stats.prizesWon / 100).toLocaleString('en-IN')}` : '...' },
-            { icon: Gamepad2, label: 'Games', value: stats?.games != null ? String(stats.games) : '...' },
+            { icon: Users, label: 'Players', value: stats?.players != null ? stats.players.toLocaleString() : '...', color: 'bg-arena-accent/10 text-arena-accent' },
+            { icon: Trophy, label: 'Tournaments', value: stats?.tournaments != null ? stats.tournaments.toLocaleString() : '...', color: 'bg-arena-purple/10 text-arena-purple' },
+            { icon: Coins, label: 'Prizes Won', value: stats?.prizesWon != null ? `₹${(stats.prizesWon / 100).toLocaleString('en-IN')}` : '...', color: 'bg-yellow-500/10 text-yellow-400' },
+            { icon: Gamepad2, label: 'Games', value: stats?.games != null ? String(stats.games) : '...', color: 'bg-green-500/10 text-green-400' },
           ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <stat.icon className="w-6 h-6 text-arena-accent mx-auto mb-2" />
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="text-sm text-arena-text-secondary">{stat.label}</div>
+            <div key={stat.label} className="text-center flex flex-col items-center">
+              <div className={cn('w-12 h-12 rounded-full flex items-center justify-center mb-3 stat-icon-circle', stat.color)}>
+                <stat.icon className="w-5 h-5" />
+              </div>
+              <div className="text-2xl font-bold"><AnimatedCounter value={stat.value} /></div>
+              <div className="text-sm text-arena-text-secondary mt-0.5">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -315,17 +573,25 @@ export function LandingView() {
       {/* How It Works */}
       <section className="max-w-7xl mx-auto px-6 py-20">
         <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="relative grid md:grid-cols-3 gap-8">
+          {/* Connecting lines — visible on md+ */}
+          <div className="hidden md:block absolute top-[52px] left-[16.67%] right-[16.67%] h-[2px] steps-connecting-line z-0" />
           {[
             { step: '01', title: 'Find a Tournament', desc: 'Browse upcoming tournaments for your favorite games. Filter by game, format, or entry fee.', icon: Search },
-            { step: '02', title: 'Register & Pay', desc: 'Sign up instantly. Free tournaments need no payment. Paid ones use secure Razorpay checkout.', icon: User },
+            { step: '02', title: 'Register & Pay', desc: 'Sign up instantly. Free tournaments need no payment. Paid ones use secure Google Pay (UPI) with quick admin verification.', icon: User },
             { step: '03', title: 'Compete & Win', desc: 'Join the match room, compete against players, and win real prize money!', icon: Trophy },
-          ].map((item) => (
-            <div key={item.step} className="bg-arena-card border border-arena-border rounded-2xl p-6 hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5">
+          ].map((item, idx) => (
+            <div key={item.step} className="relative z-10 bg-arena-card border border-arena-border rounded-2xl p-6 hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5">
               <div className="text-4xl font-black text-arena-accent/20 mb-4">{item.step}</div>
               <item.icon className="w-8 h-8 text-arena-accent mb-4" />
               <h3 className="text-lg font-semibold mb-2 leading-tight">{item.title}</h3>
               <p className="text-arena-text-secondary text-sm leading-relaxed">{item.desc}</p>
+              {/* Arrow indicator between steps on mobile */}
+              {idx < 2 && (
+                <div className="md:hidden flex justify-center mt-4">
+                  <ChevronRight className="w-5 h-5 text-arena-accent/30 rotate-90" />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -344,8 +610,12 @@ export function LandingView() {
             {featuredTournaments.slice(0, 3).map((t: any) => (
               <div key={t.id} className="bg-arena-card border border-arena-border rounded-2xl overflow-hidden hover:border-arena-accent/30 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
                 onClick={() => nav('tournament-detail', { id: t.id })}>
-                <div className="h-32 bg-gradient-to-br from-arena-accent/20 to-arena-purple/20 flex items-center justify-center">
-                  <Gamepad2 className="w-12 h-12 text-arena-text-muted" />
+                <div className="h-32 bg-gradient-to-br from-arena-accent/20 to-arena-purple/20 flex items-center justify-center relative overflow-hidden">
+                  {t.game?.slug ? (
+                    <Image src={`/images/games/${t.game.slug}.webp`} alt={t.game?.name || 'Game'} fill className="object-cover opacity-60" loading="lazy" />
+                  ) : (
+                    <Gamepad2 className="w-12 h-12 text-arena-text-muted" />
+                  )}
                 </div>
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -371,11 +641,15 @@ export function LandingView() {
           <h2 className="text-3xl font-bold text-center mb-12">Supported Games</h2>
           <div className="flex flex-wrap justify-center gap-4">
             {games.map((g: any) => (
-              <div key={g.id} className="bg-arena-card border border-arena-border rounded-2xl p-4 flex items-center gap-3 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer">
-                <div className="w-10 h-10 bg-arena-accent/10 rounded-xl flex items-center justify-center">
-                  <Gamepad2 className="w-5 h-5 text-arena-accent" />
+              <div key={g.id} className="game-card-shimmer bg-arena-card border border-arena-border rounded-2xl p-5 flex flex-col items-center gap-3 hover:border-arena-accent/30 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-w-[120px]">
+                <div className="w-12 h-12 rounded-2xl bg-arena-accent/10 flex items-center justify-center overflow-hidden" style={{ boxShadow: '0 0 12px rgba(255,75,92,0.1)' }}>
+                  {g.iconUrl ? (
+                    <Image src={g.iconUrl} alt={g.name} width={48} height={48} className="w-12 h-12 object-cover" loading="lazy" />
+                  ) : (
+                    <Gamepad2 className="w-6 h-6 text-arena-accent" />
+                  )}
                 </div>
-                <span className="font-medium">{g.name}</span>
+                <span className="font-medium text-sm">{g.name}</span>
               </div>
             ))}
           </div>
@@ -403,7 +677,7 @@ export function LandingView() {
             <div>
               <h4 className="text-xs font-semibold text-arena-text-muted uppercase tracking-wider mb-3">Support</h4>
               <ul className="space-y-2">
-                <li><a href="https://discord.gg/aetherarena" target="_blank" rel="noopener noreferrer" className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Discord</a></li>
+                <li><a href="https://discord.gg/NpWrVkyBB" target="_blank" rel="noopener noreferrer" className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Discord</a></li>
                 <li><button onClick={() => nav('terms-conditions')} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">FAQ</button></li>
                 <li><button onClick={() => nav('contact')} className="text-sm text-arena-text-secondary hover:text-arena-accent transition-colors duration-150">Contact</button></li>
               </ul>
@@ -420,14 +694,14 @@ export function LandingView() {
           <div className="border-t border-arena-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Image src="/logo-md.webp" alt="Aether Arena" width={24} height={24} className="w-6 h-6 rounded-lg" />
-              <span className="text-xs text-arena-text-muted">© {new Date().getFullYear()} Aether Arena. All rights reserved.</span>
+              <span className="text-xs text-arena-text-muted">&copy; {new Date().getFullYear()} Aether Arena. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-4">
               {[
-                { name: 'Twitter', url: 'https://twitter.com/aetherarena' },
-                { name: 'Discord', url: 'https://discord.gg/aetherarena' },
-                { name: 'YouTube', url: 'https://youtube.com/@aetherarena' },
+                { name: 'YouTube', url: 'https://www.youtube.com/@Aether-Arena' },
                 { name: 'Instagram', url: 'https://instagram.com/aetherarena' },
+                { name: 'Discord', url: 'https://discord.gg/NpWrVkyBB' },
+                { name: 'WhatsApp', url: 'https://whatsapp.com/channel/0029VagJkEJLNSc4f8sC8q2m' },
               ].map(s => (
                 <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="text-xs text-arena-text-muted hover:text-arena-accent transition-colors duration-150">
                   {s.name}
@@ -442,147 +716,390 @@ export function LandingView() {
       <ArenaModal open={showLogin} onClose={() => setShowLogin(false)} title="Welcome Back" description="Sign in to your Aether Arena account" icon={<User className="w-5 h-5" />}>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Username, Email, or Phone</label>
-            <input type="text" required value={loginForm.identifier} onChange={e => setLoginForm({ ...loginForm, identifier: e.target.value })} className={inputClass} placeholder="username / your@email.com / 9876543210" />
+            <label className="text-[13px] font-medium text-arena-text-primary/80 mb-1.5 block">Username, Email, or Phone</label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-arena-text-muted/50"><User className="w-4.5 h-4.5" /></div>
+              <input type="text" required value={loginForm.identifier} onChange={e => setLoginForm({ ...loginForm, identifier: e.target.value })} className={inputWithIcon} placeholder="username / your@email.com / 9876543210" />
+            </div>
           </div>
           <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Password</label>
+            <label className="text-[13px] font-medium text-arena-text-primary/80 mb-1.5 block">Password</label>
             <div className="relative">
-              <input type={showPassword ? "text" : "password"} required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className={cn(inputClass, 'pr-10')} placeholder="••••••••" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-arena-text-muted/50"><Lock className="w-4.5 h-4.5" /></div>
+              <input type={showPassword ? "text" : "password"} required value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className={cn(inputBase, "pl-10 pr-12 py-3 h-12")} placeholder="Enter your password" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors p-1 rounded-md hover:bg-arena-surface">
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
-          <button type="submit" disabled={loginLoading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
-            {loginLoading ? 'Logging in...' : 'Log In'}
+          <button type="submit" disabled={loginLoading} className="w-full py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 mt-2">
+            {loginLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Logging in...</> : 'Log In'}
           </button>
           {/* Discord OAuth */}
-          <div className="relative flex items-center gap-3 my-2">
-            <div className="flex-1 h-px bg-arena-border" />
-            <span className="text-xs text-arena-text-muted">or continue with</span>
-            <div className="flex-1 h-px bg-arena-border" />
+          <div className="relative flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-arena-border/50" />
+            <span className="text-[11px] text-arena-text-muted/60">or continue with</span>
+            <div className="flex-1 h-px bg-arena-border/50" />
           </div>
           <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
-            className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
+            className="w-full py-3 h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2.5">
             <DiscordIcon />
-            Discord
+            Continue with Discord
           </button>
-          <p className="text-center text-sm text-arena-text-muted">
+          <p className="text-center text-[13px] text-arena-text-muted mt-1">
             Don&apos;t have an account?{' '}
-            <button type="button" onClick={() => { setShowLogin(false); setShowSignup(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Sign Up</button>
+            <button type="button" onClick={() => { setShowLogin(false); openSignup(); }} className="text-arena-accent hover:underline font-medium transition-colors duration-150">Sign Up</button>
           </p>
         </form>
       </ArenaModal>
 
-      {/* ===== SIGNUP MODAL ===== */}
-      <ArenaModal open={showSignup} onClose={() => setShowSignup(false)} title="Create Account" description="Join Aether Arena and start competing" icon={<User className="w-5 h-5" />} size="lg">
-        <form onSubmit={handleSignup} className="space-y-3">
-          {/* Display Name */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Display Name</label>
-            <input type="text" required value={signupForm.displayName} onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })} className={inputClass} placeholder="Your display name (can be common)" />
-          </div>
+      {/* ===== SIGNUP MODAL — MULTI-STEP WIZARD ===== */}
+      <ArenaModal open={showSignup} onClose={closeSignup} title="Create Account" description={signupStep === 0 ? 'Tell us who you are' : signupStep === 1 ? 'How can we reach you?' : signupStep === 2 ? 'Secure your account' : 'Almost there!'} icon={<Sparkles className="w-5 h-5" />} size="lg">
+        <form onSubmit={handleSignup} className="space-y-0">
 
-          {/* Username */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Username <span className="text-arena-accent">*</span></label>
-            <input type="text" required value={signupForm.username} onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })} className={inputClass} placeholder="unique_username (3-20 chars)" />
-            <p className="text-[10px] text-arena-text-muted mt-0.5">Must be unique. Letters, numbers, underscores, and hyphens only.</p>
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Email Address <span className="text-arena-accent">*</span></label>
-            <input type="email" required value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className={inputClass} placeholder="your@email.com" />
-          </div>
-
-          {/* Phone with OTP */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Phone Number</label>
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-arena-text-muted">+91</span>
-                <input type="tel" value={signupForm.phone} onChange={e => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} className={cn(inputClass, 'pl-12')} placeholder="9876543210" />
+          {/* ── Stepper Progress ─────────────────────── */}
+          <div className="flex items-center gap-1.5 mb-5">
+            {[
+              { icon: User, label: 'Identity' },
+              { icon: Mail, label: 'Contact' },
+              { icon: Lock, label: 'Security' },
+              { icon: Sparkles, label: 'Finish' },
+            ].map((step, i) => (
+              <div key={step.label} className="flex items-center flex-1">
+                <div className="flex items-center gap-1.5 flex-1">
+                  <div className={cn(
+                    'w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300',
+                    i < signupStep ? 'bg-green-500/20 text-green-400' :
+                    i === signupStep ? 'bg-arena-accent/20 text-arena-accent' :
+                    'bg-arena-border/30 text-arena-text-muted/40'
+                  )}>
+                    {i < signupStep ? <Check className="w-3 h-3" /> : <step.icon className="w-3 h-3" />}
+                  </div>
+                  <span className={cn(
+                    'text-[10px] font-medium hidden sm:inline transition-colors duration-300',
+                    i <= signupStep ? 'text-arena-text-primary' : 'text-arena-text-muted/40'
+                  )}>{step.label}</span>
+                </div>
+                {i < 3 && (
+                  <div className={cn(
+                    'h-0.5 flex-1 mx-0.5 rounded-full transition-all duration-300',
+                    i < signupStep ? 'bg-green-500/40' : 'bg-arena-border/30'
+                  )} />
+                )}
               </div>
-              {!otpVerified && (
-                <button type="button" onClick={handleSendOtp} disabled={!signupForm.phone || signupForm.phone.length !== 10}
-                  className="px-4 h-11 bg-arena-accent/20 text-arena-accent text-xs font-semibold rounded-xl hover:bg-arena-accent/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
-                  {otpSent ? 'Resend' : 'Send OTP'}
+            ))}
+          </div>
+
+          {/* ── Step 0: Identity ─────────────────────── */}
+          {signupStep === 0 && (
+            <div className="space-y-3.5 animate-fade-in">
+              {/* Display Name */}
+              <FormField label="Display Name" required icon={<User className="w-4.5 h-4.5" />}>
+                <input
+                  type="text"
+                  value={signupForm.displayName}
+                  onChange={e => setSignupForm({ ...signupForm, displayName: e.target.value })}
+                  className={inputWithIcon}
+                  placeholder="What should we call you?"
+                  autoFocus
+                />
+              </FormField>
+
+              {/* Username with availability check */}
+              <FormField
+                label="Username"
+                required
+                icon={<AtSign className="w-4.5 h-4.5" />}
+                error={usernameError}
+                hint={!signupForm.username ? '3-20 characters. Letters, numbers, _ and - only.' : undefined}
+              >
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={signupForm.username}
+                    onChange={e => setSignupForm({ ...signupForm, username: e.target.value.replace(/\s/g, '').toLowerCase() })}
+                    className={cn(inputBase, "pl-10 pr-10 py-3 h-12", usernameValid && usernameAvailable === true && "border-green-500/40 focus:border-green-500/60", usernameValid && usernameAvailable === false && "border-red-500/40 focus:border-red-500/60")}
+                    placeholder="unique_username"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {usernameChecking && <Loader2 className="w-4 h-4 text-arena-text-muted animate-spin" />}
+                    {!usernameChecking && usernameValid && usernameAvailable === true && <Check className="w-4 h-4 text-green-400" />}
+                    {!usernameChecking && usernameValid && usernameAvailable === false && <X className="w-4 h-4 text-red-400" />}
+                  </div>
+                </div>
+              </FormField>
+
+              {/* Navigation */}
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={goNextStep} disabled={!isStep0Valid}
+                  className="w-full py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]">
+                  Continue <ArrowRight className="w-4 h-4" />
                 </button>
-              )}
-              {otpVerified && (
-                <div className="flex items-center gap-1 px-3 h-11 bg-green-500/10 text-green-400 text-xs font-semibold rounded-xl">
-                  <Check className="w-3.5 h-3.5" /> Verified
+              </div>
+
+              {/* Discord OAuth */}
+              <div className="relative flex items-center gap-3 my-0.5">
+                <div className="flex-1 h-px bg-arena-border/50" />
+                <span className="text-[11px] text-arena-text-muted/60">or sign up with</span>
+                <div className="flex-1 h-px bg-arena-border/50" />
+              </div>
+              <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
+                className="w-full py-3 h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98]">
+                <DiscordIcon />
+                Continue with Discord
+              </button>
+            </div>
+          )}
+
+          {/* ── Step 1: Contact ─────────────────────── */}
+          {signupStep === 1 && (
+            <div className="space-y-3.5 animate-fade-in">
+              {/* Email with OTP */}
+              <FormField label="Email Address" required icon={<Mail className="w-4.5 h-4.5" />}>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={signupForm.email}
+                    onChange={e => { setSignupForm({ ...signupForm, email: e.target.value }); if (otpVerified) { setOtpVerified(false); setOtpSent(false); setOtp(''); setOtpTimer(0); } }}
+                    className={cn(inputBase, "pl-10 flex-1 h-12")}
+                    placeholder="your@email.com"
+                    disabled={otpVerified}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={!signupForm.email || !/^\S+@\S+\.\S+$/.test(signupForm.email) || otpSending || otpVerified}
+                    className="px-3 h-12 bg-arena-accent/20 text-arena-accent text-xs font-semibold rounded-xl hover:bg-arena-accent/30 transition-all duration-200 disabled:opacity-40 whitespace-nowrap flex items-center gap-1.5"
+                  >
+                    {otpSending ? <Loader2 className="w-3 h-3 animate-spin" /> : otpVerified ? <Check className="w-3 h-3" /> : null}
+                    {otpVerified ? 'Verified' : otpSending ? 'Sending...' : otpSent ? 'Resend' : 'Send OTP'}
+                  </button>
+                </div>
+              </FormField>
+
+              {/* OTP Input with Timer - shows after OTP sent */}
+              {otpSent && !otpVerified && (
+                <div className="animate-fade-in space-y-2 pl-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      {[0,1,2,3,4,5].map(i => (
+                        <input
+                          key={i}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={otp[i] || ''}
+                          onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            const newOtp = otp.split('');
+                            newOtp[i] = val;
+                            setOtp(newOtp.join(''));
+                            // Auto-focus next input
+                            if (val && i < 5) {
+                              const next = e.target.nextElementSibling as HTMLInputElement;
+                              if (next) next.focus();
+                            }
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Backspace' && !otp[i] && i > 0) {
+                              const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement;
+                              if (prev) prev.focus();
+                            }
+                          }}
+                          className="w-10 h-12 text-center text-lg font-bold bg-arena-surface/50 border border-arena-border/60 rounded-xl text-arena-text-primary focus:outline-none focus:border-arena-accent/70 focus:ring-2 focus:ring-arena-accent/10 transition-all duration-200"
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      disabled={otp.length !== 6 || otpVerifying}
+                      className="px-4 py-2.5 h-12 bg-green-500/20 text-green-400 text-xs font-semibold rounded-xl hover:bg-green-500/30 transition-all duration-200 disabled:opacity-40 flex items-center gap-1.5"
+                    >
+                      {otpVerifying ? <Loader2 className="w-3 h-3 animate-spin" /> : <Shield className="w-3 h-3" />}
+                      Verify
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] text-arena-text-muted/60">
+                      {otpTimer > 0 ? `OTP expires in ${Math.floor(otpTimer / 60)}:${String(otpTimer % 60).padStart(2, '0')}` : 'OTP expired. Click Resend to get a new one.'}
+                    </p>
+                    {otpTimer > 0 && (
+                      <div className="w-16 h-1 bg-arena-border/30 rounded-full overflow-hidden">
+                        <div className="h-full bg-arena-accent/60 rounded-full transition-all duration-1000" style={{ width: `${(otpTimer / 300) * 100}%` }} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
-            </div>
-            {/* OTP Input */}
-            {otpSent && !otpVerified && (
-              <div className="flex gap-2 mt-2">
-                <input type="text" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} className={cn(inputClass, 'h-9 text-center tracking-[0.3em] font-mono')} placeholder="000000" maxLength={6} />
-                <button type="button" onClick={handleVerifyOtp} disabled={otp.length !== 6}
-                  className="px-3 h-9 bg-green-500/20 text-green-400 text-xs font-semibold rounded-lg hover:bg-green-500/30 transition-colors disabled:opacity-40">
-                  Verify
+
+              {/* Verified indicator */}
+              {otpVerified && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-xl animate-fade-in">
+                  <Check className="w-4 h-4 text-green-400" />
+                  <span className="text-xs text-green-400 font-medium">Email verified successfully</span>
+                </div>
+              )}
+
+              {/* Phone Number - Required */}
+              <FormField label="Phone Number" required icon={<Phone className="w-4.5 h-4.5" />} hint="10-digit Indian mobile number">
+                <input
+                  type="tel"
+                  value={signupForm.phone}
+                  onChange={e => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                  className={inputWithIcon}
+                  placeholder="9876543210"
+                  maxLength={10}
+                />
+              </FormField>
+
+              {/* Navigation buttons */}
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={goPrevStep} className="px-6 py-3 h-12 border border-arena-border hover:border-arena-text-primary text-arena-text-secondary font-medium rounded-xl transition-all duration-200 flex items-center gap-1.5 text-sm">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="button" onClick={goNextStep} disabled={!isStep1Valid} className="flex-1 py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
+                  Continue <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
-            )}
-          </div>
-
-          {/* Password */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Create Password <span className="text-arena-accent">*</span></label>
-            <div className="relative">
-              <input type={showPassword ? "text" : "password"} required minLength={8} value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className={cn(inputClass, 'pr-10')} placeholder="Min 8 chars, A-Z, a-z, 0-9" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
             </div>
-            {signupForm.password && <PasswordStrength password={signupForm.password} />}
-          </div>
+          )}
 
-          {/* Confirm Password */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Confirm Password <span className="text-arena-accent">*</span></label>
-            <div className="relative">
-              <input type={showConfirmPassword ? "text" : "password"} required value={signupForm.confirmPassword} onChange={e => setSignupForm({ ...signupForm, confirmPassword: e.target.value })} className={cn(inputClass, 'pr-10')} placeholder="Re-enter your password" />
-              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors">
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+          {/* ── Step 2: Security ─────────────────────── */}
+          {signupStep === 2 && (
+            <div className="space-y-3.5 animate-fade-in">
+              {/* Password */}
+              <FormField label="Create Password" required icon={<Lock className="w-4.5 h-4.5" />}>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={8}
+                    value={signupForm.password}
+                    onChange={e => setSignupForm({ ...signupForm, password: e.target.value })}
+                    className={cn(inputBase, "pl-10 pr-12 py-3 h-12")}
+                    placeholder="Create a strong password"
+                    autoFocus
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-arena-text-muted hover:text-arena-text-primary transition-colors p-1 rounded-md hover:bg-arena-surface">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {signupForm.password && <PasswordStrength password={signupForm.password} />}
+              </FormField>
+
+              {/* Confirm Password */}
+              <FormField
+                label="Confirm Password"
+                required
+                icon={<Shield className="w-4.5 h-4.5" />}
+                error={signupForm.confirmPassword.length > 0 && signupForm.password !== signupForm.confirmPassword ? 'Passwords do not match' : undefined}
+              >
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={signupForm.confirmPassword}
+                    onChange={e => setSignupForm({ ...signupForm, confirmPassword: e.target.value })}
+                    className={cn(inputBase, "pl-10 pr-10 py-3 h-12", signupForm.confirmPassword.length > 0 && signupForm.password === signupForm.confirmPassword && "border-green-500/40 focus:border-green-500/60")}
+                    placeholder="Re-enter your password"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {signupForm.confirmPassword.length > 0 && signupForm.password === signupForm.confirmPassword && (
+                      <Check className="w-4 h-4 text-green-400" />
+                    )}
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="text-arena-text-muted hover:text-arena-text-primary transition-colors p-0.5 rounded-md hover:bg-arena-surface">
+                      {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </FormField>
+
+              {/* Navigation */}
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={goPrevStep}
+                  className="px-5 h-12 border border-arena-border hover:border-arena-accent/40 text-arena-text-secondary hover:text-arena-text-primary font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 active:scale-[0.98]">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="button" onClick={goNextStep} disabled={!isStep2Valid}
+                  className="flex-1 py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]">
+                  Continue <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            {signupForm.confirmPassword && signupForm.password !== signupForm.confirmPassword && (
-              <p className="text-[10px] text-red-400 mt-0.5">Passwords do not match</p>
-            )}
-            {signupForm.confirmPassword && signupForm.password === signupForm.confirmPassword && (
-              <p className="text-[10px] text-green-400 mt-0.5 flex items-center gap-1"><Check className="w-3 h-3" /> Passwords match</p>
-            )}
-          </div>
+          )}
 
-          {/* Referral Code */}
-          <div>
-            <label className="text-sm text-arena-text-secondary mb-1 block">Referral Code <span className="text-arena-text-muted">(optional)</span></label>
-            <input type="text" value={signupForm.referralCode} onChange={e => setSignupForm({ ...signupForm, referralCode: e.target.value })} className={inputClass} placeholder="Enter referral code if you have one" />
-          </div>
+          {/* ── Step 3: Finish ─────────────────────── */}
+          {signupStep === 3 && (
+            <div className="space-y-3.5 animate-fade-in">
+              {/* Referral Code — collapsible */}
+              {!showReferral ? (
+                <button type="button" onClick={() => setShowReferral(true)} className="flex items-center gap-1.5 text-[12px] text-arena-accent/70 hover:text-arena-accent transition-colors">
+                  <Gift className="w-3.5 h-3.5" />
+                  Have a referral code?
+                </button>
+              ) : (
+                <FormField label="Referral Code" optional icon={<Gift className="w-4.5 h-4.5" />}>
+                  <input
+                    type="text"
+                    value={signupForm.referralCode}
+                    onChange={e => setSignupForm({ ...signupForm, referralCode: e.target.value })}
+                    className={inputWithIcon}
+                    placeholder="Enter referral code"
+                    autoFocus
+                  />
+                </FormField>
+              )}
 
-          <button type="submit" disabled={signupLoading} className="w-full py-2.5 h-11 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50">
-            {signupLoading ? 'Creating Account...' : 'Create Account'}
-          </button>
+              {/* Terms & Conditions */}
+              <label className="flex items-start gap-3 mt-1 cursor-pointer group">
+                <div className="relative mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={e => setAgreedToTerms(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className={cn(
+                    'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200',
+                    agreedToTerms
+                      ? 'bg-arena-accent border-arena-accent'
+                      : 'border-arena-border/60 group-hover:border-arena-accent/40'
+                  )}>
+                    {agreedToTerms && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                  </div>
+                </div>
+                <span className="text-[12px] text-arena-text-muted leading-relaxed">
+                  I agree to the{' '}
+                  <button type="button" onClick={() => nav('terms-conditions')} className="text-arena-accent hover:underline">Terms &amp; Conditions</button>
+                  {' '}and{' '}
+                  <button type="button" onClick={() => nav('privacy-policy')} className="text-arena-accent hover:underline">Privacy Policy</button>
+                </span>
+              </label>
 
-          {/* Discord OAuth */}
-          <div className="relative flex items-center gap-3 my-2">
-            <div className="flex-1 h-px bg-arena-border" />
-            <span className="text-xs text-arena-text-muted">or sign up with</span>
-            <div className="flex-1 h-px bg-arena-border" />
-          </div>
-          <button type="button" onClick={() => { window.location.href = '/api/auth/discord'; }}
-            className="w-full py-2.5 h-11 bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
-            <DiscordIcon />
-            Continue with Discord
-          </button>
-          <p className="text-center text-sm text-arena-text-muted">
-            Already have an account?{' '}
-            <button type="button" onClick={() => { setShowSignup(false); setShowLogin(true); }} className="text-arena-accent hover:underline transition-colors duration-150">Log In</button>
-          </p>
+              {/* Navigation */}
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={goPrevStep}
+                  className="px-5 h-12 border border-arena-border hover:border-arena-accent/40 text-arena-text-secondary hover:text-arena-text-primary font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 active:scale-[0.98]">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="submit" disabled={signupLoading || !agreedToTerms}
+                  className="flex-1 py-3 h-12 bg-arena-accent hover:bg-arena-accent-light text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]">
+                  {signupLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><Sparkles className="w-4 h-4" /> Create Account</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Footer — always visible */}
+          {signupStep === 0 && (
+            <p className="text-center text-[13px] text-arena-text-muted mt-2">
+              Already have an account?{' '}
+              <button type="button" onClick={() => { closeSignup(); setShowLogin(true); }} className="text-arena-accent hover:underline font-medium transition-colors duration-150">Log In</button>
+            </p>
+          )}
         </form>
       </ArenaModal>
     </div>

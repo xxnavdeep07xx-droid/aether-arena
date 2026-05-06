@@ -73,23 +73,18 @@ export async function PUT(
 
       // Refund Aether back to user
       const result = await db.$transaction(async (tx) => {
-        const balance = await tx.aetherBalance.findUnique({
-          where: { userId: redemption.userId },
-        })
-
-        if (!balance) {
-          throw new Error('User balance not found')
-        }
-
-        const newBalance = balance.balance + redemption.amountAether
-
+        // Atomic balance increment for refund
         await tx.aetherBalance.update({
           where: { userId: redemption.userId },
           data: {
-            balance: newBalance,
+            balance: { increment: redemption.amountAether },
             totalRedeemed: { decrement: redemption.amountAether },
           },
         })
+
+        // Read updated balance for transaction record
+        const updatedBalance = await tx.aetherBalance.findUnique({ where: { userId: redemption.userId } })
+        const newBalance = updatedBalance!.balance
 
         await tx.aetherTransaction.create({
           data: {

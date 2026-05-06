@@ -8,9 +8,7 @@ import {
   ButtonInteraction,
   ComponentType,
 } from 'discord.js'
-import { PrismaClient } from '@prisma/client'
-
-const db = new PrismaClient()
+import { db } from '../lib/db'
 const BRAND_COLOR = 0x9333ea
 const PAGE_SIZE = 10
 
@@ -169,12 +167,16 @@ async function buildLeaderboardPage(
   const rankMedals: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
   const description = entries
-    .map((entry) => {
-      const rank = skip + entry.rank
+    .map((entry, i) => {
+      const rank = skip + i + 1
       const medal = rankMedals[rank] || `**#${rank}**`
       const name = entry.player.displayName || entry.player.username
-      const kd = entry.kdRatio.toFixed(2)
-      const winRate = ((entry.winRate || 0) * 100).toFixed(0)
+      const kd = entry.totalDeaths > 0
+        ? (entry.totalKills / entry.totalDeaths).toFixed(2)
+        : entry.totalKills > 0 ? '∞' : '0.00'
+      const winRate = entry.totalMatches > 0
+        ? ((entry.totalWins / entry.totalMatches) * 100).toFixed(0)
+        : '0'
 
       return `${medal} **${name}** — 🏅 ${entry.totalPoints} pts | 🏆 ${entry.totalWins}W | ⚔️ ${kd} K/D | 📊 ${winRate}% WR`
     })

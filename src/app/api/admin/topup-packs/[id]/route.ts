@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
 
+const ALLOWED_UPDATE_FIELDS = [
+  'gameName', 'gameSlug', 'packName', 'description', 'price', 'originalPrice',
+  'imageUrl', 'affiliateUrl', 'isPopular', 'isActive', 'sortOrder',
+] as const
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -16,9 +21,21 @@ export async function PUT(
       return NextResponse.json({ error: 'Top-up pack not found' }, { status: 404 })
     }
 
+    // Only allow whitelisted fields — prevents mass assignment
+    const updateData: Record<string, unknown> = {}
+    for (const key of ALLOWED_UPDATE_FIELDS) {
+      if (body[key] !== undefined) {
+        updateData[key] = body[key]
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
+
     const pack = await db.topupPack.update({
       where: { id },
-      data: body,
+      data: updateData,
     })
 
     return NextResponse.json({ pack })

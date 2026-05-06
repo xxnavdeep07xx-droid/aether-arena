@@ -2,7 +2,7 @@ import { db } from '@/lib/db'
 import { cookies } from 'next/headers'
 
 const SESSION_COOKIE_NAME = 'aether_session'
-const SESSION_MAX_AGE_DAYS = 30
+const SESSION_MAX_AGE_DAYS = 14
 
 export interface AuthUser {
   userId: string
@@ -74,11 +74,15 @@ export async function getSession(request?: Request): Promise<AuthUser | null> {
 
 /**
  * Require authentication or throw error
+ * Also blocks banned users from accessing any authenticated endpoint
  */
 export async function requireAuth(request?: Request): Promise<AuthUser> {
   const session = await getSession(request)
   if (!session) {
     throw new AuthError('Authentication required', 401)
+  }
+  if (session.profile.isBanned) {
+    throw new AuthError('Account has been suspended', 403)
   }
   return session
 }

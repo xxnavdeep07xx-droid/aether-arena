@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, AuthError } from '@/lib/auth'
+import { strictLimiter } from '@/lib/rate-limit'
 
 // Helper: get today's date in IST (midnight IST)
 function getTodayIST(): Date {
@@ -29,6 +30,13 @@ function isYesterday(date: Date, today: Date): boolean {
 }
 
 export async function POST(request: Request) {
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await strictLimiter(`checkin:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Too many check-in attempts. Please try again later.' }, { status: 429 });
+  }
+
   try {
     const { userId } = await requireAuth(request)
     const today = getTodayIST()
@@ -83,22 +91,19 @@ export async function POST(request: Request) {
         },
       })
 
-      // Get or create balance
-      const balance = await tx.aetherBalance.upsert({
+      // Ensure balance record exists
+      await tx.aetherBalance.upsert({
         where: { userId },
         create: { userId, balance: 0, totalEarned: 0, totalRedeemed: 0 },
         update: {},
       })
 
-      let currentBalance = balance.balance
+      // Track total bonus to atomically increment at the end
+      let totalBonus = 0
 
       // Check for milestone bonuses
       if (newStreak === 7 && prevStreak < 7) {
-        currentBalance += 50
-        await tx.aetherBalance.update({
-          where: { userId },
-          data: { balance: currentBalance, totalEarned: { increment: 50 } },
-        })
+        totalBonus += 50
         await tx.aetherTransaction.create({
           data: {
             userId,
@@ -106,7 +111,7 @@ export async function POST(request: Request) {
             source: 'streak_7',
             description: '7-Day Login Streak Bonus!',
             amount: 50,
-            balanceAfter: currentBalance,
+            balanceAfter: 0, // placeholder, updated below
           },
         })
         streakBonusAwarded = { amount: 50, milestone: 7 }
@@ -116,11 +121,7 @@ export async function POST(request: Request) {
       }
 
       if (newStreak === 30 && prevStreak < 30) {
-        currentBalance += 200
-        await tx.aetherBalance.update({
-          where: { userId },
-          data: { balance: currentBalance, totalEarned: { increment: 200 } },
-        })
+        totalBonus += 200
         await tx.aetherTransaction.create({
           data: {
             userId,
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
             source: 'streak_30',
             description: '30-Day Login Streak Bonus!',
             amount: 200,
-            balanceAfter: currentBalance,
+            balanceAfter: 0, // placeholder, updated below
           },
         })
         streakBonusAwarded = { amount: 200, milestone: 30 }
@@ -153,11 +154,7 @@ export async function POST(request: Request) {
 
       if (!dailyProgress || !dailyProgress.completed) {
         const dailyReward = 5
-        currentBalance += dailyReward
-        await tx.aetherBalance.update({
-          where: { userId },
-          data: { balance: currentBalance, totalEarned: { increment: dailyReward } },
-        })
+        totalBonus += dailyReward
         await tx.aetherTransaction.create({
           data: {
             userId,
@@ -165,7 +162,7 @@ export async function POST(request: Request) {
             source: 'daily_login',
             description: 'Daily Login Reward',
             amount: dailyReward,
-            balanceAfter: currentBalance,
+            balanceAfter: 0, // placeholder, updated below
           },
         })
 
@@ -193,6 +190,25 @@ export async function POST(request: Request) {
         })
 
         dailyLoginAwarded = true
+      }
+
+      // Atomic balance update — single increment prevents race conditions
+      if (totalBonus > 0) {
+        await tx.aetherBalance.update({
+          where: { userId },
+          data: {
+            balance: { increment: totalBonus },
+            totalEarned: { increment: totalBonus },
+          },
+        })
+
+        // Fix balanceAfter on all transactions created in this checkin
+        const updatedBalance = await tx.aetherBalance.findUnique({ where: { userId } })
+        const finalBalance = updatedBalance!.balance
+        await tx.aetherTransaction.updateMany({
+          where: { userId, balanceAfter: 0, source: { in: ['streak_7', 'streak_30', 'daily_login'] } },
+          data: { balanceAfter: finalBalance },
+        })
       }
 
       return {

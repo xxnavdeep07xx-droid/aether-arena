@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import { Zap, ExternalLink, ChevronRight, Tag, TrendingUp, Sparkles } from 'lucide-react';
 import { cn, paiseToRupee } from '@/lib/utils';
 import { ThemedSkeleton } from './Skeletons';
@@ -63,8 +64,9 @@ export function TopupFullView() {
             const slug = nameToSlug.get(g) || g.toLowerCase().replace(/\s+/g, '-');
             return (
               <button key={g} onClick={() => setFilterGame(slug)}
-                className={cn('px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0',
+                className={cn('px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 flex items-center gap-1.5',
                   filterGame === slug ? 'bg-arena-accent text-white shadow-md shadow-arena-accent/20' : 'bg-arena-surface border border-arena-border text-arena-text-secondary hover:text-arena-text-primary hover:border-arena-accent/30')}>
+                <Image src={`/images/games/${slug}.webp`} alt={g} width={18} height={18} className="w-4.5 h-4.5 rounded object-cover" loading="lazy" />
                 {g}
               </button>
             );
@@ -93,8 +95,12 @@ export function TopupFullView() {
                       <Tag className="w-2.5 h-2.5" /> BEST VALUE
                     </div>
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-11 h-11 rounded-xl bg-arena-accent/15 flex items-center justify-center flex-shrink-0">
-                        <Zap className="w-5 h-5 text-arena-accent" />
+                      <div className="w-11 h-11 rounded-xl bg-arena-accent/15 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {pack.imageUrl ? (
+                          <Image src={pack.imageUrl} alt={pack.packName} width={44} height={44} className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <Zap className="w-5 h-5 text-arena-accent" />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <div className="text-[10px] font-medium text-arena-text-muted">{pack.gameName}</div>
@@ -138,8 +144,12 @@ export function TopupFullView() {
                   </div>
                 )}
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-5 h-5 text-arena-accent" />
+                  <div className="w-10 h-10 rounded-xl bg-arena-accent/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {pack.imageUrl ? (
+                      <Image src={pack.imageUrl} alt={pack.packName} width={40} height={40} className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <Zap className="w-5 h-5 text-arena-accent" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[10px] font-medium text-arena-text-muted">{pack.gameName}</div>

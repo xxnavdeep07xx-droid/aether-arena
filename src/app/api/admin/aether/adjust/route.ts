@@ -1,34 +1,26 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin, AuthError } from '@/lib/auth'
+import { aetherAdjustSchema, formatZodError } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
     await requireAdmin(request)
 
-    let body: { userId?: string; amount?: number; reason?: string }
+    let body: unknown
     try {
       body = await request.json()
     } catch {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const { userId, amount, reason } = body
-
-    if (!userId || amount === undefined || amount === null || !reason) {
-      return NextResponse.json(
-        { error: 'userId, amount, and reason are required' },
-        { status: 400 }
-      )
+    // Zod validation with amount bounds
+    const parsed = aetherAdjustSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 })
     }
 
-    if (!Number.isInteger(amount) || amount === 0) {
-      return NextResponse.json({ error: 'Amount must be a non-zero integer' }, { status: 400 })
-    }
-
-    if (typeof reason !== 'string' || reason.trim().length === 0) {
-      return NextResponse.json({ error: 'Reason is required' }, { status: 400 })
-    }
+    const { userId, amount, reason } = parsed.data
 
     // Verify target user exists
     const targetUser = await db.profile.findUnique({
@@ -53,13 +45,12 @@ export async function POST(request: Request) {
         throw new Error(`Insufficient balance. Current: ${balance.balance}, Attempting to deduct: ${Math.abs(amount)}`)
       }
 
-      const newBalance = balance.balance + amount
-
+      // Atomic balance update — prevents race conditions
       if (amount > 0) {
         await tx.aetherBalance.update({
           where: { userId },
           data: {
-            balance: newBalance,
+            balance: { increment: amount },
             totalEarned: { increment: amount },
           },
         })
@@ -67,11 +58,15 @@ export async function POST(request: Request) {
         await tx.aetherBalance.update({
           where: { userId },
           data: {
-            balance: newBalance,
+            balance: { decrement: Math.abs(amount) },
             totalRedeemed: { increment: Math.abs(amount) },
           },
         })
       }
+
+      // Read updated balance for transaction record
+      const updatedBalance = await tx.aetherBalance.findUnique({ where: { userId } })
+      const newBalance = updatedBalance!.balance
 
       await tx.aetherTransaction.create({
         data: {

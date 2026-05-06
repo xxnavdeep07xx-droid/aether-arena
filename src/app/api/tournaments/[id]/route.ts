@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 export async function GET(
   request: Request,
@@ -7,6 +8,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+
+    // Check if current user is authenticated
+    const session = await getSession(request)
+    const isAdmin = session?.profile.isAdmin ?? false
 
     const tournament = await db.tournament.findUnique({
       where: { id },
@@ -22,21 +27,23 @@ export async function GET(
             description: true,
           },
         },
-        registrations: {
-          include: {
-            player: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-                avatarUrl: true,
-                league: true,
-                leaguePoints: true,
+        registrations: isAdmin
+          ? {
+              include: {
+                player: {
+                  select: {
+                    id: true,
+                    username: true,
+                    displayName: true,
+                    avatarUrl: true,
+                    league: true,
+                    leaguePoints: true,
+                  },
+                },
               },
-            },
-          },
-          orderBy: { createdAt: 'asc' },
-        },
+              orderBy: { createdAt: 'asc' },
+            }
+          : undefined,
         createdBy: {
           select: {
             id: true,
@@ -45,6 +52,9 @@ export async function GET(
             avatarUrl: true,
           },
         },
+        _count: !isAdmin
+          ? { select: { registrations: true } }
+          : undefined,
       },
     })
 
@@ -57,41 +67,50 @@ export async function GET(
 
     // Check if current user is registered
     let isRegistered = false
-    let userRegistration: any = null
-    try {
-      const cookieHeader = request.headers.get('cookie')
-      if (cookieHeader) {
-        const match = cookieHeader.match(/aether_session=([^;]+)/)
-        if (match) {
-          const session = await db.session.findUnique({
-            where: { token: match[1] },
-            select: { userId: true, expiresAt: true },
-          })
-          if (session && session.expiresAt >= new Date()) {
-            const reg = await db.tournamentRegistration.findUnique({
-              where: {
-                tournamentId_playerId: {
-                  tournamentId: id,
-                  playerId: session.userId,
-                },
-              },
-            })
-            if (reg) {
-              isRegistered = true
-              userRegistration = reg
-            }
-          }
-        }
+    let userRegistration: {
+      id: string
+      paymentStatus: string
+      paymentMethod: string | null
+      createdAt: Date
+    } | null = null
+
+    if (session) {
+      const reg = await db.tournamentRegistration.findUnique({
+        where: {
+          tournamentId_playerId: {
+            tournamentId: id,
+            playerId: session.userId,
+          },
+        },
+        select: {
+          id: true,
+          paymentStatus: true,
+          paymentMethod: true,
+          createdAt: true,
+        },
+      })
+      if (reg) {
+        isRegistered = true
+        userRegistration = reg
       }
-    } catch {
-      // Ignore session errors
     }
 
+    // Determine whether to show room credentials
+    // Only show to: (1) admins, or (2) registered users with verified payment
+    const showRoomCredentials = isAdmin || (isRegistered && userRegistration?.paymentStatus === 'verified')
+
+    // Build response — strip sensitive fields unless authorized
+    const { roomId, roomPassword, ...safeTournament } = tournament
+
     return NextResponse.json({
-      ...tournament,
+      ...safeTournament,
+      roomId: showRoomCredentials ? roomId : null,
+      roomPassword: showRoomCredentials ? roomPassword : null,
       entryFeeDisplay: (tournament.entryFee / 100).toFixed(2),
       prizePoolDisplay: (tournament.prizePool / 100).toFixed(2),
-      registrationCount: tournament.registrations.length,
+      registrationCount: isAdmin
+        ? tournament.registrations!.length
+        : (tournament as unknown as { _count: { registrations: number } })._count?.registrations ?? 0,
       isRegistered,
       userRegistration,
     })

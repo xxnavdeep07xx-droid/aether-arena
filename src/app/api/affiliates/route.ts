@@ -14,7 +14,9 @@ export async function GET() {
       originalPriceDisplay: a.originalPrice > 0 ? `₹${a.originalPrice.toLocaleString('en-IN')}` : null,
     }))
 
-    return NextResponse.json({ affiliates: formatted })
+    return NextResponse.json({ affiliates: formatted }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    })
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

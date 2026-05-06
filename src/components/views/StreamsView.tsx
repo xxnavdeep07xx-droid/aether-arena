@@ -6,13 +6,14 @@ import { useMemo } from 'react';
 import { Tv, CircleDot, Calendar, Eye } from 'lucide-react';
 import { cn, formatDateTime } from '@/lib/utils';
 import { StreamsSkeleton } from './Skeletons';
+import { apiFetch } from '@/lib/api';
 
 export function StreamsView() {
   const { query: searchQuery } = useSearchStore();
 
   const { data: streams, isLoading } = useQuery({
     queryKey: ['all-streams'],
-    queryFn: () => fetch('/api/streams').then(r => r.json()).then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
+    queryFn: () => apiFetch<any>('/api/streams').then(d => Array.isArray(d.streams) ? d.streams : Array.isArray(d) ? d : []),
   });
 
   const filteredStreams = useMemo(() => {

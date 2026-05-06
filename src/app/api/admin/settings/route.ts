@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/auth'
+import { updateSettingsSchema, formatZodError } from '@/lib/validations'
+
+// Keys whose values should never be returned in GET responses (sensitive credentials)
+const SENSITIVE_KEYS = new Set([
+  'razorpay_key_secret',
+  'razorpay_webhook_secret',
+  'gpay_number',   // Sensitive — only shown to admin via redacted indicator
+  'gpay_upi_id',   // Sensitive — only shown to admin via redacted indicator
+])
 
 export async function GET(request: Request) {
   try {
@@ -10,10 +19,14 @@ export async function GET(request: Request) {
       orderBy: { key: 'asc' },
     })
 
-    // Convert to key-value object
+    // Convert to key-value object, redacting sensitive values
     const settingsMap: Record<string, string> = {}
     for (const setting of settings) {
-      settingsMap[setting.key] = setting.value
+      if (SENSITIVE_KEYS.has(setting.key)) {
+        settingsMap[setting.key] = setting.value ? '••••••••' : '' // redact but indicate if set
+      } else {
+        settingsMap[setting.key] = setting.value
+      }
     }
 
     return NextResponse.json({ settings: settingsMap })
@@ -28,15 +41,24 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const auth = await requireAdmin(request)
-    const body = await request.json()
-    const { settings } = body as { settings: Record<string, string> }
-
-    if (!settings || typeof settings !== 'object') {
-      return NextResponse.json({ error: 'Settings object is required' }, { status: 400 })
+    // Request body size limit
+    const contentLength = parseInt(request.headers.get('content-length') || '0')
+    if (contentLength > 100_000) {
+      return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
     }
 
-    // Upsert each setting
+    const auth = await requireAdmin(request)
+    const body = await request.json()
+
+    // Zod validation with setting key whitelist
+    const parsed = updateSettingsSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 })
+    }
+
+    const { settings } = parsed.data
+
+    // Upsert each setting (keys are already validated against whitelist)
     const results = await Promise.all(
       Object.entries(settings).map(([key, value]) =>
         db.platformSetting.upsert({

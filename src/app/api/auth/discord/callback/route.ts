@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
+import { authLimiter } from '@/lib/rate-limit'
+import { Prisma } from '@prisma/client'
 
 function getDiscordEnv() {
   const clientId = process.env.DISCORD_CLIENT_ID;
@@ -26,8 +28,9 @@ async function exchangeCode(code: string, redirectUri: string, clientId: string,
   })
 
   if (!tokenRes.ok) {
-    const err = await tokenRes.text()
-    throw new Error(`Token exchange failed: ${err}`)
+    const errText = await tokenRes.text()
+    console.error('[Discord Callback] Token exchange failed:', tokenRes.status, errText)
+    throw new Error(`Token exchange failed: ${errText}`)
   }
 
   return tokenRes.json()
@@ -46,6 +49,14 @@ async function getDiscordUser(accessToken: string) {
 }
 
 export async function GET(request: Request) {
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await authLimiter(`discord:${clientIp}`);
+  if (!rateLimitOk) {
+    const url = new URL(request.url);
+    return NextResponse.redirect(`${url.origin}/?error=rate_limited`);
+  }
+
   try {
     const { clientId, clientSecret, redirectUri } = getDiscordEnv();
 
@@ -67,34 +78,32 @@ export async function GET(request: Request) {
     // Get Discord user info
     const discordUser = await getDiscordUser(tokenData.access_token)
 
-    // Check if an account with this Discord ID already exists
-    const existingAccount = await db.account.findFirst({
-      where: {
-        provider: 'discord',
-        providerAccountId: discordUser.id,
-      },
-      include: { user: true },
+    // Check if a profile with this Discord ID already exists
+    const existingProfile = await db.profile.findFirst({
+      where: { discordId: discordUser.id },
     })
 
-    if (existingAccount) {
+    if (existingProfile) {
       // User already linked - log them in
-      if (existingAccount.user.isBanned) {
+      if (existingProfile.isBanned) {
         return NextResponse.redirect(`${url.origin}/?error=account_banned`)
       }
 
       // Update Discord info
       await db.profile.update({
-        where: { id: existingAccount.userId },
+        where: { id: existingProfile.id },
         data: {
           discordId: discordUser.id,
           discordUsername: discordUser.username,
-          avatarUrl: existingAccount.user.avatarUrl || `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
+          avatarUrl: existingProfile.avatarUrl || (discordUser.avatar
+            ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
+            : null),
         },
       })
 
       // Create session
-      await db.session.deleteMany({ where: { userId: existingAccount.userId } })
-      const token = await createSession(existingAccount.userId)
+      await db.session.deleteMany({ where: { userId: existingProfile.id } })
+      const token = await createSession(existingProfile.id)
 
       // Build the frontend URL
       const frontendUrl = `${url.origin}/`
@@ -111,7 +120,7 @@ export async function GET(request: Request) {
       return response
     }
 
-    // New Discord user - create account
+    // New Discord user - create profile
     // Generate unique username from Discord username
     let baseUsername = discordUser.username.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 18)
     if (!baseUsername || baseUsername.length < 3) baseUsername = `user_${discordUser.id.slice(0, 6)}`
@@ -124,129 +133,140 @@ export async function GET(request: Request) {
       username = `${baseUsername}${suffix}`
     }
 
-    // Create profile with Discord account atomically to prevent race condition
-    const profile = await db.$transaction(async (tx) => {
-      const userCount = await tx.profile.count()
-      const isAdmin = userCount === 0
+    // Create profile atomically
+    // Retry on P2002 (username collision from concurrent registrations)
+    let profile
+    let retries = 0
+    const MAX_RETRIES = 3
+    while (retries < MAX_RETRIES) {
+      try {
+        profile = await db.$transaction(async (tx) => {
+          // SECURITY: Never auto-assign admin on registration
+          // Admin must be manually promoted via database or admin panel
+          const isAdmin = false
 
-      // Check for ref parameter
-      const ref = url.searchParams.get('ref')
+          // Check for ref parameter
+          const ref = url.searchParams.get('ref')
 
-      const created = tx.profile.create({
-        data: {
-          username,
-          displayName: discordUser.global_name || discordUser.username,
-          discordId: discordUser.id,
-          discordUsername: discordUser.username,
-          avatarUrl: discordUser.avatar
-            ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
-            : null,
-          isAdmin,
-          referredByCode: ref || null,
-          accounts: {
-            create: {
-              type: 'oauth',
-              provider: 'discord',
-              providerAccountId: discordUser.id,
-              access_token: tokenData.access_token,
-              refresh_token: tokenData.refresh_token || null,
-              expires_at: tokenData.expires_in
-                ? Math.floor(Date.now() / 1000) + tokenData.expires_in
-                : null,
-              scope: tokenData.scope || 'identify email',
-              token_type: tokenData.token_type || 'Bearer',
-            },
-          },
-        },
-      })
-
-      // Wait for the profile to be created before creating related records
-      const newProfile = await created
-
-      // Create AetherBalance with 50 welcome bonus
-      await tx.aetherBalance.create({
-        data: {
-          userId: newProfile.id,
-          balance: 50,
-          totalEarned: 50,
-          totalRedeemed: 0,
-        },
-      })
-
-      // Create welcome bonus transaction
-      await tx.aetherTransaction.create({
-        data: {
-          userId: newProfile.id,
-          type: 'bonus',
-          source: 'welcome_bonus',
-          description: 'Welcome Bonus! 50 Aether to get you started',
-          amount: 50,
-          balanceAfter: 50,
-        },
-      })
-
-      // Create UserStreak with current streak 1
-      await tx.userStreak.create({
-        data: {
-          userId: newProfile.id,
-          currentStreak: 1,
-          longestStreak: 1,
-          lastLoginDate: new Date(),
-        },
-      })
-
-      // Auto-complete daily_login task for today
-      const now = new Date()
-      const istOffset = 5.5 * 60 * 60 * 1000
-      const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000
-      const ist = new Date(utc + istOffset)
-      ist.setHours(0, 0, 0, 0)
-
-      await tx.aetherTaskProgress.create({
-        data: {
-          userId: newProfile.id,
-          taskKey: 'daily_login',
-          completed: true,
-          completedAt: new Date(),
-          resetDate: ist,
-          timesCompleted: 1,
-        },
-      })
-
-      // Handle referral: if ref code provided, award 30 Aether to the referrer
-      if (ref && ref.trim().length > 0) {
-        const referrer = await tx.profile.findFirst({
-          where: { username: ref.trim().toLowerCase() },
-        })
-        if (referrer && referrer.id !== newProfile.id) {
-          const referrerBalance = await tx.aetherBalance.upsert({
-            where: { userId: referrer.id },
-            create: { userId: referrer.id, balance: 0, totalEarned: 0, totalRedeemed: 0 },
-            update: {},
-          })
-          const newReferrerBalance = referrerBalance.balance + 30
-          await tx.aetherBalance.update({
-            where: { userId: referrer.id },
+          const created = await tx.profile.create({
             data: {
-              balance: newReferrerBalance,
-              totalEarned: { increment: 30 },
+              username,
+              displayName: discordUser.global_name || discordUser.username,
+              discordId: discordUser.id,
+              discordUsername: discordUser.username,
+              avatarUrl: discordUser.avatar
+                ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
+                : null,
+              isAdmin,
+              referredByCode: ref || null,
             },
           })
+
+          // Create AetherBalance with 50 welcome bonus
+          await tx.aetherBalance.create({
+            data: {
+              userId: created.id,
+              balance: 50,
+              totalEarned: 50,
+              totalRedeemed: 0,
+            },
+          })
+
+          // Create welcome bonus transaction
           await tx.aetherTransaction.create({
             data: {
-              userId: referrer.id,
-              type: 'referral',
-              source: 'referral',
-              description: `Referral Bonus: ${newProfile.username} signed up using your link`,
-              amount: 30,
-              balanceAfter: newReferrerBalance,
+              userId: created.id,
+              type: 'bonus',
+              source: 'welcome_bonus',
+              description: 'Welcome Bonus! 50 Aether to get you started',
+              amount: 50,
+              balanceAfter: 50,
             },
           })
-        }
-      }
 
-      return newProfile
-    })
+          // Create UserStreak with current streak 1
+          await tx.userStreak.create({
+            data: {
+              userId: created.id,
+              currentStreak: 1,
+              longestStreak: 1,
+              lastLoginDate: new Date(),
+            },
+          })
+
+          // Auto-complete daily_login task for today
+          const now = new Date()
+          const istOffset = 5.5 * 60 * 60 * 1000
+          const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000
+          const ist = new Date(utc + istOffset)
+          ist.setHours(0, 0, 0, 0)
+
+          await tx.aetherTaskProgress.create({
+            data: {
+              userId: created.id,
+              taskKey: 'daily_login',
+              completed: true,
+              completedAt: new Date(),
+              resetDate: ist,
+              timesCompleted: 1,
+            },
+          })
+
+          // Handle referral: if ref code provided, award 30 Aether to the referrer
+          if (ref && ref.trim().length > 0) {
+            const referrer = await tx.profile.findFirst({
+              where: { username: ref.trim().toLowerCase() },
+            })
+            if (referrer && referrer.id !== created.id) {
+              const referrerBalance = await tx.aetherBalance.upsert({
+                where: { userId: referrer.id },
+                create: { userId: referrer.id, balance: 0, totalEarned: 0, totalRedeemed: 0 },
+                update: {},
+              })
+              const newReferrerBalance = referrerBalance.balance + 30
+              await tx.aetherBalance.update({
+                where: { userId: referrer.id },
+                data: {
+                  balance: newReferrerBalance,
+                  totalEarned: { increment: 30 },
+                },
+              })
+              await tx.aetherTransaction.create({
+                data: {
+                  userId: referrer.id,
+                  type: 'referral',
+                  source: 'referral',
+                  description: `Referral Bonus: ${created.username} signed up using your link`,
+                  amount: 30,
+                  balanceAfter: newReferrerBalance,
+                },
+              })
+            }
+          }
+
+          return created
+        })
+
+        // Transaction succeeded, break out of retry loop
+        break
+      } catch (txError: unknown) {
+        // Handle P2002 unique constraint violation (username collision)
+        if (txError instanceof Prisma.PrismaClientKnownRequestError && txError.code === 'P2002') {
+          retries++
+          suffix++
+          username = `${baseUsername}${suffix}`
+          if (retries >= MAX_RETRIES) {
+            throw new Error('Failed to create unique username after multiple attempts')
+          }
+          continue
+        }
+        throw txError
+      }
+    }
+
+    if (!profile) {
+      throw new Error('Failed to create account')
+    }
 
     // Create session
     const sessionToken = await createSession(profile.id)

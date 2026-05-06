@@ -6,9 +6,19 @@ export async function GET(request: Request) {
   try {
     await requireAdmin(request)
 
-    const affiliates = await db.affiliateLink.findMany({
-      orderBy: { sortOrder: 'asc' },
-    })
+    const { searchParams } = new URL(request.url)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 100)
+    const skip = (page - 1) * limit
+
+    const [affiliates, total] = await Promise.all([
+      db.affiliateLink.findMany({
+        orderBy: { sortOrder: 'asc' },
+        skip,
+        take: limit,
+      }),
+      db.affiliateLink.count(),
+    ])
 
     const formatted = affiliates.map((a) => ({
       ...a,
@@ -16,7 +26,10 @@ export async function GET(request: Request) {
       originalPriceDisplay: (a.originalPrice / 100).toFixed(2),
     }))
 
-    return NextResponse.json({ affiliates: formatted })
+    return NextResponse.json({
+      affiliates: formatted,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error) {
       const authError = error as { statusCode: number; message: string }

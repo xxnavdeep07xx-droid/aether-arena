@@ -1,11 +1,30 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { apiLimiter } from '@/lib/rate-limit'
+import { Prisma } from '@prisma/client'
+import { registerTournamentSchema, formatZodError } from '@/lib/validations'
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Request body size limit
+  const contentLength = parseInt(request.headers.get('content-length') || '0')
+  if (contentLength > 100_000) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
+
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await apiLimiter(`register:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json(
+      { error: 'Too many registration attempts. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   try {
     const auth = await requireAuth(request)
     const { id: tournamentId } = await params
@@ -78,14 +97,21 @@ export async function POST(
       body = {}
     }
 
-    const { paymentMethod, paymentReference, paymentScreenshotUrl } = body as {
-      paymentMethod?: string
-      paymentReference?: string
-      paymentScreenshotUrl?: string
+    // Zod validation for payment fields
+    const parsed = registerTournamentSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: formatZodError(parsed.error) },
+        { status: 400 }
+      )
     }
 
+    const { paymentMethod, paymentReference, paymentScreenshotUrl } = parsed.data
+
     // Determine payment status
-    const paymentStatus = tournament.entryFee === 0 ? 'verified' : (paymentMethod === 'razorpay' ? 'verified' : 'pending')
+    // Free tournaments: auto-verified. Paid: manual payment pending admin verification.
+    // Razorpay is NOT accepted as a manual payment method (it goes through /api/payments/verify).
+    const paymentStatus = tournament.entryFee === 0 ? 'verified' : 'pending'
 
     // Create registration and update tournament count in transaction
     // The capacity check is inside the transaction to prevent race conditions
@@ -183,6 +209,10 @@ export async function POST(
           : 'Registration successful! You are confirmed for this tournament.',
     })
   } catch (error: unknown) {
+    // Handle P2002 unique constraint violation (duplicate registration race condition)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'You are already registered for this tournament' }, { status: 409 })
+    }
     if (error instanceof Error && error.message === 'TOURNAMENT_FULL') {
       return NextResponse.json({ error: 'Tournament is full' }, { status: 400 })
     }

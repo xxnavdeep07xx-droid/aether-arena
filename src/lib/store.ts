@@ -6,6 +6,8 @@ export type ViewName =
   | 'tournaments'
   | 'tournament-detail'
   | 'leaderboard'
+  | 'league'
+  | 'store'
   | 'streams'
   | 'profile'
   | 'notifications'

@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, AuthError } from '@/lib/auth'
+import { strictLimiter } from '@/lib/rate-limit'
 
 const MIN_REDEEM_AMOUNT = 500
 const AETHER_TO_INR_RATE = 10 / 100 // 100 Aether = ₹10
 
 export async function POST(request: Request) {
+  // Rate limiting — strict because redemptions involve money
+  const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const { success: rateLimitOk } = await strictLimiter(`redeem:${clientIp}`);
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Too many redemption attempts. Please try again later.' }, { status: 429 });
+  }
+
   try {
     const { userId } = await requireAuth(request)
 
@@ -42,17 +50,20 @@ export async function POST(request: Request) {
         throw new Error(`Minimum redemption is ${MIN_REDEEM_AMOUNT} Aether (₹${(MIN_REDEEM_AMOUNT * AETHER_TO_INR_RATE).toFixed(0)})`)
       }
 
-      // Deduct from balance
-      const newBalance = balance.balance - MIN_REDEEM_AMOUNT
-      const amountInr = (MIN_REDEEM_AMOUNT * AETHER_TO_INR_RATE)
+      const amountInrPaise = Math.round(MIN_REDEEM_AMOUNT * AETHER_TO_INR_RATE * 100) // Store in paise
 
+      // Atomic balance decrement — prevents race conditions
       await tx.aetherBalance.update({
         where: { userId },
         data: {
-          balance: newBalance,
+          balance: { decrement: MIN_REDEEM_AMOUNT },
           totalRedeemed: { increment: MIN_REDEEM_AMOUNT },
         },
       })
+
+      // Read updated balance for transaction record
+      const updatedBalance = await tx.aetherBalance.findUnique({ where: { userId } })
+      const newBalance = updatedBalance!.balance
 
       // Create transaction record
       await tx.aetherTransaction.create({
@@ -60,7 +71,7 @@ export async function POST(request: Request) {
           userId,
           type: 'redeemed',
           source: 'redemption',
-          description: `Redeemed ${MIN_REDEEM_AMOUNT} Aether for ₹${amountInr.toFixed(0)} via UPI`,
+          description: `Redeemed ${MIN_REDEEM_AMOUNT} Aether for ₹${(amountInrPaise / 100).toFixed(0)} via UPI`,
           amount: -MIN_REDEEM_AMOUNT,
           balanceAfter: newBalance,
         },
@@ -71,7 +82,7 @@ export async function POST(request: Request) {
         data: {
           userId,
           amountAether: MIN_REDEEM_AMOUNT,
-          amountInr,
+          amountInr: amountInrPaise,
           upiId: upiId.trim(),
           status: 'pending',
         },

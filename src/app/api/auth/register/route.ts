@@ -2,15 +2,131 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { createSession, getSessionCookieOptions } from '@/lib/auth'
-import { authLimiter } from '@/lib/rate-limit';
+import { authLimiter, strictLimiter } from '@/lib/rate-limit'
+import { sendVerificationEmail } from '@/lib/email'
+import crypto from 'crypto'
+
+// Ensure AetherTask seed data exists (idempotent)
+async function ensureAetherTaskSeed() {
+  try {
+    const taskCount = await db.aetherTask.count()
+    if (taskCount === 0) {
+      const tasks = [
+        { taskKey: 'daily_login', title: 'Daily Login', description: 'Open the app today', rewardAmount: 5, category: 'daily', resetType: 'daily', affiliateUrl: null, displayOrder: 1 },
+        { taskKey: 'view_tournament', title: 'View Tournament', description: 'View any tournament details', rewardAmount: 3, category: 'daily', resetType: 'daily', affiliateUrl: null, displayOrder: 2 },
+        { taskKey: 'check_leaderboard', title: 'Check Leaderboard', description: 'Visit the leaderboard page', rewardAmount: 3, category: 'daily', resetType: 'daily', affiliateUrl: null, displayOrder: 3 },
+        { taskKey: 'register_tournament', title: 'Register for Tournament', description: 'Register for any tournament', rewardAmount: 10, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 4 },
+        { taskKey: 'play_tournament', title: 'Play a Tournament', description: 'Complete a tournament match', rewardAmount: 25, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 5 },
+        { taskKey: 'win_tournament', title: 'Win a Tournament', description: 'Win 1st place in a tournament', rewardAmount: 100, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 6 },
+        { taskKey: 'win_2nd_place', title: 'Win 2nd Place', description: 'Get 2nd place in a tournament', rewardAmount: 60, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 7 },
+        { taskKey: 'win_3rd_place', title: 'Win 3rd Place', description: 'Get 3rd place in a tournament', rewardAmount: 40, category: 'tournament', resetType: 'one_time', affiliateUrl: null, displayOrder: 8 },
+        { taskKey: 'complete_profile', title: 'Complete Profile', description: 'Add bio and avatar to your profile', rewardAmount: 15, category: 'engagement', resetType: 'one_time', affiliateUrl: null, displayOrder: 9 },
+        { taskKey: 'refer_friend', title: 'Refer a Friend', description: 'Share referral link, friend signs up', rewardAmount: 30, category: 'engagement', resetType: 'one_time', affiliateUrl: null, displayOrder: 10 },
+        { taskKey: 'streak_7', title: '7-Day Streak', description: 'Log in 7 consecutive days', rewardAmount: 50, category: 'engagement', resetType: 'one_time', affiliateUrl: null, displayOrder: 11 },
+        { taskKey: 'streak_30', title: '30-Day Streak', description: 'Log in 30 consecutive days', rewardAmount: 200, category: 'engagement', resetType: 'one_time', affiliateUrl: null, displayOrder: 12 },
+        { taskKey: 'try_bgmi', title: 'Try BGMI', description: 'Download BGMI via our affiliate link', rewardAmount: 20, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/bgmi', displayOrder: 13 },
+        { taskKey: 'try_freefire', title: 'Try Free Fire', description: 'Download Free Fire via our affiliate link', rewardAmount: 20, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/freefire', displayOrder: 14 },
+        { taskKey: 'try_codm', title: 'Try COD Mobile', description: 'Download COD Mobile via our affiliate link', rewardAmount: 20, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/call-of-duty-mobile', displayOrder: 15 },
+        { taskKey: 'try_clashroyale', title: 'Try Clash Royale', description: 'Download Clash Royale via our affiliate link', rewardAmount: 15, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/clash-royale', displayOrder: 16 },
+        { taskKey: 'try_valorant', title: 'Try Valorant Mobile', description: 'Download Valorant Mobile via our affiliate link', rewardAmount: 15, category: 'affiliate', resetType: 'one_time', affiliateUrl: 'https://www.codashop.com/in/valorant-mobile', displayOrder: 17 },
+      ]
+      for (const t of tasks) {
+        await db.aetherTask.upsert({
+          where: { taskKey: t.taskKey },
+          create: t,
+          update: {},
+        })
+      }
+      console.log('[Register] Seeded AetherTask data (first registration)')
+    }
+  } catch (err) {
+    console.error('[Register] Failed to seed AetherTask data:', err)
+  }
+}
+
+// PgBouncer-safe: add a column if it doesn't exist
+async function safeAddColumn(table: string, column: string, type: string, nullable: boolean, defaultVal?: string) {
+  const notNull = nullable ? '' : ' NOT NULL'
+  const def = defaultVal !== undefined ? ` DEFAULT ${defaultVal}` : ''
+  const alterSql = `ALTER TABLE "${table}" ADD COLUMN "${column}" ${type}${notNull}${def}`
+  await db.$executeRawUnsafe(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = '${table}' AND column_name = '${column}'
+      ) THEN
+        ${alterSql};
+      END IF;
+    END $$
+  `)
+}
+
+// Ensure critical database columns exist (runs on every registration)
+// Uses a cached flag to avoid repeated checks
+let schemaChecked = false
+async function ensureDatabaseSchema() {
+  if (schemaChecked) return
+  try {
+    // AccountCredential columns
+    await safeAddColumn('AccountCredential', 'phone', 'TEXT', true)
+    await safeAddColumn('AccountCredential', 'phoneVerified', 'BOOLEAN', false, 'false')
+    await safeAddColumn('AccountCredential', 'emailVerified', 'BOOLEAN', false, 'false')
+    await safeAddColumn('AccountCredential', 'emailVerificationToken', 'TEXT', true)
+    await safeAddColumn('AccountCredential', 'emailVerificationExpires', 'TIMESTAMP(3)', true)
+
+    // Profile columns
+    await safeAddColumn('Profile', 'phone', 'TEXT', true)
+    await safeAddColumn('Profile', 'phoneVerified', 'BOOLEAN', false, 'false')
+    await safeAddColumn('Profile', 'referredByCode', 'TEXT', true)
+    await safeAddColumn('Profile', 'notification_prefs', 'JSONB', false, "'{\"pushEnabled\":true,\"tournamentAlerts\":true,\"resultUpdates\":true,\"promoOffers\":false,\"communityUpdates\":true}'")
+    await safeAddColumn('Profile', 'privacy_prefs', 'JSONB', false, "'{\"profileVisibility\":\"public\",\"showLeaderboard\":true,\"showActivity\":true}'")
+    await safeAddColumn('Profile', 'language', 'TEXT', false, "'en'")
+
+    // AetherTaskProgress columns
+    await safeAddColumn('AetherTaskProgress', 'reset_date', 'DATE', true)
+
+    // TopupPack columns
+    await safeAddColumn('TopupPack', 'imageUrl', 'TEXT', false, "''")
+    await safeAddColumn('TopupPack', 'affiliateUrl', 'TEXT', false, "''")
+    await safeAddColumn('TopupPack', 'description', 'TEXT', false, "''")
+    await safeAddColumn('TopupPack', 'originalPrice', 'INTEGER', false, '0')
+
+    // Announcement columns
+    await safeAddColumn('Announcement', 'createdById', 'TEXT', true)
+    await safeAddColumn('Announcement', 'expiresAt', 'TIMESTAMP(3)', true)
+
+    schemaChecked = true
+    console.log('[Register] Database schema check completed')
+  } catch (err) {
+    console.error('[Register] Database schema check failed (non-critical):', err)
+    // Don't block registration — the column might already exist
+    schemaChecked = true
+  }
+}
 
 export async function POST(request: Request) {
+  // Request body size limit
+  const contentLength = parseInt(request.headers.get('content-length') || '0')
+  if (contentLength > 100_000) {
+    return NextResponse.json({ error: 'Request body too large' }, { status: 413 })
+  }
+
   // Rate limiting
   const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-  const { success: rateLimitOk } = authLimiter(`register:${clientIp}`);
+  const { success: rateLimitOk } = await authLimiter(`register:${clientIp}`);
   if (!rateLimitOk) {
     return NextResponse.json(
       { error: 'Too many registration attempts. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
+  // Anti-abuse: limit to 3 accounts per IP per 24-hour window
+  const { success: dailyLimitOk } = await strictLimiter(`register_daily:${clientIp}`);
+  if (!dailyLimitOk) {
+    return NextResponse.json(
+      { error: 'Daily registration limit reached. Please try again tomorrow.' },
       { status: 429 }
     );
   }
@@ -24,6 +140,7 @@ export async function POST(request: Request) {
     phone?: string;
     referralCode?: string;
     ref?: string;
+    emailOtpVerified?: boolean;
   }
   try {
     body = await request.json()
@@ -34,12 +151,28 @@ export async function POST(request: Request) {
     )
   }
 
-  const { email, password, username, displayName, phone, referralCode, ref } = body
+  const { email, password, username, displayName, phone, referralCode, ref, emailOtpVerified } = body
 
   // Validate required fields
-  if (!email || !password || !username) {
+  if (!email || !password || !username || !displayName) {
     return NextResponse.json(
-      { error: 'Email, password, and username are required' },
+      { error: 'Email, password, username, and display name are required' },
+      { status: 400 }
+    )
+  }
+
+  // Validate displayName length
+  if (displayName.trim().length < 2) {
+    return NextResponse.json(
+      { error: 'Display name must be at least 2 characters' },
+      { status: 400 }
+    )
+  }
+
+  // Validate phone (required now)
+  if (!phone || !phone.trim()) {
+    return NextResponse.json(
+      { error: 'Phone number is required' },
       { status: 400 }
     )
   }
@@ -88,8 +221,8 @@ export async function POST(request: Request) {
     )
   }
 
-  // Validate displayName length if provided
-  if (displayName && displayName.length > 50) {
+  // Validate displayName length
+  if (displayName.length > 50) {
     return NextResponse.json(
       { error: 'Display name must be 50 characters or less' },
       { status: 400 }
@@ -104,8 +237,8 @@ export async function POST(request: Request) {
     )
   }
 
-  // Validate phone if provided
-  if (phone && phone.trim().length > 0) {
+  // Validate phone format
+  if (phone) {
     const phoneRegex = /^[6-9]\d{9}$/
     if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
       return NextResponse.json(
@@ -118,6 +251,21 @@ export async function POST(request: Request) {
   // Resolve referral code (accept both referralCode and ref)
   const resolvedRefCode = referralCode || ref || null;
 
+  // Ensure database schema is up-to-date (auto-setup on first registration)
+  try {
+    await ensureDatabaseSchema()
+  } catch (err) {
+    console.error('[Register] Schema check error (non-blocking):', err)
+    // Don't block registration
+  }
+  // Ensure AetherTask seed data exists before the transaction
+  try {
+    await ensureAetherTaskSeed()
+  } catch (err) {
+    console.error('[Register] Seed check error (non-blocking):', err)
+    // Don't block registration
+  }
+
   try {
     // Check if email already exists
     const existingCred = await db.accountCredential.findUnique({
@@ -125,7 +273,7 @@ export async function POST(request: Request) {
     })
     if (existingCred) {
       return NextResponse.json(
-        { error: 'Email already registered' },
+        { error: 'An account with this email already exists. Try logging in instead.' },
         { status: 409 }
       )
     }
@@ -136,40 +284,39 @@ export async function POST(request: Request) {
     })
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Username already taken' },
+        { error: 'This username is not available. Please choose a different one.' },
         { status: 409 }
       )
     }
 
-    // Check if phone already exists (if provided)
-    if (phone && phone.trim().length > 0) {
-      const cleanPhone = phone.replace(/\D/g, '');
-      const existingPhone = await db.profile.findUnique({
-        where: { phone: cleanPhone },
-      })
-      if (existingPhone) {
-        return NextResponse.json(
-          { error: 'Phone number already registered' },
-          { status: 409 }
-        )
-      }
+    // Check if phone already exists
+    const cleanPhone = phone.replace(/\D/g, '');
+    const existingPhone = await db.profile.findUnique({
+      where: { phone: cleanPhone },
+    })
+    if (existingPhone) {
+      return NextResponse.json(
+        { error: 'Phone number already registered' },
+        { status: 409 }
+      )
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Clean phone number
-    const cleanPhone = phone && phone.trim().length > 0 ? phone.replace(/\D/g, '') : null;
+    // Clean phone number (already validated above)
+    // cleanPhone is defined above
 
     // Create profile with credential atomically
     const profile = await db.$transaction(async (tx) => {
+      // First user becomes admin automatically; specific owner usernames always get admin
       const userCount = await tx.profile.count()
       const isAdmin = userCount === 0 || ['admin', 'navdeep'].includes(username.toLowerCase())
 
       const created = tx.profile.create({
         data: {
           username,
-          displayName: displayName || username,
+          displayName,
           phone: cleanPhone,
           phoneVerified: false,
           isAdmin,
@@ -180,12 +327,15 @@ export async function POST(request: Request) {
               password: hashedPassword,
               phone: cleanPhone,
               phoneVerified: false,
-            },
+              emailVerified: emailOtpVerified ? true : false,
+              emailVerificationToken: emailOtpVerified ? null : crypto.randomBytes(32).toString('hex'),
+              emailVerificationExpires: emailOtpVerified ? null : new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+            }
           },
         },
         include: {
           credentials: {
-            select: { email: true, phone: true },
+            select: { email: true, phone: true, emailVerificationToken: true },
           },
         },
       })
@@ -225,23 +375,33 @@ export async function POST(request: Request) {
         },
       })
 
-      // Auto-complete daily_login task for today
-      const now = new Date()
-      const istOffset = 5.5 * 60 * 60 * 1000
-      const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000
-      const ist = new Date(utc + istOffset)
-      ist.setHours(0, 0, 0, 0)
+      // Auto-complete daily_login task for today (best-effort — skip if AetherTask not seeded)
+      try {
+        const dailyTask = await tx.aetherTask.findUnique({ where: { taskKey: 'daily_login' } })
+        if (dailyTask) {
+          const now = new Date()
+          const istOffset = 5.5 * 60 * 60 * 1000
+          const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000
+          const ist = new Date(utc + istOffset)
+          ist.setHours(0, 0, 0, 0)
 
-      await tx.aetherTaskProgress.create({
-        data: {
-          userId: profile.id,
-          taskKey: 'daily_login',
-          completed: true,
-          completedAt: new Date(),
-          resetDate: ist,
-          timesCompleted: 1,
-        },
-      })
+          await tx.aetherTaskProgress.create({
+            data: {
+              userId: profile.id,
+              taskKey: 'daily_login',
+              completed: true,
+              completedAt: new Date(),
+              resetDate: ist,
+              timesCompleted: 1,
+            },
+          })
+        } else {
+          console.warn('[Register] daily_login AetherTask not found — skipping task progress creation')
+        }
+      } catch (taskErr) {
+        // Non-critical: don't fail registration over task progress
+        console.error('[Register] Failed to create daily_login task progress (non-critical):', taskErr)
+      }
 
       // Handle referral: if ref code provided, award 30 Aether to the referrer
       if (resolvedRefCode && resolvedRefCode.trim().length > 0) {
@@ -281,6 +441,18 @@ export async function POST(request: Request) {
     // Create session
     const token = await createSession(profile.id)
 
+    // Send verification email (non-blocking — don't fail registration if email fails)
+    // Skip if email was already verified via OTP
+    if (!emailOtpVerified && profile.credentials?.emailVerificationToken) {
+      sendVerificationEmail(
+        profile.credentials.email,
+        profile.username,
+        profile.credentials.emailVerificationToken
+      ).catch((err) => {
+        console.error('[Register] Failed to send verification email:', err)
+      })
+    }
+
     // Build response
     const response = NextResponse.json({
       user: {
@@ -290,7 +462,8 @@ export async function POST(request: Request) {
         avatarUrl: profile.avatarUrl,
         email: profile.credentials?.email,
         phone: profile.credentials?.phone || profile.phone,
-        isAdmin: profile.isAdmin,
+        isAdmin: Boolean(profile.isAdmin),
+        emailVerified: emailOtpVerified ? true : false,
       },
     })
 
@@ -308,24 +481,21 @@ export async function POST(request: Request) {
 
     // Only catch known unique constraint violations — everything else surfaces the real error
     if (msg.includes('Unique constraint')) {
-      // Determine which field caused the constraint violation
-      if (msg.includes('email')) {
-        return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
-      }
-      if (msg.includes('username')) {
-        return NextResponse.json({ error: 'Username already taken' }, { status: 409 })
-      }
-      if (msg.includes('phone')) {
-        return NextResponse.json({ error: 'Phone number already registered' }, { status: 409 })
-      }
+      // Generic message — avoid revealing which specific field caused the conflict
+      // to prevent account enumeration attacks
       return NextResponse.json(
-        { error: 'Email, username, or phone already exists' },
+        { error: 'Registration failed. The email, username, or phone you entered is already in use. Try logging in or use different details.' },
         { status: 409 }
       )
     }
 
+    // Return more descriptive error for debugging (strip in production later)
+    const debugMsg = process.env.NODE_ENV === 'development'
+      ? `Registration failed: ${msg}`
+      : 'Registration failed. Please try again later.'
+
     return NextResponse.json(
-      { error: 'Registration failed. Please try again later.' },
+      { error: debugMsg },
       { status: 500 }
     )
   }

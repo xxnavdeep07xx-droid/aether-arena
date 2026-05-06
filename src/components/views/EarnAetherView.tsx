@@ -17,6 +17,7 @@ import {
   formatAether, aetherToInr, getNextStreakMilestone
 } from '@/lib/aether';
 import { ThemedSkeleton } from './Skeletons';
+import { apiFetch } from '@/lib/api';
 
 // ==================== FLOATING AETHER ANIMATION ====================
 
@@ -58,23 +59,19 @@ function AetherOverview() {
 
   const { data: balanceData } = useQuery({
     queryKey: ['aether-balance-overview'],
-    queryFn: () => fetch('/api/aether/balance').then(r => r.json()),
+    queryFn: () => apiFetch<{ balance?: number; totalEarned?: number; totalRedeemed?: number }>('/api/aether/balance'),
   });
 
   const { data: streak } = useQuery({
     queryKey: ['aether-streak-overview'],
-    queryFn: () => fetch('/api/aether/streak').then(r => r.json()),
+    queryFn: () => apiFetch<{ currentStreak?: number; longestStreak?: number; alreadyCheckedIn?: boolean }>('/api/aether/streak'),
   });
 
   // Claim daily checkin mutation
   const claimCheckinMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/aether/checkin', { method: 'POST' });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to claim daily reward');
-      }
-      return res.json();
+      const data = await apiFetch<any>('/api/aether/checkin', { method: 'POST' });
+      return data;
     },
     onSuccess: (data) => {
       toast.success(`Daily reward claimed! +${data.dailyLoginAwarded ? 5 : 0} Aether`);
@@ -99,7 +96,7 @@ function AetherOverview() {
 
   const { data: referral } = useQuery({
     queryKey: ['aether-referral-overview'],
-    queryFn: () => fetch('/api/aether/referral').then(r => r.json()),
+    queryFn: () => apiFetch<{ referralCode?: string; referralUrl?: string; referralCount?: number }>('/api/aether/referral'),
   });
 
   const balance = balanceData?.balance ?? 0;
@@ -269,21 +266,21 @@ function AetherOverview() {
             <div className="flex items-center gap-2">
               <span className="text-xs text-arena-text-muted">Code:</span>
               <code className="text-sm font-mono bg-arena-dark px-3 py-1 rounded-lg text-purple-300">{referral.referralCode}</code>
-              <button onClick={() => handleCopy(referral.referralCode)} className="p-1.5 rounded-lg hover:bg-arena-card transition-colors">
+              <button onClick={() => handleCopy(referral.referralCode || '')} className="p-1.5 rounded-lg hover:bg-arena-card transition-colors">
                 <Copy className="w-3.5 h-3.5 text-arena-text-muted" />
               </button>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-arena-text-muted">Link:</span>
               <div className="flex-1 bg-arena-dark px-3 py-1 rounded-lg text-xs text-arena-text-secondary truncate">{referral.referralUrl}</div>
-              <button onClick={() => handleCopy(referral.referralUrl)} className="p-1.5 rounded-lg hover:bg-arena-card transition-colors">
+              <button onClick={() => handleCopy(referral.referralUrl || '')} className="p-1.5 rounded-lg hover:bg-arena-card transition-colors">
                 <Copy className="w-3.5 h-3.5 text-arena-text-muted" />
               </button>
             </div>
           </div>
           <div className="flex items-center justify-between mt-3">
             <span className="text-xs text-arena-text-muted">{referral.referralCount} friend{referral.referralCount !== 1 ? 's' : ''} referred</span>
-            <button onClick={() => handleCopy(referral.referralUrl)} className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-500/30 transition-colors">
+            <button onClick={() => handleCopy(referral.referralUrl || '')} className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-500/30 transition-colors">
               <Share2 className="w-3.5 h-3.5" /> Share
             </button>
           </div>
@@ -325,18 +322,14 @@ function AetherTasksView() {
   // Fetch tasks
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
     queryKey: ['aether-tasks'],
-    queryFn: () => fetch('/api/aether/tasks').then(r => r.json()),
+    queryFn: () => apiFetch<{ tasks?: any[] }>('/api/aether/tasks'),
   });
 
   // Claim task mutation
   const claimMutation = useMutation({
     mutationFn: async (taskKey: string) => {
-      const res = await fetch(`/api/aether/tasks/${taskKey}/complete`, { method: 'POST' });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to claim task');
-      }
-      return res.json();
+      const data = await apiFetch<any>(`/api/aether/tasks/${taskKey}/complete`, { method: 'POST' });
+      return data;
     },
     onSuccess: (data) => {
       toast.success(`You earned ${data.amount} ${AETHER_NAME}!`);
@@ -435,24 +428,20 @@ function AetherRedeemView() {
 
   const { data: balance } = useQuery({
     queryKey: ['aether-balance-redeem'],
-    queryFn: () => fetch('/api/aether/balance').then(r => r.json()),
+    queryFn: () => apiFetch<{ balance?: number; totalEarned?: number; totalRedeemed?: number }>('/api/aether/balance'),
   });
 
   const redeemMutation = useMutation({
     mutationFn: async (upiId: string) => {
-      const res = await fetch('/api/aether/redeem', {
+      const data = await apiFetch<any>('/api/aether/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ upiId }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Redemption failed');
-      }
-      return res.json();
+      return data;
     },
     onSuccess: (data) => {
-      toast.success(`Redemption for ${data.redemption.amountInr} submitted!`);
+      toast.success(`Redemption for ₹${(data.redemption.amountInr / 100).toFixed(0)} submitted!`);
       queryClient.invalidateQueries({ queryKey: ['aether-balance'] });
       queryClient.invalidateQueries({ queryKey: ['aether-transactions'] });
       setRedeemSubmitted(true);
@@ -569,7 +558,7 @@ function AetherHistoryView() {
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['aether-transactions', page],
-    queryFn: () => fetch(`/api/aether/transactions?page=${page}&limit=${limit}`).then(r => r.json()),
+    queryFn: () => apiFetch<{ transactions?: any[]; total?: number }>(`/api/aether/transactions?page=${page}&limit=${limit}`),
   });
 
   const transactions = data?.transactions || [];
