@@ -141,8 +141,9 @@ export async function GET(request: Request) {
     while (retries < MAX_RETRIES) {
       try {
         profile = await db.$transaction(async (tx) => {
-          const userCount = await tx.profile.count()
-          const isAdmin = userCount === 0
+          // SECURITY: Never auto-assign admin on registration
+          // Admin must be manually promoted via database or admin panel
+          const isAdmin = false
 
           // Check for ref parameter
           const ref = url.searchParams.get('ref')

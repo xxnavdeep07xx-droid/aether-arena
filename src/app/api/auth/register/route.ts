@@ -309,8 +309,9 @@ export async function POST(request: Request) {
 
     // Create profile with credential atomically
     const profile = await db.$transaction(async (tx) => {
-      const initialized = await tx.platformSetting.findUnique({ where: { key: 'system_initialized' } })
-      const isAdmin = !initialized
+      // SECURITY: Never auto-assign admin on registration
+      // Admin must be manually promoted via database or admin panel
+      const isAdmin = false
 
       const created = tx.profile.create({
         data: {
@@ -341,15 +342,6 @@ export async function POST(request: Request) {
 
       // Wait for the profile to be created before creating related records
       const profile = await created
-
-      // Mark system as initialized so no future user gets admin
-      if (isAdmin) {
-        await tx.platformSetting.upsert({
-          where: { key: 'system_initialized' },
-          create: { key: 'system_initialized', value: 'true' },
-          update: { value: 'true' },
-        })
-      }
 
       // Create AetherBalance with 50 welcome bonus
       await tx.aetherBalance.create({
